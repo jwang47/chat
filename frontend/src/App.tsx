@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeProvider, useTheme } from "./components/theme-provider";
 import { SidebarProvider } from "./components/ui/sidebar";
 import { AppSidebar } from "./components/app-sidebar";
+import { ChatInterface } from "./components/chat/ChatInterface";
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -9,25 +10,31 @@ function ThemeToggle() {
   return (
     <Button
       variant="outline"
+      size="sm"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      className="bg-background border-border hover:bg-surface transition-colors duration-150"
     >
-      {theme === "light" ? "🌙" : "☀️"} Switch to{" "}
-      {theme === "light" ? "Dark" : "Light"} Mode
+      {theme === "light" ? "🌙" : "☀️"}
     </Button>
   );
 }
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SidebarProvider>
         <AppSidebar />
-        <main className="p-2 w-full">
-          <div className="flex min-h-svh flex-col items-center justify-center gap-4">
-            <h1 className="text-4xl font-bold">Hello World!</h1>
-            <p className="text-muted-foreground">This is a themed React app</p>
+        <main className="w-full h-screen flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b border-border bg-surface">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold text-foreground">
+                LLM Chat Interface
+              </h1>
+            </div>
             <ThemeToggle />
-            <Button>Click me</Button>
+          </div>
+          <div className="flex-1">
+            <ChatInterface />
           </div>
         </main>
       </SidebarProvider>
