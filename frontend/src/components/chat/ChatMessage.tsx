@@ -82,7 +82,7 @@ function CollapsibleCodeBlock({
       {shouldShowToggle && (
         <button
           onClick={handleToggle}
-          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[rgba(45,44,40,0.9)] to-transparent px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 backdrop-blur-sm"
+          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[rgba(45,44,40,0.9)] to-transparent px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 backdrop-blur-sm cursor-pointer"
         >
           {isExpanded ? "Show less" : `Show more (${lineCount} lines)`}
           <svg
