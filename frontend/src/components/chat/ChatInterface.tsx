@@ -63,45 +63,41 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="relative h-screen bg-background">
       {/* Messages Area */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea ref={scrollAreaRef} className="h-full px-2">
-          <div className="max-w-4xl mx-auto py-4">
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
+      <ScrollArea ref={scrollAreaRef} className="h-full px-2">
+        <div className="max-w-4xl mx-auto py-4">
+          {messages.map((message) => (
+            <ChatMessage key={message.id} message={message} />
+          ))}
 
-            {/* Typing Indicator */}
-            {isTyping && (
-              <div className="flex p-4">
-                <div className="p-3 rounded-lg">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                    <div
-                      className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    />
-                    <div
-                      className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    />
-                  </div>
+          {/* Typing Indicator */}
+          {isTyping && (
+            <div className="flex p-4">
+              <div className="p-3 rounded-lg">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                  <div
+                    className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                    style={{ animationDelay: "0.1s" }}
+                  />
+                  <div
+                    className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  />
                 </div>
               </div>
-            )}
-          </div>
-        </ScrollArea>
-      </div>
-
-      {/* Message Input - Fixed at bottom */}
-      <div className="flex-shrink-0 mb-8 p-1">
-        <div className="max-w-4xl mx-auto">
-          <MessageInput
-            onSendMessage={handleSendMessage}
-            placeholder="Ask me anything..."
-          />
+            </div>
+          )}
         </div>
+      </ScrollArea>
+
+      {/* Floating Message Input */}
+      <div className="absolute bottom-8 left-4 right-4 max-w-4xl mx-auto">
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          placeholder="Ask me anything..."
+        />
       </div>
     </div>
   );

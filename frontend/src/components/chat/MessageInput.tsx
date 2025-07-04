@@ -50,7 +50,7 @@ export function MessageInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        className="flex-1 bg-background border-border focus:border-accent transition-colors duration-150 h-12 py-3"
+        className="flex-1 bg-background border-border focus:border-accent h-12 py-3"
       />
       <Button
         type="submit"
