@@ -20,6 +20,7 @@ function CollapsibleCodeBlock({
 }: CollapsibleCodeBlockProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [shouldShowToggle, setShouldShowToggle] = useState(false);
+  const [isButtonHovered, setIsButtonHovered] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
 
   const lineCount = children.split("\n").length;
@@ -51,10 +52,13 @@ function CollapsibleCodeBlock({
       <div
         ref={codeRef}
         className={cn(
-          "overflow-hidden",
+          "overflow-hidden transition-all duration-100",
           shouldShowToggle &&
             !isExpanded &&
-            "cursor-pointer hover:ring-1 hover:ring-accent/30 rounded-lg transition-all duration-100"
+            "cursor-pointer hover:ring-1 hover:ring-accent/30 rounded-lg",
+          isButtonHovered &&
+            shouldShowToggle &&
+            "ring-1 ring-accent/30 rounded-lg"
         )}
         style={{ maxHeight }}
         onClick={handleExpand}
@@ -82,6 +86,8 @@ function CollapsibleCodeBlock({
       {shouldShowToggle && (
         <button
           onClick={handleToggle}
+          onMouseEnter={() => setIsButtonHovered(true)}
+          onMouseLeave={() => setIsButtonHovered(false)}
           className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[rgba(45,44,40,0.9)] to-transparent px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 backdrop-blur-sm cursor-pointer"
         >
           {isExpanded ? "Show less" : `Show more (${lineCount} lines)`}
