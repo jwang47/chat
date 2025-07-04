@@ -60,6 +60,7 @@ export const MessageInput = memo(function MessageInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className="flex-1 !bg-input bg-background border-border focus:border-accent h-12 py-3"
+        autoFocus
       />
       <Button
         type="submit"
