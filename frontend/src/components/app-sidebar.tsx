@@ -1,12 +1,5 @@
-import {
-  Calendar,
-  Home,
-  Inbox,
-  Search,
-  Settings,
-  PanelLeftOpen,
-  PanelLeftClose,
-} from "lucide-react";
+import { Home, Settings, PanelLeftOpen, PanelLeftClose } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 import {
   Sidebar,
@@ -24,34 +17,20 @@ import {
 // Menu items.
 const items = [
   {
-    title: "Home",
-    url: "#",
+    title: "Chat",
+    url: "/",
     icon: Home,
   },
   {
-    title: "Inbox",
-    url: "#",
-    icon: Inbox,
-  },
-  {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
-  },
-  {
-    title: "Search",
-    url: "#",
-    icon: Search,
-  },
-  {
     title: "Settings",
-    url: "#",
+    url: "/settings",
     icon: Settings,
   },
 ];
 
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
+  const location = useLocation();
   const isCollapsed = state === "collapsed";
 
   return (
@@ -84,11 +63,15 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
-                    <a href={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={location.pathname === item.url}
+                  >
+                    <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
