@@ -175,7 +175,7 @@ export function Settings() {
             <li>
               1. Visit{" "}
               <a
-                href="https://ai.google.dev"
+                href="https://aistudio.google.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:underline"
