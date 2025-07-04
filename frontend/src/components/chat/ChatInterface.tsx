@@ -74,24 +74,18 @@ export function ChatInterface() {
 
             {/* Typing Indicator */}
             {isTyping && (
-              <div className="flex gap-3 p-4">
-                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                  <div className="w-4 h-4 rounded-full bg-muted-foreground animate-pulse" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-xs text-muted-foreground">Assistant</div>
-                  <div className="bg-card p-3 rounded-lg shadow-sm">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                      <div
-                        className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                        style={{ animationDelay: "0.1s" }}
-                      />
-                      <div
-                        className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                        style={{ animationDelay: "0.2s" }}
-                      />
-                    </div>
+              <div className="flex p-4">
+                <div className="p-3 rounded-lg">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                    <div
+                      className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                      style={{ animationDelay: "0.1s" }}
+                    />
+                    <div
+                      className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
+                      style={{ animationDelay: "0.2s" }}
+                    />
                   </div>
                 </div>
               </div>
