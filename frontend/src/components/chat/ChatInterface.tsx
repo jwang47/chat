@@ -4,6 +4,7 @@ import { ChatMessage } from "./ChatMessage";
 import { MessageInput } from "./MessageInput";
 import { OpenRouterService, type OpenRouterMessage } from "@/lib/openrouter";
 import type { Message } from "@/types/chat";
+import { motion, AnimatePresence } from "motion/react";
 
 // Debug: Simple render counter
 let renderCount = 0;
@@ -94,6 +95,7 @@ export function ChatInterface() {
         content: "",
         role: "assistant",
         timestamp: new Date(),
+        isStreaming: true, // Mark as streaming
       };
 
       setMessages((prev) => [...prev, aiResponse]);
@@ -116,7 +118,7 @@ export function ChatInterface() {
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === aiResponseId
-                ? { ...msg, content: msg.content + chunk }
+                ? { ...msg, content: msg.content + chunk, isStreaming: true }
                 : msg
             )
           );
@@ -125,6 +127,13 @@ export function ChatInterface() {
         () => {
           setIsTyping(false);
           setStreamingMessageId(null);
+
+          // Mark message as no longer streaming
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === aiResponseId ? { ...msg, isStreaming: false } : msg
+            )
+          );
         },
         // onError: Handle errors
         (error: Error) => {
@@ -143,50 +152,93 @@ export function ChatInterface() {
   return (
     <div className="relative h-screen bg-background">
       {/* Error Display */}
-      {error && (
-        <div className="absolute top-4 left-4 right-4 max-w-4xl mx-auto z-10">
-          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-            <p className="text-red-400 text-sm">{error}</p>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="absolute top-4 left-4 right-4 max-w-4xl mx-auto z-10"
+          >
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Messages Area */}
       <ScrollArea ref={scrollAreaRef} className="h-full px-2 pb-20">
         <div className="max-w-4xl mx-auto py-4">
-          {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))}
+          <AnimatePresence mode="popLayout">
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+          </AnimatePresence>
 
           {/* Typing Indicator */}
-          {isTyping && !streamingMessageId && (
-            <div className="flex p-4">
-              <div className="p-3 rounded-lg">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                  <div
-                    className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                    style={{ animationDelay: "0.1s" }}
-                  />
-                  <div
-                    className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"
-                    style={{ animationDelay: "0.2s" }}
-                  />
+          <AnimatePresence>
+            {isTyping && !streamingMessageId && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="flex p-4"
+              >
+                <div className="p-3 rounded-lg">
+                  <div className="flex gap-1">
+                    <motion.div
+                      className="w-2 h-2 bg-muted-foreground rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{
+                        duration: 0.8,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                    />
+                    <motion.div
+                      className="w-2 h-2 bg-muted-foreground rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{
+                        duration: 0.8,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.2,
+                      }}
+                    />
+                    <motion.div
+                      className="w-2 h-2 bg-muted-foreground rounded-full"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{
+                        duration: 0.8,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.4,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </ScrollArea>
 
       {/* Floating Message Input */}
-      <div className="absolute bottom-8 left-4 right-4 max-w-4xl mx-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
+        className="absolute bottom-8 left-4 right-4 max-w-4xl mx-auto"
+      >
         <MessageInput
           onSendMessage={handleSendMessage}
           placeholder="Ask me anything..."
           disabled={isTyping}
         />
-      </div>
+      </motion.div>
     </div>
   );
 }
