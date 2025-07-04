@@ -147,7 +147,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={cn(
           "p-3 rounded-lg max-w-[80%]",
-          isUser && "bg-accent text-background"
+          isUser && "bg-accent/20 text-foreground border border-accent/30"
         )}
       >
         <div className="text-sm leading-relaxed">
