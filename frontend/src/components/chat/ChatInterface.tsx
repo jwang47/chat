@@ -46,7 +46,7 @@ export function ChatInterface() {
     return () => clearTimeout(timer);
   }, [scrollToBottom]);
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = useCallback((content: string) => {
     const newMessage: Message = {
       id: Date.now().toString(),
       content,
@@ -69,7 +69,7 @@ export function ChatInterface() {
       setMessages((prev) => [...prev, aiResponse]);
       setIsTyping(false);
     }, 1500);
-  };
+  }, []); // Empty dependency array since we use functional state updates
 
   return (
     <div className="relative h-screen bg-background">

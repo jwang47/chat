@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useMemo, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
@@ -9,7 +9,7 @@ interface MessageInputProps {
   placeholder?: string;
 }
 
-export function MessageInput({
+export const MessageInput = memo(function MessageInput({
   onSendMessage,
   disabled = false,
   placeholder = "Type your message...",
@@ -17,29 +17,44 @@ export function MessageInput({
   const [message, setMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message.trim() && !disabled) {
-      onSendMessage(message.trim());
-      setMessage("");
-      // Keep focus on the input without forcing re-focus
-      // The input will naturally maintain focus after clearing
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
       e.preventDefault();
-      handleSubmit(e);
-    }
-  };
+      if (message.trim() && !disabled) {
+        onSendMessage(message.trim());
+        setMessage("");
+        // Keep focus on the input without forcing re-focus
+        // The input will naturally maintain focus after clearing
+      }
+    },
+    [message, disabled, onSendMessage]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
+    },
+    [handleSubmit]
+  );
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessage(e.target.value);
+  }, []);
+
+  // Memoize the disabled state calculation
+  const isButtonDisabled = useMemo(() => {
+    return disabled || !message.trim();
+  }, [disabled, message]);
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-3">
       <Input
         ref={inputRef}
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
@@ -47,7 +62,7 @@ export function MessageInput({
       />
       <Button
         type="submit"
-        disabled={disabled || !message.trim()}
+        disabled={isButtonDisabled}
         size="icon"
         className="shrink-0 bg-accent text-background hover:bg-accent/90 transition-colors duration-150 h-12 w-12"
       >
@@ -56,4 +71,4 @@ export function MessageInput({
       </Button>
     </form>
   );
-}
+});
