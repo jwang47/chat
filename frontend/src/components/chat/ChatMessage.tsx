@@ -33,7 +33,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               h3: ({ children }) => (
                 <h3 className="text-sm font-semibold mb-1">{children}</h3>
               ),
-              code: ({ children, className, ...props }) => {
+              code: ({ children, className }) => {
                 const match = /language-(\w+)/.exec(className || "");
                 const language = match ? match[1] : "";
 
@@ -41,11 +41,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 if (match) {
                   return (
                     <SyntaxHighlighter
-                      style={oneDark}
+                      style={oneDark as any}
                       language={language}
                       PreTag="div"
                       className="rounded-lg !m-0 !p-3 !text-xs !font-mono !mb-2"
-                      {...props}
+                      customStyle={{
+                        backgroundColor: "rgba(45, 44, 40, 0.6)",
+                        margin: 0,
+                        padding: "12px",
+                      }}
                     >
                       {String(children).replace(/\n$/, "")}
                     </SyntaxHighlighter>
@@ -55,8 +59,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 // Inline code
                 return (
                   <code
-                    className="bg-surface px-1 py-0.5 rounded text-xs font-mono"
-                    {...props}
+                    className="px-1 py-0.5 rounded text-xs font-mono"
+                    style={{ backgroundColor: "rgba(45, 44, 40, 0.4)" }}
                   >
                     {children}
                   </code>
