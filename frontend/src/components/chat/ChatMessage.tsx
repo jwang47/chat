@@ -22,6 +22,8 @@ function CollapsibleCodeBlock({
   const [shouldShowToggle, setShouldShowToggle] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
 
+  const lineCount = children.split("\n").length;
+
   useEffect(() => {
     if (codeRef.current) {
       const height = codeRef.current.scrollHeight;
@@ -36,26 +38,32 @@ function CollapsibleCodeBlock({
   return (
     <div className="relative mb-2">
       <div ref={codeRef} className="overflow-hidden" style={{ maxHeight }}>
-        <SyntaxHighlighter
-          style={oneDark as any}
-          language={language}
-          PreTag="div"
-          className="rounded-lg !m-0 !p-3 !text-xs !font-mono"
-          customStyle={{
-            backgroundColor: "rgba(45, 44, 40, 0.6)",
-            margin: 0,
-            padding: "12px",
-          }}
-        >
-          {children}
-        </SyntaxHighlighter>
+        <div className="relative">
+          <SyntaxHighlighter
+            style={oneDark as any}
+            language={language}
+            PreTag="div"
+            className="rounded-lg !m-0 !p-3 !text-xs !font-mono"
+            customStyle={{
+              backgroundColor: "rgba(45, 44, 40, 0.6)",
+              margin: 0,
+              padding: "12px",
+              paddingTop: "32px", // Make room for line count
+            }}
+          >
+            {children}
+          </SyntaxHighlighter>
+          <div className="absolute top-2 right-3 text-xs text-muted-foreground bg-[rgba(25,24,21,0.8)] px-2 py-1 rounded">
+            {lineCount} {lineCount === 1 ? "line" : "lines"}
+          </div>
+        </div>
       </div>
       {shouldShowToggle && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[rgba(45,44,40,0.9)] to-transparent px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1"
         >
-          {isExpanded ? "Show less" : "Show more"}
+          {isExpanded ? "Show less" : `Show more (${lineCount} lines)`}
           <svg
             className={cn(
               "w-3 h-3 transition-transform duration-100",
