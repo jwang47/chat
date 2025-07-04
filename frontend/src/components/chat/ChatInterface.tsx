@@ -10,6 +10,13 @@ export function ChatInterface() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const messageIdCounter = useRef(0);
+
+  // Generate unique message ID
+  const generateMessageId = useCallback(() => {
+    messageIdCounter.current += 1;
+    return `msg_${Date.now()}_${messageIdCounter.current}`;
+  }, []);
 
   // Cache the scroll container reference
   const getScrollContainer = useCallback(() => {
@@ -46,30 +53,33 @@ export function ChatInterface() {
     return () => clearTimeout(timer);
   }, [scrollToBottom]);
 
-  const handleSendMessage = useCallback((content: string) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      content,
-      role: "user",
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-    setIsTyping(true);
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content:
-          "Thanks for your message! This is a mock response. In a real implementation, this would connect to an LLM API to generate intelligent responses based on your input.",
-        role: "assistant",
+  const handleSendMessage = useCallback(
+    (content: string) => {
+      const newMessage: Message = {
+        id: generateMessageId(),
+        content,
+        role: "user",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, aiResponse]);
-      setIsTyping(false);
-    }, 1500);
-  }, []); // Empty dependency array since we use functional state updates
+
+      setMessages((prev) => [...prev, newMessage]);
+      setIsTyping(true);
+
+      // Simulate AI response
+      setTimeout(() => {
+        const aiResponse: Message = {
+          id: generateMessageId(),
+          content:
+            "Thanks for your message! This is a mock response. In a real implementation, this would connect to an LLM API to generate intelligent responses based on your input.",
+          role: "assistant",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, aiResponse]);
+        setIsTyping(false);
+      }, 1500);
+    },
+    [generateMessageId]
+  );
 
   return (
     <div className="relative h-screen bg-background">
