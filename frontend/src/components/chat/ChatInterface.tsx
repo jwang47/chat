@@ -10,8 +10,8 @@ export function ChatInterface() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
+  // Function to scroll to bottom
+  const scrollToBottom = () => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector(
         "[data-radix-scroll-area-viewport]"
@@ -20,7 +20,22 @@ export function ChatInterface() {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
+  };
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
+
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    // Small delay to ensure DOM is fully rendered
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSendMessage = (content: string) => {
     const newMessage: Message = {
