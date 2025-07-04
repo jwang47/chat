@@ -1,0 +1,96 @@
+## Style Guide: Minimal Technical Dark Mode Interface
+
+### 1. Color Palette
+
+| Use             | Color     | Notes                            |
+| --------------- | --------- | -------------------------------- |
+| Background      | `#0C0C0C` | Deep black (but not pure `#000`) |
+| Surface / Card  | `#1A1A1A` | Slight contrast for grouping     |
+| Foreground Text | `#F5F5F5` | Off-white for primary content    |
+| Muted Text      | `#999999` | Labels, hints                    |
+| Accent          | `#4EA3F1` | Buttons, highlights              |
+| Highlight       | `#E2FF61` | Use sparingly                    |
+| Success         | `#3FB68B` | Confirmation states              |
+| Error           | `#D95555` | Error states                     |
+
+---
+
+### 2. Typography
+
+- **Font**: `Inter`, `SF Pro Text`, or `IBM Plex Sans`, `sans-serif`
+- **Sizes**:
+
+  - Title: `1.5rem–2rem` (`text-xl` to `text-2xl`)
+  - Body: `0.95rem–1rem` (`text-base`)
+  - Caption: `0.75rem–0.85rem` (`text-sm`)
+
+- **Weights**: Use `400`, `500`, and `600`
+
+---
+
+### 3. Layout & Spacing
+
+- **Max width**: `960px`
+- **Grid**: 12-column grid using `grid` or `flex`
+- **Whitespace**:
+
+  - Vertical spacing: `1.25rem` between elements
+  - Section spacing: `2rem–3rem`
+  - Component padding: `1rem` max
+
+- **No borders**: Use background color contrast and spacing
+
+---
+
+### 4. Components
+
+#### Buttons
+
+- BG: `#4EA3F1`
+- Text: `#0C0C0C`
+- Hover: `#65B0F5`
+- Border radius: `6px`
+- Padding: `0.5rem 1rem`
+- No shadow or subtle shadow only
+
+#### Inputs
+
+- BG: `#1A1A1A`
+- Text: `#F5F5F5`
+- Placeholder: `#777777`
+- Focus ring: `1px #4EA3F1`
+
+#### Cards / Panels
+
+- BG: `#1A1A1A`
+- Padding: `1rem`
+- Optional subtle shadow for elevation
+
+---
+
+### 5. Navigation
+
+- Vertical layout preferred
+- Active item: bold text or left accent bar
+- Group labels: `uppercase`, muted color, small
+
+---
+
+### 6. Motion
+
+- Transition duration: `100ms–250ms`
+- Animate:
+
+  - Button hover
+  - Focus
+  - Expand/collapse
+
+- Easing: `ease-in-out`
+
+---
+
+### 7. Accessibility
+
+- Text contrast: ≥ 4.5:1
+- Use ARIA labels
+- Full keyboard navigation
