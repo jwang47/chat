@@ -35,9 +35,30 @@ function CollapsibleCodeBlock({
 
   const maxHeight = shouldShowToggle && !isExpanded ? "25vh" : "none";
 
+  const handleExpand = () => {
+    if (shouldShowToggle && !isExpanded) {
+      setIsExpanded(true);
+    }
+  };
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsExpanded(!isExpanded);
+  };
+
   return (
     <div className="relative mb-2">
-      <div ref={codeRef} className="overflow-hidden" style={{ maxHeight }}>
+      <div
+        ref={codeRef}
+        className={cn(
+          "overflow-hidden",
+          shouldShowToggle &&
+            !isExpanded &&
+            "cursor-pointer hover:ring-1 hover:ring-accent/30 rounded-lg transition-all duration-100"
+        )}
+        style={{ maxHeight }}
+        onClick={handleExpand}
+      >
         <div className="relative">
           <SyntaxHighlighter
             style={oneDark as any}
@@ -60,7 +81,7 @@ function CollapsibleCodeBlock({
       </div>
       {shouldShowToggle && (
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={handleToggle}
           className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[rgba(45,44,40,0.9)] to-transparent px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1"
         >
           {isExpanded ? "Show less" : `Show more (${lineCount} lines)`}
