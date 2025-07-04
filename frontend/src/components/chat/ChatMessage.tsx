@@ -1,6 +1,8 @@
 import type { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface ChatMessageProps {
   message: Message;
@@ -31,21 +33,39 @@ export function ChatMessage({ message }: ChatMessageProps) {
               h3: ({ children }) => (
                 <h3 className="text-sm font-semibold mb-1">{children}</h3>
               ),
-              code: ({ children, className }) => {
-                const isInline = !className;
-                return isInline ? (
-                  <code className="bg-surface px-1 py-0.5 rounded text-xs font-mono">
+              code: ({ children, className, ...props }) => {
+                const match = /language-(\w+)/.exec(className || "");
+                const language = match ? match[1] : "";
+
+                // If it's a code block (has language class), use syntax highlighter
+                if (match) {
+                  return (
+                    <SyntaxHighlighter
+                      style={oneDark}
+                      language={language}
+                      PreTag="div"
+                      className="rounded-lg !m-0 !p-3 !text-xs !font-mono !mb-2"
+                      {...props}
+                    >
+                      {String(children).replace(/\n$/, "")}
+                    </SyntaxHighlighter>
+                  );
+                }
+
+                // Inline code
+                return (
+                  <code
+                    className="bg-surface px-1 py-0.5 rounded text-xs font-mono"
+                    {...props}
+                  >
                     {children}
                   </code>
-                ) : (
-                  <code className={className}>{children}</code>
                 );
               },
-              pre: ({ children }) => (
-                <pre className="bg-surface p-3 rounded-lg overflow-x-auto text-xs font-mono mb-2">
-                  {children}
-                </pre>
-              ),
+              pre: ({ children }) => {
+                // Don't wrap code blocks in pre since SyntaxHighlighter handles it
+                return <>{children}</>;
+              },
               ul: ({ children }) => (
                 <ul className="list-disc list-inside mb-2">{children}</ul>
               ),
@@ -62,6 +82,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 <strong className="font-semibold">{children}</strong>
               ),
               em: ({ children }) => <em className="italic">{children}</em>,
+              a: ({ children, href }) => (
+                <a
+                  href={href}
+                  className="text-accent hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {children}
+                </a>
+              ),
             }}
           >
             {message.content}

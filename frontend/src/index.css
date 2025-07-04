@@ -216,4 +216,37 @@
   .element-spacing {
     margin-bottom: 1.25rem;
   }
+
+  /* Syntax highlighting overrides */
+  .dark pre[class*="language-"] {
+    background-color: hsl(var(--surface)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  .dark code[class*="language-"] {
+    background-color: hsl(var(--surface)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Ensure syntax highlighter respects our theme */
+  .dark .language-typescript .token.keyword,
+  .dark .language-javascript .token.keyword,
+  .dark .language-ts .token.keyword,
+  .dark .language-js .token.keyword {
+    color: #4EA3F1 !important;
+  }
+  
+  .dark .language-typescript .token.string,
+  .dark .language-javascript .token.string,
+  .dark .language-ts .token.string,
+  .dark .language-js .token.string {
+    color: #3FB68B !important;
+  }
+  
+  .dark .language-typescript .token.function,
+  .dark .language-javascript .token.function,
+  .dark .language-ts .token.function,
+  .dark .language-js .token.function {
+    color: #E2FF61 !important;
+  }
 }
