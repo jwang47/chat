@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
@@ -15,22 +15,15 @@ export function MessageInput({
   placeholder = "Type your message...",
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
-  const [shouldFocus, setShouldFocus] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (shouldFocus && inputRef.current) {
-      inputRef.current.focus();
-      setShouldFocus(false);
-    }
-  }, [shouldFocus]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
       onSendMessage(message.trim());
       setMessage("");
-      setShouldFocus(true);
+      // Keep focus on the input without forcing re-focus
+      // The input will naturally maintain focus after clearing
     }
   };
 

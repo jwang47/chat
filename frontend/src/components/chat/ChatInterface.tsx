@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
 import { MessageInput } from "./MessageInput";
@@ -9,23 +9,32 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
 
-  // Function to scroll to bottom
-  const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector(
+  // Cache the scroll container reference
+  const getScrollContainer = useCallback(() => {
+    if (!scrollContainerRef.current && scrollAreaRef.current) {
+      scrollContainerRef.current = scrollAreaRef.current.querySelector(
         "[data-radix-scroll-area-viewport]"
       );
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
     }
-  };
+    return scrollContainerRef.current;
+  }, []);
+
+  // Optimized scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    const scrollContainer = getScrollContainer();
+    if (scrollContainer) {
+      requestAnimationFrame(() => {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      });
+    }
+  }, [getScrollContainer]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
@@ -35,7 +44,7 @@ export function ChatInterface() {
     }, 100);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [scrollToBottom]);
 
   const handleSendMessage = (content: string) => {
     const newMessage: Message = {
