@@ -52,13 +52,11 @@ function CollapsibleCodeBlock({
       <div
         ref={codeRef}
         className={cn(
-          "overflow-hidden transition-all duration-100",
+          "overflow-hidden transition-all duration-100 rounded-lg",
           shouldShowToggle &&
             !isExpanded &&
-            "cursor-pointer hover:ring-1 hover:ring-accent/30 rounded-lg",
-          isButtonHovered &&
-            shouldShowToggle &&
-            "ring-1 ring-accent/30 rounded-lg"
+            "cursor-pointer hover:ring-1 hover:ring-accent/30",
+          isButtonHovered && shouldShowToggle && "ring-1 ring-accent/30"
         )}
         style={{ maxHeight }}
         onClick={handleExpand}
@@ -68,12 +66,14 @@ function CollapsibleCodeBlock({
             style={oneDark as any}
             language={language}
             PreTag="div"
-            className="rounded-lg !m-0 !p-3 !text-xs !font-mono"
+            className="!m-0 !p-3 !text-xs !font-mono"
             customStyle={{
               backgroundColor: "rgba(45, 44, 40, 0.6)",
               margin: 0,
               padding: "12px",
               paddingTop: "32px", // Make room for line count
+              borderRadius:
+                shouldShowToggle && isExpanded ? "0.5rem 0.5rem 0 0" : "0.5rem",
             }}
           >
             {children}
@@ -82,33 +82,59 @@ function CollapsibleCodeBlock({
             {lineCount} {lineCount === 1 ? "line" : "lines"}
           </div>
         </div>
-      </div>
-      {shouldShowToggle && (
-        <button
-          onClick={handleToggle}
-          onMouseEnter={() => setIsButtonHovered(true)}
-          onMouseLeave={() => setIsButtonHovered(false)}
-          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[rgba(45,44,40,0.9)] to-transparent px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 backdrop-blur-sm cursor-pointer"
-        >
-          {isExpanded ? "Show less" : `Show more (${lineCount} lines)`}
-          <svg
-            className={cn(
-              "w-3 h-3 transition-transform duration-100",
-              isExpanded && "rotate-180"
-            )}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {shouldShowToggle && !isExpanded && (
+          <button
+            onClick={handleToggle}
+            onMouseEnter={() => setIsButtonHovered(true)}
+            onMouseLeave={() => setIsButtonHovered(false)}
+            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[rgba(45,44,40,0.9)] to-transparent px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 backdrop-blur-sm cursor-pointer"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
-      )}
+            `Show more ({lineCount} lines)`
+            <svg
+              className={cn(
+                "w-3 h-3 transition-transform duration-100",
+                isExpanded && "rotate-180"
+              )}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+        )}
+        {shouldShowToggle && isExpanded && (
+          <div className="border-t border-[rgba(45,44,40,0.8)] bg-[rgba(45,44,40,0.4)] rounded-b-lg">
+            <button
+              onClick={handleToggle}
+              className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(45,44,40,0.6)] rounded-b-lg"
+            >
+              Show less
+              <svg
+                className={cn(
+                  "w-3 h-3 transition-transform duration-100",
+                  isExpanded && "rotate-180"
+                )}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
