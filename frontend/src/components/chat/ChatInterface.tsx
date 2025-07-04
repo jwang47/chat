@@ -49,16 +49,6 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Chat Header */}
-      <div className="border-b border-border bg-surface px-6 py-4">
-        <h1 className="text-xl font-semibold text-foreground">
-          Chat Assistant
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          AI-powered conversation interface
-        </p>
-      </div>
-
       {/* Messages Area */}
       <ScrollArea ref={scrollAreaRef} className="flex-1 px-2">
         <div className="max-w-4xl mx-auto">
