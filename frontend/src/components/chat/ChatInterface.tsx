@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
 import { MessageInput } from "./MessageInput";
-import { mockMessages } from "@/data/mockChat";
 import { OpenRouterService, type OpenRouterMessage } from "@/lib/openrouter";
 import type { Message } from "@/types/chat";
 
