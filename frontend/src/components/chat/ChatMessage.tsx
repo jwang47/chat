@@ -13,15 +13,26 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isAssistant = message.role === "assistant";
   const [isExpanded, setIsExpanded] = useState(false);
   const [shouldClip, setShouldClip] = useState(false);
+  const [hiddenLines, setHiddenLines] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Check if message content would exceed 50vh
+  // Check if message content would exceed 50vh and calculate hidden lines
   useEffect(() => {
     if (contentRef.current) {
       const contentHeight = contentRef.current.scrollHeight;
       const viewportHeight = window.innerHeight;
       const shouldClipMessage = contentHeight > viewportHeight * 0.5;
       setShouldClip(shouldClipMessage);
+
+      if (shouldClipMessage) {
+        // Estimate lines based on line height (assuming ~1.5rem per line)
+        const lineHeight = 24; // approximate line height in pixels
+        const visibleHeight = viewportHeight * 0.5;
+        const totalLines = Math.ceil(contentHeight / lineHeight);
+        const visibleLines = Math.ceil(visibleHeight / lineHeight);
+        const hiddenLinesCount = Math.max(0, totalLines - visibleLines);
+        setHiddenLines(hiddenLinesCount);
+      }
     }
   }, [message.content]);
 
@@ -65,6 +76,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
               <span className="inline-block w-2 h-4 bg-current ml-1 animate-pulse" />
             )}
           </div>
+
+          {/* Hidden lines indicator */}
+          {shouldClip && !isExpanded && hiddenLines > 0 && (
+            <div className="mt-2 text-xs text-muted-foreground text-center">
+              {hiddenLines} lines hidden
+            </div>
+          )}
 
           {/* Clickable overlay for expansion - only when collapsed */}
           {shouldClip && !isExpanded && (
