@@ -5,12 +5,19 @@ import { MessageInput } from "./MessageInput";
 import { mockMessages } from "@/data/mockChat";
 import type { Message } from "@/types/chat";
 
+// Debug: Simple render counter
+let renderCount = 0;
+
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const messageIdCounter = useRef(0);
+
+  // Debug: Log renders
+  renderCount++;
+  console.log(`ChatInterface render #${renderCount}`);
 
   // Generate unique message ID
   const generateMessageId = useCallback(() => {

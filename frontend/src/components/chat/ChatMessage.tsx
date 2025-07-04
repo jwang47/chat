@@ -3,11 +3,14 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 
 interface ChatMessageProps {
   message: Message;
 }
+
+// Debug: Message render counter
+let messageRenderCount = 0;
 
 interface CollapsibleCodeBlockProps {
   children: string;
@@ -89,7 +92,7 @@ function CollapsibleCodeBlock({
             onMouseLeave={() => setIsButtonHovered(false)}
             className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 bg-background/90 cursor-pointer"
           >
-            `Show more ({lineCount} lines)`
+            Show more ({lineCount} lines)
             <svg
               className={cn(
                 "w-3 h-3 transition-transform duration-100",
@@ -139,8 +142,16 @@ function CollapsibleCodeBlock({
   );
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export const ChatMessage = memo(function ChatMessage({
+  message,
+}: ChatMessageProps) {
   const isUser = message.role === "user";
+
+  // Debug: Log message renders
+  messageRenderCount++;
+  console.log(
+    `ChatMessage render #${messageRenderCount} for message ${message.id}`
+  );
 
   return (
     <div className={cn("flex p-4", isUser && "justify-end")}>
@@ -228,4 +239,4 @@ export function ChatMessage({ message }: ChatMessageProps) {
       </div>
     </div>
   );
-}
+});
