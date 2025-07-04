@@ -133,11 +133,17 @@
   }
   
   h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
   
   h2 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+  }
+  
+  /* Text size utilities */
+  .text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
   }
   
   /* Button styles following the style guide */
@@ -163,7 +169,7 @@
     border: 1px solid transparent;
     border-radius: 6px;
     padding: 0.5rem 0.75rem;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     transition: border-color 150ms ease-in-out;
   }
   
