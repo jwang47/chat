@@ -99,7 +99,6 @@ export function ChatInterface() {
         <div className="max-w-4xl mx-auto">
           <MessageInput
             onSendMessage={handleSendMessage}
-            disabled={isTyping}
             placeholder="Ask me anything..."
           />
         </div>

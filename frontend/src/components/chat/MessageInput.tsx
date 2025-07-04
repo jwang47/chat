@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
@@ -15,12 +15,22 @@ export function MessageInput({
   placeholder = "Type your message...",
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
+  const [shouldFocus, setShouldFocus] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (shouldFocus && inputRef.current) {
+      inputRef.current.focus();
+      setShouldFocus(false);
+    }
+  }, [shouldFocus]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
       onSendMessage(message.trim());
       setMessage("");
+      setShouldFocus(true);
     }
   };
 
@@ -34,6 +44,7 @@ export function MessageInput({
   return (
     <form onSubmit={handleSubmit} className="flex gap-3">
       <Input
+        ref={inputRef}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
