@@ -49,12 +49,7 @@ function CollapsibleCodeBlock({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="relative mb-2"
-    >
+    <div className="relative mb-2">
       <div
         ref={codeRef}
         className={`overflow-hidden transition-all duration-100 rounded-lg ${
@@ -137,7 +132,7 @@ function CollapsibleCodeBlock({
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -146,35 +141,11 @@ export function StreamingText({
   isStreaming,
   className,
 }: StreamingTextProps) {
-  const [opacity, setOpacity] = useState(1);
-  const lastContentRef = useRef("");
-
-  // Trigger subtle fade animation when content changes
-  useEffect(() => {
-    if (
-      content !== lastContentRef.current &&
-      content.length > lastContentRef.current.length
-    ) {
-      setOpacity(0.7);
-      const timer = setTimeout(() => {
-        setOpacity(1);
-      }, 50);
-      lastContentRef.current = content;
-      return () => clearTimeout(timer);
-    }
-  }, [content]);
-
   return (
-    <div
-      className={className}
-      style={{
-        opacity,
-        transition: "opacity 0.3s ease-out",
-      }}
-    >
+    <div className={className}>
       <ReactMarkdown
         components={{
-          // Clean components without individual animations
+          // Clean components without any animations
           p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
           h1: ({ children }) => (
             <h1 className="text-lg font-semibold mb-2">{children}</h1>
