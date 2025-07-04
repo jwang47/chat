@@ -65,7 +65,7 @@ export function ChatInterface() {
   return (
     <div className="relative h-screen bg-background">
       {/* Messages Area */}
-      <ScrollArea ref={scrollAreaRef} className="h-full px-2">
+      <ScrollArea ref={scrollAreaRef} className="h-full px-2 pb-20">
         <div className="max-w-4xl mx-auto py-4">
           {messages.map((message) => (
             <ChatMessage key={message.id} message={message} />
