@@ -79,7 +79,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
           {/* Hidden lines indicator */}
           {shouldClip && !isExpanded && hiddenLines > 0 && (
-            <div className="mt-2 text-xs text-muted-foreground text-center">
+            <div className="mt-2 text-[10px] text-muted-foreground text-center">
               {hiddenLines} lines hidden
             </div>
           )}
