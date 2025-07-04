@@ -39,13 +39,13 @@ export function MessageInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        className="flex-1 bg-background border-border focus:border-accent transition-colors duration-150"
+        className="flex-1 bg-background border-border focus:border-accent transition-colors duration-150 h-12 py-3"
       />
       <Button
         type="submit"
         disabled={disabled || !message.trim()}
         size="icon"
-        className="shrink-0 bg-accent text-background hover:bg-accent/90 transition-colors duration-150"
+        className="shrink-0 bg-accent text-background hover:bg-accent/90 transition-colors duration-150 h-12 w-12"
       >
         <Send className="h-4 w-4" />
         <span className="sr-only">Send message</span>
