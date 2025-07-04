@@ -3,9 +3,79 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useState, useRef, useEffect } from "react";
 
 interface ChatMessageProps {
   message: Message;
+}
+
+interface CollapsibleCodeBlockProps {
+  children: string;
+  language: string;
+}
+
+function CollapsibleCodeBlock({
+  children,
+  language,
+}: CollapsibleCodeBlockProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [shouldShowToggle, setShouldShowToggle] = useState(false);
+  const codeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (codeRef.current) {
+      const height = codeRef.current.scrollHeight;
+      const viewportHeight = window.innerHeight;
+      const maxHeight = viewportHeight * 0.25; // 25vh
+      setShouldShowToggle(height > maxHeight);
+    }
+  }, [children]);
+
+  const maxHeight = shouldShowToggle && !isExpanded ? "25vh" : "none";
+
+  return (
+    <div className="relative mb-2">
+      <div ref={codeRef} className="overflow-hidden" style={{ maxHeight }}>
+        <SyntaxHighlighter
+          style={oneDark as any}
+          language={language}
+          PreTag="div"
+          className="rounded-lg !m-0 !p-3 !text-xs !font-mono"
+          customStyle={{
+            backgroundColor: "rgba(45, 44, 40, 0.6)",
+            margin: 0,
+            padding: "12px",
+          }}
+        >
+          {children}
+        </SyntaxHighlighter>
+      </div>
+      {shouldShowToggle && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[rgba(45,44,40,0.9)] to-transparent px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1"
+        >
+          {isExpanded ? "Show less" : "Show more"}
+          <svg
+            className={cn(
+              "w-3 h-3 transition-transform duration-100",
+              isExpanded && "rotate-180"
+            )}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
@@ -37,22 +107,12 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 const match = /language-(\w+)/.exec(className || "");
                 const language = match ? match[1] : "";
 
-                // If it's a code block (has language class), use syntax highlighter
+                // If it's a code block (has language class), use collapsible wrapper
                 if (match) {
                   return (
-                    <SyntaxHighlighter
-                      style={oneDark as any}
-                      language={language}
-                      PreTag="div"
-                      className="rounded-lg !m-0 !p-3 !text-xs !font-mono !mb-2"
-                      customStyle={{
-                        backgroundColor: "rgba(45, 44, 40, 0.6)",
-                        margin: 0,
-                        padding: "12px",
-                      }}
-                    >
+                    <CollapsibleCodeBlock language={language}>
                       {String(children).replace(/\n$/, "")}
-                    </SyntaxHighlighter>
+                    </CollapsibleCodeBlock>
                   );
                 }
 
