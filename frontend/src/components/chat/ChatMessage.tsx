@@ -66,20 +66,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
             )}
           </div>
 
-          {/* Gradient overlay and click area for clipped messages */}
-          {shouldClip && !isExpanded && (
-            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-current to-transparent opacity-20 pointer-events-none" />
-          )}
-
-          {/* Subtle expansion indicator */}
-          {shouldClip && !isExpanded && (
-            <div className="absolute bottom-1 right-2 flex items-center gap-1 opacity-60">
-              <div className="w-1 h-1 bg-current rounded-full"></div>
-              <div className="w-1 h-1 bg-current rounded-full"></div>
-              <div className="w-1 h-1 bg-current rounded-full"></div>
-            </div>
-          )}
-
           {/* Clickable overlay for expansion - only when collapsed */}
           {shouldClip && !isExpanded && (
             <div
@@ -89,18 +75,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
             />
           )}
 
-          {/* Floating compact button for expanded messages */}
+          {/* Clickable overlay for compacting - when expanded */}
           {shouldClip && isExpanded && (
             <div
               onClick={() => setIsExpanded(false)}
-              className={cn(
-                "sticky top-4 float-right ml-2 mb-2 w-8 h-8 cursor-pointer hover:bg-white/10 rounded-full flex items-center justify-center transition-all duration-150 z-10",
-                isUser ? "bg-white/5" : "bg-white/5"
-              )}
+              className="absolute inset-0 cursor-pointer hover:bg-white/5 transition-all duration-150"
               title="Click to compact"
-            >
-              <div className="w-4 h-0.5 bg-current opacity-60"></div>
-            </div>
+            />
           )}
         </div>
 
