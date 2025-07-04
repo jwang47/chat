@@ -7,16 +7,16 @@ alwaysApply: false
 
 ### 1. Color Palette
 
-| Use             | Color     | Notes                            |
-| --------------- | --------- | -------------------------------- |
-| Background      | `#0C0C0C` | Deep black (but not pure `#000`) |
-| Surface / Card  | `#1A1A1A` | Slight contrast for grouping     |
-| Foreground Text | `#F5F5F5` | Off-white for primary content    |
-| Muted Text      | `#999999` | Labels, hints                    |
-| Accent          | `#4EA3F1` | Buttons, highlights              |
-| Highlight       | `#E2FF61` | Use sparingly                    |
-| Success         | `#3FB68B` | Confirmation states              |
-| Error           | `#D95555` | Error states                     |
+| Use             | Color             | Notes                            |
+| --------------- | ----------------- | -------------------------------- |
+| Background      | `rgb(25, 24, 21)` | Deep black (but not pure `#000`) |
+| Surface / Card  | `rgb(45, 44, 40)` | Slight contrast for grouping     |
+| Foreground Text | `#F5F5F5`         | Off-white for primary content    |
+| Muted Text      | `#999999`         | Labels, hints                    |
+| Accent          | `#4EA3F1`         | Buttons, highlights              |
+| Highlight       | `#E2FF61`         | Use sparingly                    |
+| Success         | `#3FB68B`         | Confirmation states              |
+| Error           | `#D95555`         | Error states                     |
 
 ---
 

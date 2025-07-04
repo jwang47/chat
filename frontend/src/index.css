@@ -3,19 +3,19 @@
 
 :root {
   --background: #F5F5F5;
-  --foreground: #0C0C0C;
+  --foreground: rgb(25, 24, 21);
   --card: #FFFFFF;
-  --card-foreground: #0C0C0C;
+  --card-foreground: rgb(25, 24, 21);
   --popover: #FFFFFF;
-  --popover-foreground: #0C0C0C;
+  --popover-foreground: rgb(25, 24, 21);
   --primary: #4EA3F1;
-  --primary-foreground: #0C0C0C;
+  --primary-foreground: rgb(25, 24, 21);
   --secondary: #E5E5E5;
-  --secondary-foreground: #0C0C0C;
+  --secondary-foreground: rgb(25, 24, 21);
   --muted: #E5E5E5;
   --muted-foreground: #999999;
   --accent: #4EA3F1;
-  --accent-foreground: #0C0C0C;
+  --accent-foreground: rgb(25, 24, 21);
   --destructive: #D95555;
   --destructive-foreground: #F5F5F5;
   --border: #E5E5E5;
@@ -29,48 +29,48 @@
   --radius: 0.375rem;
   --surface: #FFFFFF;
   --sidebar: #F5F5F5;
-  --sidebar-foreground: #0C0C0C;
+  --sidebar-foreground: rgb(25, 24, 21);
   --sidebar-primary: #4EA3F1;
-  --sidebar-primary-foreground: #0C0C0C;
+  --sidebar-primary-foreground: rgb(25, 24, 21);
   --sidebar-accent: #E5E5E5;
-  --sidebar-accent-foreground: #0C0C0C;
+  --sidebar-accent-foreground: rgb(25, 24, 21);
   --sidebar-border: #E5E5E5;
   --sidebar-ring: #4EA3F1;
 }
 
 .dark {
-  --background: #0C0C0C;
+  --background: rgb(25, 24, 21);
   --foreground: #F5F5F5;
-  --card: #1A1A1A;
+  --card: rgb(45, 44, 40);
   --card-foreground: #F5F5F5;
-  --popover: #1A1A1A;
+  --popover: rgb(45, 44, 40);
   --popover-foreground: #F5F5F5;
   --primary: #4EA3F1;
-  --primary-foreground: #0C0C0C;
-  --secondary: #1A1A1A;
+  --primary-foreground: rgb(25, 24, 21);
+  --secondary: rgb(45, 44, 40);
   --secondary-foreground: #F5F5F5;
-  --muted: #1A1A1A;
+  --muted: rgb(45, 44, 40);
   --muted-foreground: #999999;
   --accent: #4EA3F1;
-  --accent-foreground: #0C0C0C;
+  --accent-foreground: rgb(25, 24, 21);
   --destructive: #D95555;
   --destructive-foreground: #F5F5F5;
-  --border: #1A1A1A;
-  --input: #1A1A1A;
+  --border: rgb(45, 44, 40);
+  --input: rgb(45, 44, 40);
   --ring: #4EA3F1;
   --chart-1: #4EA3F1;
   --chart-2: #3FB68B;
   --chart-3: #E2FF61;
   --chart-4: #D95555;
   --chart-5: #999999;
-  --surface: #1A1A1A;
-  --sidebar: #0C0C0C;
+  --surface: rgb(45, 44, 40);
+  --sidebar: rgb(25, 24, 21);
   --sidebar-foreground: #F5F5F5;
   --sidebar-primary: #4EA3F1;
-  --sidebar-primary-foreground: #0C0C0C;
-  --sidebar-accent: #1A1A1A;
+  --sidebar-primary-foreground: rgb(25, 24, 21);
+  --sidebar-accent: rgb(45, 44, 40);
   --sidebar-accent-foreground: #F5F5F5;
-  --sidebar-border: #1A1A1A;
+  --sidebar-border: rgb(45, 44, 40);
   --sidebar-ring: #4EA3F1;
 }
 
@@ -149,7 +149,7 @@
   /* Button styles following the style guide */
   .btn-primary {
     background-color: #4EA3F1;
-    color: #0C0C0C;
+    color: rgb(25, 24, 21);
     padding: 0.5rem 1rem;
     border-radius: 6px;
     font-weight: 500;
