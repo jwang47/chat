@@ -57,7 +57,14 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-2">
-        <div className="flex justify-end">
+        <div
+          className={`flex items-center ${
+            isCollapsed ? "justify-center" : "justify-between"
+          }`}
+        >
+          {!isCollapsed && (
+            <SidebarGroupLabel className="m-0">Chat</SidebarGroupLabel>
+          )}
           <button
             onClick={toggleSidebar}
             className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-sidebar-accent transition-colors"
@@ -73,7 +80,6 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Chat</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
