@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import ApiKeyStorage from "@/lib/apiKeyStorage";
 
 export function Settings() {
   const [openRouterApiKey, setOpenRouterApiKey] = useState("");
@@ -11,14 +12,13 @@ export function Settings() {
 
   useEffect(() => {
     // Load API keys from localStorage on component mount
-    const savedOpenRouterApiKey = localStorage.getItem("openrouter-api-key");
-    const savedGeminiApiKey = localStorage.getItem("gemini-api-key");
+    const apiKeys = ApiKeyStorage.getAllApiKeys();
 
-    if (savedOpenRouterApiKey) {
-      setOpenRouterApiKey(savedOpenRouterApiKey);
+    if (apiKeys.openrouter) {
+      setOpenRouterApiKey(apiKeys.openrouter);
     }
-    if (savedGeminiApiKey) {
-      setGeminiApiKey(savedGeminiApiKey);
+    if (apiKeys.gemini) {
+      setGeminiApiKey(apiKeys.gemini);
     }
   }, []);
 
@@ -26,29 +26,20 @@ export function Settings() {
     setIsLoading(true);
     setSaveMessage("");
 
-    try {
-      // Handle OpenRouter API key
-      if (openRouterApiKey.trim()) {
-        localStorage.setItem("openrouter-api-key", openRouterApiKey.trim());
-      } else {
-        localStorage.removeItem("openrouter-api-key");
-      }
+    const success = ApiKeyStorage.setApiKeys({
+      openrouter: openRouterApiKey,
+      gemini: geminiApiKey,
+    });
 
-      // Handle Gemini API key
-      if (geminiApiKey.trim()) {
-        localStorage.setItem("gemini-api-key", geminiApiKey.trim());
-      } else {
-        localStorage.removeItem("gemini-api-key");
-      }
-
+    if (success) {
       setSaveMessage("API keys saved successfully!");
-    } catch (error) {
+    } else {
       setSaveMessage("Error saving API keys. Please try again.");
-    } finally {
-      setIsLoading(false);
-      // Clear message after 3 seconds
-      setTimeout(() => setSaveMessage(""), 3000);
     }
+
+    setIsLoading(false);
+    // Clear message after 3 seconds
+    setTimeout(() => setSaveMessage(""), 3000);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
