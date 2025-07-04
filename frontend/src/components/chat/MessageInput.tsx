@@ -23,8 +23,10 @@ export const MessageInput = memo(function MessageInput({
       if (message.trim() && !disabled) {
         onSendMessage(message.trim());
         setMessage("");
-        // Keep focus on the input without forcing re-focus
-        // The input will naturally maintain focus after clearing
+        // Maintain focus on the input after sending
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
       }
     },
     [message, disabled, onSendMessage]
@@ -57,7 +59,6 @@ export const MessageInput = memo(function MessageInput({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        disabled={disabled}
         className="flex-1 !bg-input bg-background border-border focus:border-accent h-12 py-3"
       />
       <Button
