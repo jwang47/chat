@@ -32,7 +32,7 @@ export function MessageInput({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-3 p-4">
+    <form onSubmit={handleSubmit} className="flex gap-3">
       <Input
         value={message}
         onChange={(e) => setMessage(e.target.value)}

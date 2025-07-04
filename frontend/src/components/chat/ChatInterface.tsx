@@ -101,7 +101,7 @@ export function ChatInterface() {
       </div>
 
       {/* Message Input - Fixed at bottom */}
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0 mb-8 p-1">
         <div className="max-w-4xl mx-auto">
           <MessageInput
             onSendMessage={handleSendMessage}
