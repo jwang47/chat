@@ -23,7 +23,6 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     if (onNewChat) {
       onNewChat();
     } else {
-      // Default behavior: navigate to root and refresh to clear state
       navigate("/");
     }
     setOpen(false);

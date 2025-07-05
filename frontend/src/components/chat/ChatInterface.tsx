@@ -309,7 +309,7 @@ export function ChatInterface() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="absolute top-4 left-4 right-4 max-w-4xl mx-auto z-10"
+            className="absolute top-4 left-4 right-4 mx-auto z-10"
           >
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
               <p className="text-red-400 text-sm">{error}</p>
@@ -388,9 +388,29 @@ export function ChatInterface() {
       {/* Floating Message Input */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut", delay: 0.2 }}
-        className="absolute bottom-8 left-4 right-4 max-w-4xl mx-auto"
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          opacity: {
+            duration: 0.6,
+            ease: "easeInOut",
+            delay: messages.length === 0 ? 0.2 : 0,
+          },
+          y: {
+            duration: 0.6,
+            ease: "easeInOut",
+            delay: messages.length === 0 ? 0.2 : 0,
+          },
+        }}
+        layout
+        layoutId="message-input"
+        className={`absolute ${
+          messages.length === 0
+            ? "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-4"
+            : "bottom-8 left-4 right-4 max-w-4xl mx-auto"
+        }`}
       >
         <MessageInput
           onSendMessage={handleSendMessage}
