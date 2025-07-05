@@ -7,7 +7,8 @@ import {
 } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { motion, AnimatePresence } from "motion/react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer, elementScroll } from "@tanstack/react-virtual";
+import type { VirtualizerOptions } from "@tanstack/react-virtual";
 import type { Message } from "@/types/chat";
 
 interface VirtualizedMessagesProps {
@@ -29,11 +30,19 @@ export interface VirtualizedMessagesRef {
   getScrollContainer: () => HTMLElement | null;
 }
 
+// Smooth scroll easing function
+function easeInOutQuint(t: number) {
+  return t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t;
+}
+
 export const VirtualizedMessages = forwardRef<
   VirtualizedMessagesRef,
   VirtualizedMessagesProps
 >(({ messages, isTyping, streamingMessageId, onScrollChange }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const scrollingRef = useRef<number>(0);
+
+  // We'll implement smooth scrolling directly in the scroll methods
 
   // TanStack Virtual setup
   const virtualizer = useVirtualizer({
@@ -58,7 +67,10 @@ export const VirtualizedMessages = forwardRef<
       scrollToBottomSmooth: () => {
         if (parentRef.current) {
           const scrollContainer = parentRef.current;
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: "smooth",
+          });
         }
       },
       scrollToBottomInstant: () => {
