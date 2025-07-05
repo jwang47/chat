@@ -11,9 +11,17 @@ interface ChatMessageProps {
 }
 
 // Static markdown renderer for completed messages with full code block support
-function StaticMarkdown({ content }: { content: string }) {
+function StaticMarkdown({
+  content,
+  isUserMessage = false,
+}: {
+  content: string;
+  isUserMessage?: boolean;
+}) {
   return (
-    <div className="[&>*:last-child]:mb-0">{renderComplexContent(content)}</div>
+    <div className="[&>*:last-child]:mb-0">
+      {renderComplexContent(content, isUserMessage)}
+    </div>
   );
 }
 
@@ -46,9 +54,16 @@ export const ChatMessage = memo(function ChatMessage({
           <div className="text-sm leading-relaxed">
             {/* Use StreamingText only for actively streaming messages */}
             {isActivelyStreaming ? (
-              <StreamingText content={message.content} isStreaming={true} />
+              <StreamingText
+                content={message.content}
+                isStreaming={true}
+                isUserMessage={isUser}
+              />
             ) : (
-              <StaticMarkdown content={message.content} />
+              <StaticMarkdown
+                content={message.content}
+                isUserMessage={isUser}
+              />
             )}
           </div>
         </div>
@@ -76,9 +91,13 @@ export const ChatMessage = memo(function ChatMessage({
         <div className="text-sm leading-relaxed">
           {/* Use StreamingText only for actively streaming messages */}
           {isActivelyStreaming ? (
-            <StreamingText content={message.content} isStreaming={true} />
+            <StreamingText
+              content={message.content}
+              isStreaming={true}
+              isUserMessage={isUser}
+            />
           ) : (
-            <StaticMarkdown content={message.content} />
+            <StaticMarkdown content={message.content} isUserMessage={isUser} />
           )}
         </div>
       </motion.div>

@@ -5,12 +5,14 @@ interface StreamingTextProps {
   content: string;
   isStreaming: boolean;
   className?: string;
+  isUserMessage?: boolean;
 }
 
 export function StreamingText({
   content,
   isStreaming,
   className,
+  isUserMessage = false,
 }: StreamingTextProps) {
   const [displayedContent, setDisplayedContent] = useState("");
   const [adaptiveDelay, setAdaptiveDelay] = useState(20);
@@ -112,7 +114,7 @@ export function StreamingText({
     }
 
     // Use the shared complex content renderer
-    return renderComplexContent(displayedContent);
+    return renderComplexContent(displayedContent, isUserMessage);
   };
 
   return (

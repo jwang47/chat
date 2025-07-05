@@ -9,11 +9,13 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 interface CollapsibleCodeBlockProps {
   children: string;
   language: string;
+  isUserMessage?: boolean;
 }
 
 function CollapsibleCodeBlock({
   children,
   language,
+  isUserMessage = false,
 }: CollapsibleCodeBlockProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [shouldShowToggle, setShouldShowToggle] = useState(false);
@@ -34,6 +36,19 @@ function CollapsibleCodeBlock({
     setIsExpanded(!isExpanded);
   };
 
+  // Adjust background colors based on whether it's a user message
+  const codeBlockBg = isUserMessage
+    ? "rgba(25, 24, 21, 0.8)" // Darker for user messages
+    : "rgba(45, 44, 40, 0.6)"; // Original for assistant messages
+
+  const expandButtonBg = isUserMessage
+    ? "rgba(25, 24, 21, 0.9)" // Darker for user messages
+    : "rgba(45, 44, 40, 0.4)"; // Original for assistant messages
+
+  const expandButtonBorder = isUserMessage
+    ? "rgba(25, 24, 21, 0.9)" // Darker for user messages
+    : "rgba(45, 44, 40, 0.8)"; // Original for assistant messages
+
   return (
     <div className="relative mb-4">
       <div
@@ -46,7 +61,7 @@ function CollapsibleCodeBlock({
           PreTag="div"
           className="!m-0 !p-3 !text-xs !font-mono"
           customStyle={{
-            backgroundColor: "rgba(45, 44, 40, 0.6)",
+            backgroundColor: codeBlockBg,
             margin: 0,
             padding: "12px",
             borderRadius:
@@ -59,7 +74,8 @@ function CollapsibleCodeBlock({
       {shouldShowToggle && !isExpanded && (
         <button
           onClick={handleToggle}
-          className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1 bg-background/90"
+          className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1"
+          style={{ backgroundColor: expandButtonBg }}
         >
           Show more ({lineCount} lines)
           <svg
@@ -78,10 +94,27 @@ function CollapsibleCodeBlock({
         </button>
       )}
       {shouldShowToggle && isExpanded && (
-        <div className="border-t border-[rgba(45,44,40,0.8)] bg-[rgba(45,44,40,0.4)] rounded-b-lg">
+        <div
+          className="border-t rounded-b-lg"
+          style={{
+            borderColor: expandButtonBorder,
+            backgroundColor: expandButtonBg,
+          }}
+        >
           <button
             onClick={handleToggle}
-            className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1 hover:bg-[rgba(45,44,40,0.6)] rounded-b-lg"
+            className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1 rounded-b-lg"
+            style={{
+              backgroundColor: "transparent",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = isUserMessage
+                ? "rgba(25, 24, 21, 0.6)"
+                : "rgba(45, 44, 40, 0.6)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+            }}
           >
             Show less
             <svg
@@ -105,7 +138,14 @@ function CollapsibleCodeBlock({
 }
 
 // Shared markdown styling function
-export function addCustomStyling(html: string): string {
+export function addCustomStyling(
+  html: string,
+  isUserMessage: boolean = false
+): string {
+  const inlineCodeBg = isUserMessage
+    ? "rgba(25, 24, 21, 0.6)" // Darker for user messages
+    : "rgba(45, 44, 40, 0.4)"; // Original for assistant messages
+
   return html
     .replace(/<p>/g, '<p class="mb-4 last:mb-0 whitespace-pre-line">')
     .replace(/<h1>/g, '<h1 class="text-xl font-semibold mb-3 mt-6 first:mt-0">')
@@ -143,12 +183,15 @@ export function addCustomStyling(html: string): string {
     )
     .replace(
       /<code>/g,
-      '<code class="px-1 py-0.5 rounded text-xs font-mono" style="background-color: rgba(45, 44, 40, 0.4);">'
+      `<code class="px-1 py-0.5 rounded text-xs font-mono" style="background-color: ${inlineCodeBg};">`
     );
 }
 
 // Shared complex content renderer with code block support
-export function renderComplexContent(text: string) {
+export function renderComplexContent(
+  text: string,
+  isUserMessage: boolean = false
+) {
   const parts: React.JSX.Element[] = [];
   let currentIndex = 0;
   let inCodeBlock = false;
@@ -171,7 +214,7 @@ export function renderComplexContent(text: string) {
               extensions: [gfm()],
               htmlExtensions: [gfmHtml()],
             });
-            const styledHtml = addCustomStyling(html);
+            const styledHtml = addCustomStyling(html, isUserMessage);
             parts.push(
               <div
                 key={`text-${parts.length}`}
@@ -192,6 +235,7 @@ export function renderComplexContent(text: string) {
           <CollapsibleCodeBlock
             key={`code-${parts.length}`}
             language={codeBlockLanguage}
+            isUserMessage={isUserMessage}
           >
             {codeBlockContent}
           </CollapsibleCodeBlock>
@@ -214,6 +258,7 @@ export function renderComplexContent(text: string) {
         <CollapsibleCodeBlock
           key={`code-${parts.length}`}
           language={codeBlockLanguage}
+          isUserMessage={isUserMessage}
         >
           {codeBlockContent}
         </CollapsibleCodeBlock>
@@ -224,7 +269,7 @@ export function renderComplexContent(text: string) {
         extensions: [gfm()],
         htmlExtensions: [gfmHtml()],
       });
-      const styledHtml = addCustomStyling(html);
+      const styledHtml = addCustomStyling(html, isUserMessage);
       parts.push(
         <div
           key={`text-${parts.length}`}
@@ -240,7 +285,7 @@ export function renderComplexContent(text: string) {
       extensions: [gfm()],
       htmlExtensions: [gfmHtml()],
     });
-    const styledHtml = addCustomStyling(html);
+    const styledHtml = addCustomStyling(html, isUserMessage);
     return <div dangerouslySetInnerHTML={{ __html: styledHtml }} />;
   }
 
@@ -248,10 +293,13 @@ export function renderComplexContent(text: string) {
 }
 
 // Simple markdown renderer (for basic content without code blocks)
-export function renderMarkdown(content: string): string {
+export function renderMarkdown(
+  content: string,
+  isUserMessage: boolean = false
+): string {
   const html = micromark(content, {
     extensions: [gfm()],
     htmlExtensions: [gfmHtml()],
   });
-  return addCustomStyling(html);
+  return addCustomStyling(html, isUserMessage);
 }
