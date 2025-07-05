@@ -4,6 +4,7 @@ export interface ModelInfo {
   provider: "openrouter" | "gemini";
   displayName: string;
   description?: string;
+  maxTokens?: number;
 }
 
 export const AVAILABLE_MODELS: ModelInfo[] = [
@@ -13,28 +14,32 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     name: "openrouter/cypher-alpha:free",
     provider: "openrouter",
     displayName: "Cypher Alpha (Free)",
-    description: "Free tier model from OpenRouter",
+    description: "",
+    maxTokens: 1000000,
   },
   {
     id: "openrouter/moonshotai/kimi-dev-72b:free",
     name: "moonshotai/kimi-dev-72b:free",
     provider: "openrouter",
     displayName: "Kimi 7B (Free)",
-    description: "Kimi's 7B model - free tier",
+    description: "",
+    maxTokens: 131072,
   },
   {
     id: "openrouter/deepseek/deepseek-chat-v3-0324:free",
     name: "deepseek/deepseek-chat-v3-0324:free",
     provider: "openrouter",
     displayName: "DeepSeek V3 0324 (Free)",
-    description: "DeepSeek's V3 model via OpenRouter - free tier",
+    description: "",
+    maxTokens: 163840,
   },
   {
-    id: "openrouter/deepseek/deepseek-r1-0528:free",
-    name: "deepseek/deepseek-r1-0528:free",
+    id: "openrouter/deepseek/deepseek-r1-0528-qwen3-8b:free",
+    name: "deepseek/deepseek-r1-0528-qwen3-8b:free",
     provider: "openrouter",
-    displayName: "DeepSeek R1 (Free)",
-    description: "DeepSeek's R1 reasoning model via OpenRouter - free tier",
+    displayName: "Deepseek R1 0528 Qwen3 8B (free)",
+    description: "",
+    maxTokens: 131072,
   },
 
   // Gemini models
@@ -43,14 +48,16 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     name: "gemini-2.5-flash",
     provider: "gemini",
     displayName: "Gemini 2.5 Flash",
-    description: "Google's latest Gemini 2.5 Flash model",
+    description: "",
+    maxTokens: 1000000,
   },
   {
     id: "google/gemini-2.5-pro",
     name: "gemini-2.5-pro",
     provider: "gemini",
     displayName: "Gemini 2.5 Pro",
-    description: "Google's Gemini 2.5 Pro model",
+    description: "",
+    maxTokens: 1000000,
   },
 ];
 
