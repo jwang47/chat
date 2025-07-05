@@ -136,7 +136,7 @@ export const VirtualizedMessages = forwardRef<
     if (streamingMessageId) {
       const interval = setInterval(() => {
         virtualizer.measure();
-      }, 100);
+      }, 250);
       return () => clearInterval(interval);
     }
   }, [streamingMessageId, virtualizer]);
@@ -167,28 +167,26 @@ export const VirtualizedMessages = forwardRef<
               transform: `translateY(${items[0]?.start ?? 0}px)`,
             }}
           >
-            <AnimatePresence mode="popLayout">
-              {items.map((virtualItem) => {
-                const message = messages[virtualItem.index];
-                const isLastMessage = virtualItem.index === messages.length - 1;
-                return (
+            {items.map((virtualItem) => {
+              const message = messages[virtualItem.index];
+              const isLastMessage = virtualItem.index === messages.length - 1;
+              return (
+                <div
+                  key={message.id}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  className="w-full"
+                >
                   <div
-                    key={message.id}
-                    data-index={virtualItem.index}
-                    ref={virtualizer.measureElement}
-                    className="w-full"
+                    className={`max-w-4xl mx-auto py-4 ${
+                      isLastMessage ? "mb-24" : ""
+                    }`}
                   >
-                    <div
-                      className={`max-w-4xl mx-auto py-4 ${
-                        isLastMessage ? "mb-24" : ""
-                      }`}
-                    >
-                      <ChatMessage message={message} />
-                    </div>
+                    <ChatMessage message={message} disableAnimations={true} />
                   </div>
-                );
-              })}
-            </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
 
           {/* Typing Indicator - Always rendered at the bottom */}

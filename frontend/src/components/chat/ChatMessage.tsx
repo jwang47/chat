@@ -6,12 +6,37 @@ import { StreamingText } from "./StreamingText";
 
 interface ChatMessageProps {
   message: Message;
+  disableAnimations?: boolean;
 }
 
 export const ChatMessage = memo(function ChatMessage({
   message,
+  disableAnimations = false,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
+
+  if (disableAnimations) {
+    return (
+      <div
+        className={cn("flex p-4", isUser && "justify-end")}
+        data-message-id={message.id}
+      >
+        <div
+          className={cn(
+            "p-3 rounded-lg max-w-[90%]",
+            isUser && "bg-accent/20 text-foreground border border-accent/30"
+          )}
+        >
+          <div className="text-sm leading-relaxed">
+            <StreamingText
+              content={message.content}
+              isStreaming={message.isStreaming || false}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -31,7 +56,6 @@ export const ChatMessage = memo(function ChatMessage({
         )}
       >
         <div className="text-sm leading-relaxed">
-          {/* Use StreamingText for all messages now */}
           <StreamingText
             content={message.content}
             isStreaming={message.isStreaming || false}
