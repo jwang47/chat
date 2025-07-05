@@ -36,6 +36,8 @@ export function ChatInterface() {
   const messageIdCounter = useRef(0);
   const isUserScrolledUpRef = useRef(false);
   const scrollUpdatePendingRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
   const messagesRef = useRef<Message[]>(messages);
 
   // Keep messagesRef in sync with messages state
@@ -66,13 +68,23 @@ export function ChatInterface() {
 
   // Optimized scroll to bottom function
   const scrollToBottom = useCallback(() => {
+    isProgrammaticScrollRef.current = true;
     virtualizedMessagesRef.current?.scrollToBottom();
     isUserScrolledUpRef.current = false;
+    // Reset the flag after a moderate delay to balance responsiveness and accuracy
+    setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 150);
   }, []);
 
   // Scroll to specific position (for minimap)
   const scrollTo = useCallback((position: number) => {
+    isProgrammaticScrollRef.current = true;
     virtualizedMessagesRef.current?.scrollTo(position);
+    // Reset the flag after a moderate delay to balance responsiveness and accuracy
+    setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 150);
   }, []);
 
   // Handle scroll events from virtualized messages
@@ -83,12 +95,25 @@ export function ChatInterface() {
       scrollUpdatePendingRef.current = true;
       requestAnimationFrame(() => {
         // Update the scroll position tracking
-        const isAtBottomNow = scrollTop + clientHeight >= scrollHeight - 50;
-        // During streaming, be more lenient about considering user at bottom
-        const threshold = streamingMessageId ? 100 : 50;
+        const threshold = 50;
         const isAtBottomWithThreshold =
           scrollTop + clientHeight >= scrollHeight - threshold;
-        isUserScrolledUpRef.current = !isAtBottomWithThreshold;
+
+        // Only update scroll tracking if this isn't a programmatic scroll
+        // This prevents auto-scroll from interfering with user scroll detection
+        if (!isProgrammaticScrollRef.current) {
+          // Detect if user is actively scrolling up (more sensitive threshold)
+          const isScrollingUp = scrollTop < lastScrollTopRef.current - 5; // 5px threshold for better responsiveness
+          if (isScrollingUp) {
+            isUserScrolledUpRef.current = true;
+          } else if (isAtBottomWithThreshold) {
+            // Only reset to false if we're actually at the bottom
+            isUserScrolledUpRef.current = false;
+          }
+          // If we're not scrolling up and not at bottom, maintain current state
+        }
+
+        lastScrollTopRef.current = scrollTop;
 
         // Calculate scroll progress (0 to 1)
         const progress =
@@ -118,9 +143,9 @@ export function ChatInterface() {
     [streamingMessageId]
   );
 
-  // Auto-scroll to bottom when new messages arrive or when streaming content changes
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    // Always scroll to bottom for the first message or if user is already at bottom
+    // Only auto-scroll when message count changes (new messages added)
     if (messages.length > 0 && !isUserScrolledUpRef.current) {
       // Use a small delay to ensure DOM is updated
       const timer = setTimeout(() => {
@@ -128,18 +153,42 @@ export function ChatInterface() {
       }, 10);
       return () => clearTimeout(timer);
     }
-  }, [messages, scrollToBottom]); // Depend on entire messages array to catch streaming updates
+  }, [messages.length, scrollToBottom]); // Only depend on message count, not content
 
-  // Additional effect to handle streaming updates specifically
+  // Handle streaming content updates
   useEffect(() => {
-    // If we have a streaming message and user is at bottom, keep scrolling
+    // Only auto-scroll during streaming if user is at bottom and content is actually changing
     if (streamingMessageId && !isUserScrolledUpRef.current) {
-      const timer = setTimeout(() => {
-        scrollToBottom();
-      }, 10);
-      return () => clearTimeout(timer);
+      const streamingMessage = messages.find(
+        (msg) => msg.id === streamingMessageId
+      );
+      // Only scroll if there's actual content and we're still streaming
+      if (
+        streamingMessage &&
+        streamingMessage.content &&
+        streamingMessage.isStreaming
+      ) {
+        const timer = setTimeout(() => {
+          // Double-check user hasn't scrolled up while we were waiting
+          if (!isUserScrolledUpRef.current) {
+            scrollToBottom();
+          }
+        }, 10);
+        return () => clearTimeout(timer);
+      }
     }
   }, [streamingMessageId, messages, scrollToBottom]);
+
+  // Handle end of streaming - ensure we're at the very bottom
+  useEffect(() => {
+    // When streaming ends, if user was at bottom, ensure we're at the very bottom
+    if (!streamingMessageId && !isUserScrolledUpRef.current) {
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 50); // Slightly longer delay to ensure DOM is fully updated
+      return () => clearTimeout(timer);
+    }
+  }, [streamingMessageId, scrollToBottom]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
