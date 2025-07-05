@@ -62,17 +62,17 @@ export const MessageInput = memo(function MessageInput({
   }, [disabled, message]);
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+    <form onSubmit={handleSubmit} className="relative">
       <textarea
         ref={textareaRef}
         value={message}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="flex-1 bg-background border border-border focus:border-accent rounded-md px-3 py-3 text-sm resize-none min-h-[48px] overflow-y-auto focus:outline-none focus:ring-1 focus:ring-accent"
+        className="w-full bg-background border border-border focus:border-accent rounded-md px-3 py-3 pr-14 text-sm resize-none min-h-[48px] overflow-y-auto focus:outline-none focus:ring-1 focus:ring-accent"
         style={{
           height: "auto",
-          minHeight: "48px",
+          minHeight: "52px",
           maxHeight: `${maxHeight}px`,
         }}
         autoFocus
@@ -87,7 +87,7 @@ export const MessageInput = memo(function MessageInput({
         type="submit"
         disabled={isButtonDisabled}
         size="icon"
-        className="shrink-0 bg-accent text-background hover:bg-accent/90 transition-colors duration-150 h-12 w-12"
+        className="absolute bottom-4 right-2 bg-accent text-background hover:bg-accent/90 transition-colors duration-150 h-8 w-8"
       >
         <Send className="h-4 w-4" />
         <span className="sr-only">Send message</span>
