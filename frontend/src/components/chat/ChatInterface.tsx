@@ -114,7 +114,11 @@ export function ChatInterface() {
 
       // Update the scroll position tracking
       const isAtBottomNow = scrollTop + clientHeight >= scrollHeight - 50;
-      isUserScrolledUpRef.current = !isAtBottomNow;
+      // During streaming, be more lenient about considering user at bottom
+      const threshold = streamingMessageId ? 100 : 50;
+      const isAtBottomWithThreshold =
+        scrollTop + clientHeight >= scrollHeight - threshold;
+      isUserScrolledUpRef.current = !isAtBottomWithThreshold;
 
       // Calculate scroll progress (0 to 1)
       const progress =
@@ -140,7 +144,7 @@ export function ChatInterface() {
 
       scrollUpdatePendingRef.current = false;
     });
-  }, [getScrollContainer]);
+  }, [getScrollContainer, streamingMessageId]);
 
   // Set up scroll event listener with more responsive options
   useEffect(() => {
@@ -156,7 +160,7 @@ export function ChatInterface() {
     }
   }, [getScrollContainer, handleScroll]);
 
-  // Auto-scroll to bottom when new messages arrive, but only if user is at bottom
+  // Auto-scroll to bottom when new messages arrive or when streaming content changes
   useEffect(() => {
     // Always scroll to bottom for the first message or if user is already at bottom
     if (messages.length > 0 && !isUserScrolledUpRef.current) {
@@ -166,7 +170,18 @@ export function ChatInterface() {
       }, 10);
       return () => clearTimeout(timer);
     }
-  }, [messages.length, scrollToBottom]); // Only depend on messages.length, not the entire messages array
+  }, [messages, scrollToBottom]); // Depend on entire messages array to catch streaming updates
+
+  // Additional effect to handle streaming updates specifically
+  useEffect(() => {
+    // If we have a streaming message and user is at bottom, keep scrolling
+    if (streamingMessageId && !isUserScrolledUpRef.current) {
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 10);
+      return () => clearTimeout(timer);
+    }
+  }, [streamingMessageId, messages, scrollToBottom]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
@@ -211,6 +226,9 @@ export function ChatInterface() {
       // Set up streaming
       setIsTyping(true);
       setStreamingMessageId(assistantMessage.id);
+
+      // Ensure we're considered at bottom for streaming
+      isUserScrolledUpRef.current = false;
 
       // Get current messages for context using ref to avoid stale closure
       const allMessages = [...messagesRef.current, userMessage];

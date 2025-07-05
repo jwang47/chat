@@ -155,6 +155,37 @@ export function StreamingText({
   className,
 }: StreamingTextProps) {
   const [displayedContent, setDisplayedContent] = useState("");
+  const [lastContentUpdate, setLastContentUpdate] = useState(Date.now());
+  const [adaptiveDelay, setAdaptiveDelay] = useState(20);
+
+  // Track content arrival speed and adjust typewriter speed accordingly
+  useEffect(() => {
+    if (content.length > displayedContent.length) {
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastContentUpdate;
+
+      // Calculate adaptive delay based on content arrival speed
+      // If content is arriving fast (< 100ms), speed up typewriter
+      // If content is arriving slow (> 500ms), slow down typewriter
+      let newDelay = adaptiveDelay;
+
+      if (timeSinceLastUpdate < 100) {
+        // Content arriving fast - speed up typewriter (reduce delay)
+        newDelay = Math.max(5, adaptiveDelay * 0.8);
+      } else if (timeSinceLastUpdate > 500) {
+        // Content arriving slow - slow down typewriter (increase delay)
+        newDelay = Math.min(50, adaptiveDelay * 1.2);
+      }
+
+      setAdaptiveDelay(newDelay);
+      setLastContentUpdate(now);
+    }
+  }, [
+    content.length,
+    displayedContent.length,
+    lastContentUpdate,
+    adaptiveDelay,
+  ]);
 
   useEffect(() => {
     if (!isStreaming) {
@@ -168,13 +199,22 @@ export function StreamingText({
       return;
     }
 
-    // Typewriter effect - gradually reveal content
+    // Calculate how many characters to reveal based on content gap
+    const contentGap = content.length - displayedContent.length;
+    const charsToReveal = Math.min(
+      contentGap,
+      Math.max(1, Math.floor(contentGap / 10))
+    );
+
+    // Typewriter effect - gradually reveal content with adaptive speed
     const timer = setTimeout(() => {
-      setDisplayedContent(content.substring(0, displayedContent.length + 1));
-    }, 20); // Adjust speed as needed
+      setDisplayedContent(
+        content.substring(0, displayedContent.length + charsToReveal)
+      );
+    }, adaptiveDelay);
 
     return () => clearTimeout(timer);
-  }, [content, isStreaming, displayedContent]);
+  }, [content, isStreaming, displayedContent, adaptiveDelay]);
 
   // Reset displayed content when content changes significantly (new message)
   useEffect(() => {
@@ -186,6 +226,18 @@ export function StreamingText({
   // Render the content
   const renderContent = () => {
     if (!displayedContent.trim()) {
+      // Show animated dots while waiting for initial response
+      if (isStreaming) {
+        return (
+          <div className="flex items-center space-x-1 py-2">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce"></div>
+            </div>
+          </div>
+        );
+      }
       return null;
     }
 
