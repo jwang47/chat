@@ -3,11 +3,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
 import { MessageInput } from "./MessageInput";
 import { OpenRouterService, type OpenRouterMessage } from "@/lib/openrouter";
+import { GeminiService, type GeminiMessage } from "@/lib/gemini";
 import type { Message } from "@/types/chat";
 import { motion, AnimatePresence } from "motion/react";
+import { Button } from "@/components/ui/button";
 
 // Debug: Simple render counter
 let renderCount = 0;
+
+type AIProvider = "openrouter" | "gemini";
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -16,6 +20,8 @@ export function ChatInterface() {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] =
+    useState<AIProvider>("gemini");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const messageIdCounter = useRef(0);
@@ -70,10 +76,17 @@ export function ChatInterface() {
       // Clear any previous error
       setError(null);
 
-      // Check if API key is available
-      if (!OpenRouterService.hasApiKey()) {
+      // Check if API key is available for selected provider
+      const hasApiKey =
+        selectedProvider === "openrouter"
+          ? OpenRouterService.hasApiKey()
+          : GeminiService.hasApiKey();
+
+      if (!hasApiKey) {
         setError(
-          "OpenRouter API key not found. Please add your API key in settings."
+          `${
+            selectedProvider === "openrouter" ? "OpenRouter" : "Gemini"
+          } API key not found. Please add your API key in settings.`
         );
         return;
       }
@@ -101,56 +114,102 @@ export function ChatInterface() {
       setMessages((prev) => [...prev, aiResponse]);
       setStreamingMessageId(aiResponseId);
 
-      // Convert messages to OpenRouter format
-      const openRouterMessages: OpenRouterMessage[] = [
-        ...messages,
-        newMessage,
-      ].map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // Convert messages to appropriate format
+      const allMessages = [...messages, newMessage];
 
-      // Stream response from OpenRouter
-      OpenRouterService.streamChatCompletion(
-        openRouterMessages,
-        // onChunk: Update the streaming message content
-        (chunk: string) => {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === aiResponseId
-                ? { ...msg, content: msg.content + chunk, isStreaming: true }
-                : msg
-            )
-          );
-        },
-        // onComplete: Finish streaming
-        () => {
-          setIsTyping(false);
-          setStreamingMessageId(null);
+      // Shared callback functions
+      const onChunk = (chunk: string) => {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === aiResponseId
+              ? { ...msg, content: msg.content + chunk, isStreaming: true }
+              : msg
+          )
+        );
+      };
 
-          // Mark message as no longer streaming
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === aiResponseId ? { ...msg, isStreaming: false } : msg
-            )
-          );
-        },
-        // onError: Handle errors
-        (error: Error) => {
-          setIsTyping(false);
-          setStreamingMessageId(null);
-          setError(error.message);
+      const onComplete = () => {
+        setIsTyping(false);
+        setStreamingMessageId(null);
 
-          // Remove the empty AI response message on error
-          setMessages((prev) => prev.filter((msg) => msg.id !== aiResponseId));
-        }
-      );
+        // Mark message as no longer streaming
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === aiResponseId ? { ...msg, isStreaming: false } : msg
+          )
+        );
+      };
+
+      const onError = (error: Error) => {
+        setIsTyping(false);
+        setStreamingMessageId(null);
+        setError(error.message);
+
+        // Remove the empty AI response message on error
+        setMessages((prev) => prev.filter((msg) => msg.id !== aiResponseId));
+      };
+
+      // Stream response from selected provider
+      if (selectedProvider === "openrouter") {
+        const openRouterMessages: OpenRouterMessage[] = allMessages.map(
+          (msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })
+        );
+
+        OpenRouterService.streamChatCompletion(
+          openRouterMessages,
+          onChunk,
+          onComplete,
+          onError
+        );
+      } else {
+        const geminiMessages: GeminiMessage[] = allMessages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }));
+
+        GeminiService.streamChatCompletion(
+          geminiMessages,
+          onChunk,
+          onComplete,
+          onError
+        );
+      }
     },
-    [generateMessageId, messages]
+    [generateMessageId, messages, selectedProvider]
   );
 
   return (
     <div className="relative h-screen bg-background">
+      {/* Provider Selector */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="absolute top-4 left-4 z-20"
+      >
+        <div className="flex gap-2">
+          <Button
+            variant={selectedProvider === "gemini" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedProvider("gemini")}
+            className="text-xs"
+          >
+            Gemini
+          </Button>
+          <Button
+            variant={selectedProvider === "openrouter" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedProvider("openrouter")}
+            className="text-xs"
+          >
+            OpenRouter
+          </Button>
+        </div>
+      </motion.div>
+
       {/* Error Display */}
       <AnimatePresence>
         {error && (
@@ -235,7 +294,9 @@ export function ChatInterface() {
       >
         <MessageInput
           onSendMessage={handleSendMessage}
-          placeholder="Ask me anything..."
+          placeholder={`Ask ${
+            selectedProvider === "gemini" ? "Gemini" : "OpenRouter"
+          } anything...`}
           disabled={isTyping}
         />
       </motion.div>

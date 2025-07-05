@@ -189,8 +189,47 @@ function splitHtmlIntoElements(html: string): string[] {
   // Process each top-level child element
   Array.from(tempDiv.childNodes).forEach((node) => {
     if (node.nodeType === Node.ELEMENT_NODE) {
-      // For element nodes, get the complete HTML including all children
-      elements.push((node as Element).outerHTML);
+      const element = node as Element;
+
+      // Special handling for blockquotes - split them into individual lines
+      if (element.tagName.toLowerCase() === "blockquote") {
+        const paragraphs = element.querySelectorAll("p");
+        if (paragraphs.length === 1) {
+          // Check if the single paragraph contains newlines
+          const pContent = paragraphs[0].textContent || "";
+          const lines = pContent.split("\n").filter((line) => line.trim());
+
+          if (lines.length > 1) {
+            // Split into individual lines, each wrapped in its own blockquote
+            lines.forEach((line) => {
+              const singleBlockquote = document.createElement("blockquote");
+              singleBlockquote.className = element.className;
+              const p = document.createElement("p");
+              p.className = paragraphs[0].className;
+              p.textContent = line.trim();
+              singleBlockquote.appendChild(p);
+              elements.push(singleBlockquote.outerHTML);
+            });
+          } else {
+            // Single line blockquote, keep as is
+            elements.push(element.outerHTML);
+          }
+        } else if (paragraphs.length > 1) {
+          // Multiple paragraphs, split them into individual blockquotes
+          paragraphs.forEach((p) => {
+            const singleBlockquote = document.createElement("blockquote");
+            singleBlockquote.className = element.className;
+            singleBlockquote.appendChild(p.cloneNode(true));
+            elements.push(singleBlockquote.outerHTML);
+          });
+        } else {
+          // No paragraphs, keep as is
+          elements.push(element.outerHTML);
+        }
+      } else {
+        // For other element nodes, get the complete HTML including all children
+        elements.push(element.outerHTML);
+      }
     } else if (node.nodeType === Node.TEXT_NODE) {
       // For text nodes, only add if they have meaningful content
       const textContent = node.textContent?.trim();
