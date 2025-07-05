@@ -159,6 +159,11 @@ function addCustomStyling(html: string): string {
       .replace(/<ul>/g, '<ul class="list-disc list-inside mb-2 ml-4">')
       .replace(/<ol>/g, '<ol class="list-decimal list-inside mb-2 ml-4">')
       .replace(/<li>/g, '<li class="mb-1">')
+      // Fix list items with paragraphs - remove margin from paragraphs inside list items
+      .replace(
+        /<li class="mb-1">\s*<p class="mb-2 last:mb-0([^"]*)">/g,
+        '<li class="mb-1"><p class="mb-0$1">'
+      )
       // Blockquotes
       .replace(
         /<blockquote>/g,
@@ -281,172 +286,6 @@ function splitHtmlIntoElements(html: string): string[] {
   });
 
   return elements.filter((el) => el.trim().length > 0);
-}
-
-// Component to render markdown with custom code block handling
-function MarkdownRenderer({ content }: { content: string }) {
-  const processedContent = useMemo(() => {
-    if (!content) {
-      return { elements: [] };
-    }
-
-    try {
-      const elements: React.ReactNode[] = [];
-      let elementIndex = 0;
-
-      // Check if we're in the middle of a code block (for streaming) BEFORE preprocessing
-      const openCodeBlocks = (content.match(/```/g) || []).length;
-      const isInCodeBlock = openCodeBlocks % 2 === 1;
-
-      // If we're in a code block, completely hide it until it's finished
-      let contentToProcess = content;
-      let incompleteCodeBlock: { language: string; code: string } | null = null;
-
-      if (isInCodeBlock) {
-        console.log("🔍 Incomplete code block detected in MarkdownRenderer");
-        // Find the last opening ``` in the original content
-        const lastCodeBlockStart = content.lastIndexOf("```");
-        if (lastCodeBlockStart !== -1) {
-          const beforeCodeBlock = content.substring(0, lastCodeBlockStart);
-          const codeBlockContent = content.substring(lastCodeBlockStart);
-
-          console.log("📝 Before code block:", JSON.stringify(beforeCodeBlock));
-          console.log(
-            "📝 Code block content:",
-            JSON.stringify(codeBlockContent)
-          );
-
-          // Extract language and code
-          const languageMatch = codeBlockContent.match(/```(\w+)?\n([\s\S]*)/);
-          if (languageMatch) {
-            const language = languageMatch[1] || "";
-            const code = languageMatch[2];
-
-            incompleteCodeBlock = { language, code };
-            // Hide the entire incomplete code block - don't process it at all
-            contentToProcess = beforeCodeBlock.replace(/\n+$/, "");
-            console.log(
-              "✂️ Processed content:",
-              JSON.stringify(contentToProcess)
-            );
-          }
-        }
-      }
-
-      // Now preprocess the content after we've handled incomplete code blocks
-      let remainingContent = preprocessContent(contentToProcess);
-
-      // Process the complete content (without the incomplete code block)
-      remainingContent = contentToProcess;
-
-      // Process content sequentially
-      while (remainingContent) {
-        // Find the next code block
-        const codeBlockMatch = remainingContent.match(
-          /```(\w+)?\n([\s\S]*?)```/
-        );
-
-        if (codeBlockMatch) {
-          const beforeCodeBlock = remainingContent.substring(
-            0,
-            codeBlockMatch.index
-          );
-          const language = codeBlockMatch[1] || "";
-          const code = codeBlockMatch[2].trim();
-
-          // Add content before the code block
-          if (beforeCodeBlock.trim()) {
-            const html = micromark(beforeCodeBlock, {
-              extensions: [gfm()],
-              htmlExtensions: [gfmHtml()],
-            });
-            const styledHtml = addCustomStyling(html);
-
-            // Split the HTML into individual elements
-            const htmlElements = splitHtmlIntoElements(styledHtml);
-
-            htmlElements.forEach((elementHtml) => {
-              elements.push(
-                <motion.div
-                  key={`html-${elementIndex++}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  dangerouslySetInnerHTML={{ __html: elementHtml }}
-                />
-              );
-            });
-          }
-
-          // Add the code block
-          elements.push(
-            <motion.div
-              key={`code-${elementIndex++}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              <CollapsibleCodeBlock language={language}>
-                {code}
-              </CollapsibleCodeBlock>
-            </motion.div>
-          );
-
-          // Continue with the rest of the content
-          remainingContent = remainingContent.substring(
-            codeBlockMatch.index! + codeBlockMatch[0].length
-          );
-        } else {
-          // No more code blocks, process the remaining content
-          if (remainingContent.trim()) {
-            const html = micromark(remainingContent, {
-              extensions: [gfm()],
-              htmlExtensions: [gfmHtml()],
-            });
-            const styledHtml = addCustomStyling(html);
-
-            // Split the HTML into individual elements
-            const htmlElements = splitHtmlIntoElements(styledHtml);
-
-            htmlElements.forEach((elementHtml) => {
-              elements.push(
-                <motion.div
-                  key={`html-${elementIndex++}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  dangerouslySetInnerHTML={{ __html: elementHtml }}
-                />
-              );
-            });
-          }
-          break;
-        }
-      }
-
-      // Don't render incomplete code blocks - they look bad while streaming
-      // Only show them once they're properly closed with ```
-
-      return { elements };
-    } catch (error) {
-      console.error("Error rendering markdown:", error);
-      return {
-        elements: [
-          <motion.div
-            key="error"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            dangerouslySetInnerHTML={{
-              __html: `<p class="mb-2 last:mb-0">${content}</p>`,
-            }}
-          />,
-        ],
-      };
-    }
-  }, [content]);
-
-  return <>{processedContent.elements}</>;
 }
 
 export function StreamingText({

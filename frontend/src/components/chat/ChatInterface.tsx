@@ -22,9 +22,11 @@ export function ChatInterface() {
   const [error, setError] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] =
     useState<AIProvider>("gemini");
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const messageIdCounter = useRef(0);
+  const isUserScrolledUpRef = useRef(false);
 
   // Debug: Log renders
   renderCount++;
@@ -46,19 +48,55 @@ export function ChatInterface() {
     return scrollContainerRef.current;
   }, []);
 
+  // Check if user is at or near the bottom of the chat
+  const isAtBottom = useCallback(() => {
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return true;
+
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+    const threshold = 100; // pixels from bottom
+    return scrollTop + clientHeight >= scrollHeight - threshold;
+  }, [getScrollContainer]);
+
   // Optimized scroll to bottom function
   const scrollToBottom = useCallback(() => {
     const scrollContainer = getScrollContainer();
     if (scrollContainer) {
       requestAnimationFrame(() => {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        // Update state to reflect that we're now at the bottom
+        isUserScrolledUpRef.current = false;
+        setShowScrollToBottom(false);
       });
     }
   }, [getScrollContainer]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Handle scroll events to track user scroll position
+  const handleScroll = useCallback(() => {
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return;
+
+    // Update the scroll position tracking
+    const isAtBottomNow = isAtBottom();
+    isUserScrolledUpRef.current = !isAtBottomNow;
+    setShowScrollToBottom(!isAtBottomNow);
+  }, [getScrollContainer, isAtBottom]);
+
+  // Set up scroll event listener
   useEffect(() => {
-    scrollToBottom();
+    const scrollContainer = getScrollContainer();
+    if (scrollContainer) {
+      scrollContainer.addEventListener("scroll", handleScroll);
+      return () => scrollContainer.removeEventListener("scroll", handleScroll);
+    }
+  }, [getScrollContainer, handleScroll]);
+
+  // Auto-scroll to bottom when new messages arrive, but only if user is at bottom
+  useEffect(() => {
+    // Always scroll to bottom for the first message or if user is already at bottom
+    if (messages.length === 0 || !isUserScrolledUpRef.current) {
+      scrollToBottom();
+    }
   }, [messages, scrollToBottom]);
 
   // Scroll to bottom on initial load
@@ -66,6 +104,9 @@ export function ChatInterface() {
     // Small delay to ensure DOM is fully rendered
     const timer = setTimeout(() => {
       scrollToBottom();
+      // Initialize scroll tracking
+      isUserScrolledUpRef.current = false;
+      setShowScrollToBottom(false);
     }, 100);
 
     return () => clearTimeout(timer);
@@ -284,6 +325,39 @@ export function ChatInterface() {
           </AnimatePresence>
         </div>
       </ScrollArea>
+
+      {/* Scroll to Bottom Button */}
+      <AnimatePresence>
+        {showScrollToBottom && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute bottom-24 right-8 z-10"
+          >
+            <Button
+              onClick={scrollToBottom}
+              size="sm"
+              className="rounded-full shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Message Input */}
       <motion.div
