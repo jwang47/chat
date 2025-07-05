@@ -4,6 +4,7 @@ import {
   forwardRef,
   useImperativeHandle,
   useCallback,
+  useMemo,
 } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { motion, AnimatePresence } from "motion/react";
@@ -39,12 +40,36 @@ function easeInOutQuint(t: number) {
   return t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t;
 }
 
+// Typing indicator message type
+interface TypingIndicatorMessage extends Message {
+  type: "typing";
+}
+
 export const VirtualizedMessages = forwardRef<
   VirtualizedMessagesRef,
   VirtualizedMessagesProps
 >(({ messages, isTyping, streamingMessageId, onScrollChange }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const scrollingRef = useRef<number>(0);
+
+  // Create virtualized items including typing indicator
+  const virtualizedItems = useMemo(() => {
+    const items = [...messages];
+
+    // Add typing indicator as a virtual message if needed
+    if (isTyping && !streamingMessageId) {
+      items.push({
+        id: "typing-indicator",
+        role: "assistant",
+        content: "",
+        timestamp: new Date(),
+        model: "typing",
+        type: "typing",
+      } as TypingIndicatorMessage);
+    }
+
+    return items;
+  }, [messages, isTyping, streamingMessageId]);
 
   // Custom smooth scroll to bottom that tracks content changes
   const smoothScrollToBottom = useCallback(() => {
@@ -116,7 +141,7 @@ export const VirtualizedMessages = forwardRef<
 
   // TanStack Virtual setup
   const virtualizer = useVirtualizer({
-    count: messages.length,
+    count: virtualizedItems.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 150, // Estimated message height
     overscan: 5, // Render 5 extra items above/below visible area
@@ -127,115 +152,77 @@ export const VirtualizedMessages = forwardRef<
   // Track DOM elements for remeasurement
   const messageElementsRef = useRef<Map<number, HTMLElement>>(new Map());
 
-  // Force remeasurement when streaming content changes
-  useEffect(() => {
-    if (streamingMessageId) {
-      const streamingMessage = messages.find(
-        (msg) => msg.id === streamingMessageId
-      );
-      if (streamingMessage && streamingMessage.content) {
-        // Throttle remeasurement to avoid excessive calls
-        const timeoutId = setTimeout(() => {
-          // Find the streaming message index and remeasure it
-          const messageIndex = messages.findIndex(
-            (msg) => msg.id === streamingMessageId
-          );
-          if (messageIndex !== -1) {
-            const element = messageElementsRef.current.get(messageIndex);
-            if (element) {
-              // Use requestAnimationFrame to ensure DOM is updated
-              requestAnimationFrame(() => {
-                // Double-check element is still valid and visible
-                if (element.isConnected) {
-                  // Temporarily pause continuous scroll during measurement
-                  const wasContinuousScrolling =
-                    continuousScrollRef.current !== null;
-                  if (wasContinuousScrolling) {
-                    stopContinuousScroll();
-                  }
-
-                  virtualizer.measureElement(element);
-
-                  // Resume continuous scroll if it was active
-                  if (wasContinuousScrolling && streamingMessageId) {
-                    setTimeout(() => {
-                      startContinuousScroll();
-                    }, 50);
-                  }
-                }
-              });
-            }
-          }
-        }, 50); // Small delay to batch rapid content changes
-
-        return () => clearTimeout(timeoutId);
-      }
-    }
-  }, [streamingMessageId, messages, virtualizer]);
-
-  // Additional effect to handle streaming content length changes
-  const streamingContentLengthRef = useRef(0);
+  // Consolidated debounced remeasurement logic
   const remeasureTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const streamingContentLengthRef = useRef(0);
 
   useEffect(() => {
-    if (streamingMessageId) {
-      const streamingMessage = messages.find(
-        (msg) => msg.id === streamingMessageId
-      );
-      if (streamingMessage && streamingMessage.content) {
-        const contentLength = streamingMessage.content.length;
-        // Only remeasure if content has grown significantly
-        if (contentLength > streamingContentLengthRef.current + 50) {
-          streamingContentLengthRef.current = contentLength;
-          const messageIndex = messages.findIndex(
-            (msg) => msg.id === streamingMessageId
-          );
-          if (messageIndex !== -1) {
-            // Clear any existing timeout
-            if (remeasureTimeoutRef.current) {
-              clearTimeout(remeasureTimeoutRef.current);
-            }
-
-            // Debounce remeasurement to avoid excessive calls
-            remeasureTimeoutRef.current = setTimeout(() => {
-              const element = messageElementsRef.current.get(messageIndex);
-              if (element) {
-                // Use requestAnimationFrame to ensure DOM is updated
-                requestAnimationFrame(() => {
-                  // Double-check element is still valid and visible
-                  if (element.isConnected) {
-                    // Temporarily pause continuous scroll during measurement
-                    const wasContinuousScrolling =
-                      continuousScrollRef.current !== null;
-                    if (wasContinuousScrolling) {
-                      stopContinuousScroll();
-                    }
-
-                    virtualizer.measureElement(element);
-
-                    // Resume continuous scroll if it was active
-                    if (wasContinuousScrolling && streamingMessageId) {
-                      setTimeout(() => {
-                        startContinuousScroll();
-                      }, 50);
-                    }
-                  }
-                });
-              }
-              remeasureTimeoutRef.current = null;
-            }, 100); // Slightly longer delay for content-based remeasurement
-          }
-        }
-      }
-    } else {
+    if (!streamingMessageId) {
       // Reset when streaming ends
       streamingContentLengthRef.current = 0;
       if (remeasureTimeoutRef.current) {
         clearTimeout(remeasureTimeoutRef.current);
         remeasureTimeoutRef.current = null;
       }
+      return;
     }
-  }, [streamingMessageId, messages, virtualizer]);
+
+    const streamingMessage = messages.find(
+      (msg) => msg.id === streamingMessageId
+    );
+
+    if (!streamingMessage?.content) return;
+
+    const contentLength = streamingMessage.content.length;
+    const shouldRemeasure =
+      contentLength > streamingContentLengthRef.current + 50;
+
+    if (shouldRemeasure) {
+      streamingContentLengthRef.current = contentLength;
+
+      const messageIndex = messages.findIndex(
+        (msg) => msg.id === streamingMessageId
+      );
+
+      if (messageIndex === -1) return;
+
+      // Clear any existing timeout to debounce
+      if (remeasureTimeoutRef.current) {
+        clearTimeout(remeasureTimeoutRef.current);
+      }
+
+      // Debounced remeasurement
+      remeasureTimeoutRef.current = setTimeout(() => {
+        const element = messageElementsRef.current.get(messageIndex);
+        if (element?.isConnected) {
+          // Use requestAnimationFrame to ensure DOM is updated
+          requestAnimationFrame(() => {
+            // Temporarily pause continuous scroll during measurement
+            const wasContinuousScrolling = continuousScrollRef.current !== null;
+            if (wasContinuousScrolling) {
+              stopContinuousScroll();
+            }
+
+            virtualizer.measureElement(element);
+
+            // Resume continuous scroll if it was active
+            if (wasContinuousScrolling && streamingMessageId) {
+              setTimeout(() => {
+                startContinuousScroll();
+              }, 50);
+            }
+          });
+        }
+        remeasureTimeoutRef.current = null;
+      }, 100);
+    }
+  }, [
+    streamingMessageId,
+    messages,
+    virtualizer,
+    stopContinuousScroll,
+    startContinuousScroll,
+  ]);
 
   // Expose scroll methods to parent
   useImperativeHandle(
@@ -280,7 +267,7 @@ export const VirtualizedMessages = forwardRef<
       getScrollContainer: () => parentRef.current,
       getVirtualTotalSize: () => virtualizer.getTotalSize(),
     }),
-    [virtualizer, messages.length]
+    [virtualizer, virtualizedItems.length]
   );
 
   // Handle scroll events
@@ -308,19 +295,62 @@ export const VirtualizedMessages = forwardRef<
     }
   }, [handleScroll]);
 
-  // Cleanup continuous scroll on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopContinuousScroll();
-      // Clear element tracking
       messageElementsRef.current.clear();
-      // Clear any pending remeasure timeout
       if (remeasureTimeoutRef.current) {
         clearTimeout(remeasureTimeoutRef.current);
         remeasureTimeoutRef.current = null;
       }
     };
   }, [stopContinuousScroll]);
+
+  // Typing indicator component
+  const TypingIndicator = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="flex p-4"
+    >
+      <div className="p-3 rounded-lg">
+        <div className="flex gap-1">
+          <motion.div
+            className="w-2 h-2 bg-muted-foreground rounded-full"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{
+              duration: 0.8,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="w-2 h-2 bg-muted-foreground rounded-full"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{
+              duration: 0.8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.2,
+            }}
+          />
+          <motion.div
+            className="w-2 h-2 bg-muted-foreground rounded-full"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{
+              duration: 0.8,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.4,
+            }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
 
   return (
     <div className="h-full">
@@ -349,10 +379,14 @@ export const VirtualizedMessages = forwardRef<
             }}
           >
             {items.map((virtualRow) => {
-              const message = messages[virtualRow.index];
-              const isLastMessage = virtualRow.index === messages.length - 1;
+              const item = virtualizedItems[virtualRow.index];
+              const isLastMessage =
+                virtualRow.index === virtualizedItems.length - 1;
+              const isTypingIndicator =
+                "type" in item && item.type === "typing";
               const isStreaming =
-                message.isStreaming || streamingMessageId === message.id;
+                !isTypingIndicator &&
+                (item.isStreaming || streamingMessageId === item.id);
 
               return (
                 <div
@@ -375,70 +409,20 @@ export const VirtualizedMessages = forwardRef<
                       isLastMessage ? "mb-[100px]" : ""
                     }`}
                   >
-                    <ChatMessage message={message} disableAnimations={true} />
+                    {isTypingIndicator ? (
+                      <TypingIndicator />
+                    ) : (
+                      <ChatMessage
+                        message={item as Message}
+                        disableAnimations={true}
+                      />
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
-
-        {/* Typing Indicator - Always rendered at the bottom */}
-        <AnimatePresence>
-          {isTyping && !streamingMessageId && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              style={{
-                position: "absolute",
-                top: `${virtualizer.getTotalSize() + 24}px`,
-                left: 0,
-                width: "100%",
-                marginBottom: "100px", // Ensure it doesn't overlap with input
-              }}
-            >
-              <div className="max-w-4xl mx-auto py-4 mb-[100px]">
-                <div className="flex p-4">
-                  <div className="p-3 rounded-lg">
-                    <div className="flex gap-1">
-                      <motion.div
-                        className="w-2 h-2 bg-muted-foreground rounded-full"
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{
-                          duration: 0.8,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                        }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 bg-muted-foreground rounded-full"
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{
-                          duration: 0.8,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: 0.2,
-                        }}
-                      />
-                      <motion.div
-                        className="w-2 h-2 bg-muted-foreground rounded-full"
-                        animate={{ scale: [1, 1.2, 1] }}
-                        transition={{
-                          duration: 0.8,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: 0.4,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
