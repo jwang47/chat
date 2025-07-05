@@ -22,12 +22,65 @@ export function ChatMinimap({
   const minimapRef = useRef<HTMLDivElement>(null);
   const [minimapHeight, setMinimapHeight] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [messagePositions, setMessagePositions] = useState<
+    Array<{
+      id: string;
+      top: number;
+      height: number;
+      role: "user" | "assistant";
+    }>
+  >([]);
 
   useEffect(() => {
     if (minimapRef.current) {
-      setMinimapHeight(minimapRef.current.clientHeight);
+      const height = minimapRef.current.clientHeight;
+      setMinimapHeight(height);
     }
-  }, []);
+  }, [messages]);
+
+  // Query actual message positions from DOM
+  useEffect(() => {
+    const updateMessagePositions = () => {
+      const positions: Array<{
+        id: string;
+        top: number;
+        height: number;
+        role: "user" | "assistant";
+      }> = [];
+
+      messages.forEach((message) => {
+        // Find the message element in the DOM
+        const messageElement = document.querySelector(
+          `[data-message-id="${message.id}"]`
+        );
+        if (messageElement) {
+          const rect = messageElement.getBoundingClientRect();
+          const scrollContainer = document.querySelector(
+            "[data-radix-scroll-area-viewport]"
+          );
+
+          if (scrollContainer) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const relativeTop =
+              rect.top - containerRect.top + scrollContainer.scrollTop;
+
+            positions.push({
+              id: message.id,
+              top: relativeTop,
+              height: rect.height,
+              role: message.role,
+            });
+          }
+        }
+      });
+
+      setMessagePositions(positions);
+    };
+
+    // Update positions after a short delay to ensure DOM is ready
+    const timer = setTimeout(updateMessagePositions, 100);
+    return () => clearTimeout(timer);
+  }, [messages]);
 
   const handleMinimapInteraction = useCallback(
     (clientY: number) => {
@@ -84,11 +137,19 @@ export function ChatMinimap({
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   // Calculate viewport indicator dimensions and position
-  const viewportRatio = Math.min(viewportHeight / contentHeight, 1);
-  const availableHeight = minimapHeight - 8; // Account for padding (4px top + 4px bottom)
-  const viewportIndicatorHeight = Math.max(availableHeight * viewportRatio, 8); // Minimum 8px
-  const maxIndicatorTop = availableHeight - viewportIndicatorHeight;
-  const viewportIndicatorTop = 4 + scrollProgress * maxIndicatorTop; // Add top padding
+  const actualMinimapHeight = minimapHeight || 320;
+  const padding = 4;
+  const availableHeight = actualMinimapHeight - padding * 2;
+
+  // Calculate viewport indicator dimensions
+  const viewportRatio =
+    contentHeight > 0 ? Math.min(viewportHeight / contentHeight, 1) : 0.1;
+  const viewportIndicatorHeight = Math.max(availableHeight * viewportRatio, 8);
+
+  // Calculate the position - ensure it stays within bounds
+  const maxScrollTop = availableHeight - viewportIndicatorHeight;
+  const viewportIndicatorTop =
+    padding + Math.min(scrollProgress * maxScrollTop, maxScrollTop);
 
   return (
     <motion.div
@@ -100,26 +161,31 @@ export function ChatMinimap({
       onMouseDown={handleMouseDown}
       ref={minimapRef}
     >
-      {/* Messages representation */}
+      {/* Message bars based on actual DOM positions */}
       <div className="relative h-full p-1">
-        {messages.map((message, index) => {
-          const messageHeight = Math.max(
-            (message.content.length / 200) * 6, // Reduced height for thinner minimap
-            1.5 // Smaller minimum height
-          );
-          const messageTop = (index / messages.length) * (availableHeight - 2); // Use available height
+        {messagePositions.map((position) => {
+          // Convert actual position to minimap position
+          const minimapTop =
+            contentHeight > 0
+              ? (position.top / contentHeight) * availableHeight + padding
+              : 0;
+
+          const minimapHeight =
+            contentHeight > 0
+              ? Math.max((position.height / contentHeight) * availableHeight, 2)
+              : 2;
 
           return (
             <div
-              key={message.id}
+              key={position.id}
               className={`absolute left-0.5 right-0.5 rounded-sm ${
-                message.role === "user"
+                position.role === "user"
                   ? "bg-accent/60"
                   : "bg-muted-foreground/40"
               }`}
               style={{
-                top: `${messageTop + 2}px`, // Add small offset for padding
-                height: `${messageHeight}px`,
+                top: `${Math.max(0, minimapTop)}px`,
+                height: `${minimapHeight}px`,
               }}
             />
           );
@@ -127,8 +193,8 @@ export function ChatMinimap({
 
         {/* Viewport indicator */}
         <div
-          className={`absolute left-0 right-0 bg-accent/25 border border-accent/60 rounded-sm transition-all duration-100 ${
-            isDragging ? "bg-accent/40 border-accent/80" : ""
+          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm transition-all duration-100 ${
+            isDragging ? "bg-accent/50 border-accent/90" : ""
           }`}
           style={{
             top: `${viewportIndicatorTop}px`,

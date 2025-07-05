@@ -160,6 +160,7 @@ export const ChatMessage = memo(function ChatMessage({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
       className={cn("flex p-4", isUser && "justify-end")}
+      data-message-id={message.id}
     >
       <motion.div
         initial={{ scale: 0.95 }}
