@@ -346,9 +346,7 @@ export function StreamingText({
   className,
 }: StreamingTextProps) {
   const [renderedBlocks, setRenderedBlocks] = useState<React.ReactNode[]>([]);
-  const [lastProcessedElements, setLastProcessedElements] = useState<string[]>(
-    []
-  );
+  const lastProcessedElementsRef = useRef<string[]>([]);
   const prevIsStreamingRef = useRef(isStreaming);
 
   // Debug: Log when streaming is complete
@@ -375,7 +373,7 @@ export function StreamingText({
   useEffect(() => {
     if (!content) {
       setRenderedBlocks([]);
-      setLastProcessedElements([]);
+      lastProcessedElementsRef.current = [];
       return;
     }
 
@@ -389,7 +387,7 @@ export function StreamingText({
       // Check if we need to update (only if elements changed)
       const elementsChanged =
         JSON.stringify(elementsToProcess) !==
-        JSON.stringify(lastProcessedElements);
+        JSON.stringify(lastProcessedElementsRef.current);
 
       if (!elementsChanged) {
         return;
@@ -462,11 +460,11 @@ export function StreamingText({
 
       console.log(`🎭 Setting ${newBlocks.length} rendered blocks`);
       setRenderedBlocks(newBlocks);
-      setLastProcessedElements(elementsToProcess);
+      lastProcessedElementsRef.current = elementsToProcess;
     } catch (error) {
       console.error("Error processing streaming content:", error);
     }
-  }, [content, isStreaming, lastProcessedElements, renderedBlocks]);
+  }, [content, isStreaming]);
 
   // Add streaming cursor to the last block if streaming
   const displayBlocks = useMemo(() => {
