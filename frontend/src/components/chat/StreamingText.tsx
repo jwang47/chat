@@ -177,125 +177,98 @@ function addCustomStyling(html: string): string {
 
 // Component to render markdown with custom code block handling
 function MarkdownRenderer({ content }: { content: string }) {
-  const [processedContent, setProcessedContent] = useState<{
-    html: string;
-    codeBlocks: Array<{
-      id: string;
-      language: string;
-      code: string;
-      placeholder: string;
-    }>;
-  }>({ html: "", codeBlocks: [] });
-
-  useEffect(() => {
+  const processedContent = useMemo(() => {
     if (!content) {
-      setProcessedContent({ html: "", codeBlocks: [] });
-      return;
+      return { elements: [] };
     }
 
     try {
-      // Extract code blocks first
-      const codeBlocks: Array<{
-        id: string;
-        language: string;
-        code: string;
-        placeholder: string;
-      }> = [];
-      const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-      let match;
-      let contentWithPlaceholders = content;
+      const elements: React.ReactNode[] = [];
+      let remainingContent = content;
+      let elementIndex = 0;
 
-      while ((match = codeBlockRegex.exec(content)) !== null) {
-        const id = Math.random().toString(36).substr(2, 9);
-        const placeholder = `__CODE_BLOCK_${id}__`;
-        codeBlocks.push({
-          id,
-          language: match[1] || "",
-          code: match[2].trim(),
-          placeholder,
-        });
-
-        // Replace the code block with a placeholder
-        contentWithPlaceholders = contentWithPlaceholders.replace(
-          match[0],
-          `\n\n${placeholder}\n\n`
+      // Process content sequentially
+      while (remainingContent) {
+        // Find the next code block
+        const codeBlockMatch = remainingContent.match(
+          /```(\w+)?\n([\s\S]*?)```/
         );
+
+        if (codeBlockMatch) {
+          const beforeCodeBlock = remainingContent.substring(
+            0,
+            codeBlockMatch.index
+          );
+          const language = codeBlockMatch[1] || "";
+          const code = codeBlockMatch[2].trim();
+
+          // Add content before the code block
+          if (beforeCodeBlock.trim()) {
+            const html = micromark(beforeCodeBlock, {
+              extensions: [gfm()],
+              htmlExtensions: [gfmHtml()],
+            });
+            const styledHtml = addCustomStyling(html);
+
+            elements.push(
+              <div
+                key={`html-${elementIndex++}`}
+                dangerouslySetInnerHTML={{ __html: styledHtml }}
+              />
+            );
+          }
+
+          // Add the code block
+          elements.push(
+            <CollapsibleCodeBlock
+              key={`code-${elementIndex++}`}
+              language={language}
+            >
+              {code}
+            </CollapsibleCodeBlock>
+          );
+
+          // Continue with the rest of the content
+          remainingContent = remainingContent.substring(
+            codeBlockMatch.index! + codeBlockMatch[0].length
+          );
+        } else {
+          // No more code blocks, process the remaining content
+          if (remainingContent.trim()) {
+            const html = micromark(remainingContent, {
+              extensions: [gfm()],
+              htmlExtensions: [gfmHtml()],
+            });
+            const styledHtml = addCustomStyling(html);
+
+            elements.push(
+              <div
+                key={`html-${elementIndex++}`}
+                dangerouslySetInnerHTML={{ __html: styledHtml }}
+              />
+            );
+          }
+          break;
+        }
       }
 
-      // Generate HTML from markdown (without code blocks)
-      const rawHtml = micromark(contentWithPlaceholders, {
-        extensions: [gfm()],
-        htmlExtensions: [gfmHtml()],
-      });
-
-      // Add custom styling
-      const styledHtml = addCustomStyling(rawHtml);
-
-      setProcessedContent({ html: styledHtml, codeBlocks });
+      return { elements };
     } catch (error) {
       console.error("Error rendering markdown:", error);
-      setProcessedContent({
-        html: `<p class="mb-2 last:mb-0">${content}</p>`,
-        codeBlocks: [],
-      });
+      return {
+        elements: [
+          <div
+            key="error"
+            dangerouslySetInnerHTML={{
+              __html: `<p class="mb-2 last:mb-0">${content}</p>`,
+            }}
+          />,
+        ],
+      };
     }
   }, [content]);
 
-  // Split HTML by code block placeholders and render
-  const renderContent = () => {
-    const { html, codeBlocks } = processedContent;
-
-    if (codeBlocks.length === 0) {
-      return <div dangerouslySetInnerHTML={{ __html: html }} />;
-    }
-
-    // Split HTML by placeholders and intersperse with code blocks
-    let currentHtml = html;
-    const elements: React.ReactNode[] = [];
-
-    codeBlocks.forEach((block, index) => {
-      const parts = currentHtml.split(block.placeholder);
-
-      if (parts.length > 1) {
-        // Add the HTML before the code block
-        if (parts[0].trim()) {
-          elements.push(
-            <div
-              key={`text-${index}`}
-              dangerouslySetInnerHTML={{ __html: parts[0] }}
-            />
-          );
-        }
-
-        // Add the code block
-        elements.push(
-          <CollapsibleCodeBlock
-            key={`code-${block.id}`}
-            language={block.language}
-          >
-            {block.code}
-          </CollapsibleCodeBlock>
-        );
-
-        // Continue with the rest of the HTML
-        currentHtml = parts.slice(1).join(block.placeholder);
-      }
-    });
-
-    // Add any remaining HTML
-    if (currentHtml.trim()) {
-      elements.push(
-        <div
-          key="text-final"
-          dangerouslySetInnerHTML={{ __html: currentHtml }}
-        />
-      );
-    }
-
-    return <>{elements}</>;
-  };
-
-  return <>{renderContent()}</>;
+  return <>{processedContent.elements}</>;
 }
 
 export function StreamingText({
@@ -308,7 +281,7 @@ export function StreamingText({
       <MarkdownRenderer content={content} />
 
       {/* Streaming indicator */}
-      {isStreaming && (
+      {isStreaming && !content && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
