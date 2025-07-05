@@ -22,14 +22,6 @@ export function ChatMinimap({
   const minimapRef = useRef<HTMLDivElement>(null);
   const [minimapHeight, setMinimapHeight] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [messagePositions, setMessagePositions] = useState<
-    Array<{
-      id: string;
-      top: number;
-      height: number;
-      role: "user" | "assistant";
-    }>
-  >([]);
 
   useEffect(() => {
     if (minimapRef.current) {
@@ -38,98 +30,53 @@ export function ChatMinimap({
     }
   }, [messages]);
 
-  // Query actual message positions from DOM with smooth updates
-  useEffect(() => {
-    const updateMessagePositions = () => {
-      const positions: Array<{
-        id: string;
-        top: number;
-        height: number;
-        role: "user" | "assistant";
-      }> = [];
+  // Calculate virtual message positions based on estimated heights
+  const getVirtualMessagePositions = useCallback(() => {
+    const positions: Array<{
+      id: string;
+      top: number;
+      height: number;
+      role: "user" | "assistant";
+    }> = [];
 
-      messages.forEach((message) => {
-        // Find the message element in the DOM
-        const messageElement = document.querySelector(
-          `[data-message-id="${message.id}"]`
+    let currentTop = 0;
+    const baseMessageHeight = 150; // Base estimated height from virtualizer
+    const paddingBetweenMessages = 32; // py-4 * 2 = 32px
+
+    messages.forEach((message, index) => {
+      // Estimate height based on content length for better accuracy
+      let estimatedHeight = baseMessageHeight;
+
+      if (message.content) {
+        // Rough estimation: ~80 characters per line, ~24px per line
+        const estimatedLines = Math.max(
+          1,
+          Math.ceil(message.content.length / 80)
         );
-        if (messageElement) {
-          const rect = messageElement.getBoundingClientRect();
-          const scrollContainer = document.querySelector(
-            "[data-radix-scroll-area-viewport]"
-          );
+        const contentHeight = estimatedLines * 24;
+        // Add padding and margins (from ChatMessage component)
+        estimatedHeight = Math.max(baseMessageHeight, contentHeight + 96); // 96px for padding/margins
+      }
 
-          if (scrollContainer) {
-            const containerRect = scrollContainer.getBoundingClientRect();
-            const relativeTop =
-              rect.top - containerRect.top + scrollContainer.scrollTop;
+      // For streaming messages, add extra height as they grow
+      if (message.isStreaming && message.content) {
+        estimatedHeight = Math.max(estimatedHeight, estimatedHeight * 1.2);
+      }
 
-            positions.push({
-              id: message.id,
-              top: relativeTop,
-              height: rect.height,
-              role: message.role,
-            });
-          }
-        }
+      positions.push({
+        id: message.id,
+        top: currentTop,
+        height: estimatedHeight,
+        role: message.role,
       });
 
-      setMessagePositions(positions);
-    };
+      currentTop += estimatedHeight + paddingBetweenMessages;
+    });
 
-    // Update positions immediately and then repeatedly for smooth streaming
-    updateMessagePositions();
-
-    // Set up interval for smooth updates during streaming
-    const interval = setInterval(updateMessagePositions, 100); // Update every 200ms
-
-    return () => clearInterval(interval);
+    return positions;
   }, [messages]);
 
-  // Additional effect for more frequent updates during streaming
-  useEffect(() => {
-    const hasStreamingMessage = messages.some((msg) => msg.isStreaming);
-
-    if (hasStreamingMessage) {
-      const fastUpdateInterval = setInterval(() => {
-        const positions: Array<{
-          id: string;
-          top: number;
-          height: number;
-          role: "user" | "assistant";
-        }> = [];
-
-        messages.forEach((message) => {
-          const messageElement = document.querySelector(
-            `[data-message-id="${message.id}"]`
-          );
-          if (messageElement) {
-            const rect = messageElement.getBoundingClientRect();
-            const scrollContainer = document.querySelector(
-              "[data-radix-scroll-area-viewport]"
-            );
-
-            if (scrollContainer) {
-              const containerRect = scrollContainer.getBoundingClientRect();
-              const relativeTop =
-                rect.top - containerRect.top + scrollContainer.scrollTop;
-
-              positions.push({
-                id: message.id,
-                top: relativeTop,
-                height: rect.height,
-                role: message.role,
-              });
-            }
-          }
-        });
-
-        setMessagePositions(positions);
-      }, 100); // Update every 100ms during streaming
-
-      return () => clearInterval(fastUpdateInterval);
-    }
-  }, [messages]);
+  const messagePositions = getVirtualMessagePositions();
 
   const handleMinimapInteraction = useCallback(
     (clientY: number) => {
@@ -210,10 +157,10 @@ export function ChatMinimap({
       onMouseDown={handleMouseDown}
       ref={minimapRef}
     >
-      {/* Message bars based on actual DOM positions */}
+      {/* Message bars based on virtual positions */}
       <div className="relative h-full p-1">
         {messagePositions.map((position) => {
-          // Convert actual position to minimap position
+          // Convert virtual position to minimap position
           const minimapTop =
             contentHeight > 0
               ? (position.top / contentHeight) * availableHeight + padding
@@ -227,7 +174,7 @@ export function ChatMinimap({
           return (
             <div
               key={position.id}
-              className={`absolute left-0.5 right-0.5 rounded-sm transition-all duration-500 ease-out ${
+              className={`absolute left-0.5 right-0.5 rounded-sm transition-all duration-300 ease-out ${
                 position.role === "user"
                   ? "bg-accent/60"
                   : "bg-muted-foreground/40"
@@ -242,7 +189,7 @@ export function ChatMinimap({
 
         {/* Viewport indicator */}
         <div
-          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm transition-all duration-500 ease-out ${
+          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm transition-all duration-300 ease-out ${
             isDragging ? "bg-accent/50 border-accent/90" : ""
           }`}
           style={{

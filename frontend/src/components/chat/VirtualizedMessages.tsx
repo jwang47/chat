@@ -31,6 +31,7 @@ export interface VirtualizedMessagesRef {
   stopContinuousScroll: () => void;
   scrollTo: (position: number) => void;
   getScrollContainer: () => HTMLElement | null;
+  getVirtualTotalSize: () => number;
 }
 
 // Smooth scroll easing function
@@ -280,6 +281,7 @@ export const VirtualizedMessages = forwardRef<
         }
       },
       getScrollContainer: () => parentRef.current,
+      getVirtualTotalSize: () => virtualizer.getTotalSize(),
     }),
     [virtualizer, messages.length]
   );

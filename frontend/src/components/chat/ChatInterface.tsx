@@ -150,6 +150,10 @@ export function ChatInterface() {
             ? scrollTop / (scrollHeight - clientHeight)
             : 0;
 
+        // Get virtual total size for more accurate minimap calculations
+        const virtualTotalSize =
+          virtualizedMessagesRef.current?.getVirtualTotalSize() || scrollHeight;
+
         // Batch state updates to prevent excessive re-renders
         setScrollProgress((prev) => {
           if (Math.abs(prev - progress) < 0.01) return prev; // Avoid micro-updates
@@ -162,8 +166,10 @@ export function ChatInterface() {
         });
 
         setContentHeight((prev) => {
-          if (prev === scrollHeight) return prev;
-          return scrollHeight;
+          // Use virtual total size for more accurate minimap representation
+          const newContentHeight = Math.max(virtualTotalSize, scrollHeight);
+          if (prev === newContentHeight) return prev;
+          return newContentHeight;
         });
 
         scrollUpdatePendingRef.current = false;
