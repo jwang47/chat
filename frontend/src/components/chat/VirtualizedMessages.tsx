@@ -128,7 +128,11 @@ export const VirtualizedMessages = forwardRef<
 
   // Remeasure when messages change
   useEffect(() => {
-    virtualizer.measure();
+    // Debounce the remeasurement to prevent excessive calls
+    const timer = setTimeout(() => {
+      virtualizer.measure();
+    }, 16); // One frame delay to batch measurements
+    return () => clearTimeout(timer);
   }, [messages, virtualizer]);
 
   // More frequent remeasurement for streaming messages
@@ -136,7 +140,7 @@ export const VirtualizedMessages = forwardRef<
     if (streamingMessageId) {
       const interval = setInterval(() => {
         virtualizer.measure();
-      }, 250);
+      }, 500); // Reduced frequency from 250ms to 500ms to minimize height changes
       return () => clearInterval(interval);
     }
   }, [streamingMessageId, virtualizer]);

@@ -68,27 +68,30 @@ export function ChatInterface() {
 
   // Optimized scroll to bottom function
   const scrollToBottom = useCallback((smooth: boolean = false) => {
+    // Don't scroll if user is actively scrolling up
+    if (isUserScrolledUpRef.current) return;
+
     isProgrammaticScrollRef.current = true;
-    if (smooth) {
-      virtualizedMessagesRef.current?.scrollToBottomSmooth();
-    } else {
-      virtualizedMessagesRef.current?.scrollToBottomInstant();
-    }
+    // if (smooth) {
+    //   virtualizedMessagesRef.current?.scrollToBottomSmooth();
+    // } else {
+    virtualizedMessagesRef.current?.scrollToBottomInstant();
+    // }
     isUserScrolledUpRef.current = false;
-    // Reset the flag after a moderate delay to balance responsiveness and accuracy
+    // Extend the flag duration to prevent conflicts with user scrolling
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
-    }, 150);
+    }, 300); // Increased from 150ms to 300ms
   }, []);
 
   // Scroll to specific position (for minimap)
   const scrollTo = useCallback((position: number) => {
     isProgrammaticScrollRef.current = true;
     virtualizedMessagesRef.current?.scrollTo(position);
-    // Reset the flag after a moderate delay to balance responsiveness and accuracy
+    // Extend the flag duration to prevent conflicts with user scrolling
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
-    }, 150);
+    }, 300); // Increased from 150ms to 300ms
   }, []);
 
   // Handle scroll events from virtualized messages
@@ -107,12 +110,18 @@ export function ChatInterface() {
         // This prevents auto-scroll from interfering with user scroll detection
         if (!isProgrammaticScrollRef.current) {
           // Detect if user is actively scrolling up (more sensitive threshold)
-          const isScrollingUp = scrollTop < lastScrollTopRef.current - 5; // 5px threshold for better responsiveness
+          const isScrollingUp = scrollTop < lastScrollTopRef.current - 10; // Increased threshold from 5px to 10px
           if (isScrollingUp) {
             isUserScrolledUpRef.current = true;
           } else if (isAtBottomWithThreshold) {
-            // Only reset to false if we're actually at the bottom
-            isUserScrolledUpRef.current = false;
+            // Only reset to false if we're actually at the bottom AND not in the middle of a scroll gesture
+            // Add a small delay to prevent flickering between states
+            const wasAtBottom =
+              lastScrollTopRef.current + clientHeight >=
+              scrollHeight - threshold - 10;
+            if (wasAtBottom) {
+              isUserScrolledUpRef.current = false;
+            }
           }
           // If we're not scrolling up and not at bottom, maintain current state
         }
@@ -144,17 +153,25 @@ export function ChatInterface() {
         scrollUpdatePendingRef.current = false;
       });
     },
-    [streamingMessageId]
-  );
+    []
+  ); // Removed streamingMessageId dependency to prevent unnecessary re-creation
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     // Only auto-scroll when message count changes (new messages added)
-    if (messages.length > 0 && !isUserScrolledUpRef.current) {
+    // Add additional check to ensure we're not in the middle of user scrolling
+    if (
+      messages.length > 0 &&
+      !isUserScrolledUpRef.current &&
+      !isProgrammaticScrollRef.current
+    ) {
       // Use a small delay to ensure DOM is updated
       const timer = setTimeout(() => {
-        scrollToBottom(true); // Use smooth scroll for new messages
-      }, 10);
+        // Double-check user hasn't scrolled up while we were waiting
+        if (!isUserScrolledUpRef.current) {
+          scrollToBottom(true); // Use smooth scroll for new messages
+        }
+      }, 50); // Increased delay from 10ms to 50ms
       return () => clearTimeout(timer);
     }
   }, [messages.length, scrollToBottom]); // Only depend on message count, not content
@@ -162,7 +179,11 @@ export function ChatInterface() {
   // Handle streaming content updates
   useEffect(() => {
     // Only auto-scroll during streaming if user is at bottom and content is actually changing
-    if (streamingMessageId && !isUserScrolledUpRef.current) {
+    if (
+      streamingMessageId &&
+      !isUserScrolledUpRef.current &&
+      !isProgrammaticScrollRef.current
+    ) {
       const streamingMessage = messages.find(
         (msg) => msg.id === streamingMessageId
       );
@@ -174,10 +195,13 @@ export function ChatInterface() {
       ) {
         const timer = setTimeout(() => {
           // Double-check user hasn't scrolled up while we were waiting
-          if (!isUserScrolledUpRef.current) {
+          if (
+            !isUserScrolledUpRef.current &&
+            !isProgrammaticScrollRef.current
+          ) {
             scrollToBottom(true); // Use smooth scroll during streaming too
           }
-        }, 10);
+        }, 100); // Increased delay from 10ms to 100ms
         return () => clearTimeout(timer);
       }
     }
@@ -186,10 +210,17 @@ export function ChatInterface() {
   // Handle end of streaming - ensure we're at the very bottom
   useEffect(() => {
     // When streaming ends, if user was at bottom, ensure we're at the very bottom with smooth scroll
-    if (!streamingMessageId && !isUserScrolledUpRef.current) {
+    if (
+      !streamingMessageId &&
+      !isUserScrolledUpRef.current &&
+      !isProgrammaticScrollRef.current
+    ) {
       const timer = setTimeout(() => {
-        scrollToBottom(true); // Use smooth scroll when streaming ends
-      }, 50); // Slightly longer delay to ensure DOM is fully updated
+        // Triple-check user hasn't scrolled up while we were waiting
+        if (!isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
+          scrollToBottom(true); // Use smooth scroll when streaming ends
+        }
+      }, 150); // Increased delay from 50ms to 150ms
       return () => clearTimeout(timer);
     }
   }, [streamingMessageId, scrollToBottom]);
