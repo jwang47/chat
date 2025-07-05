@@ -58,7 +58,7 @@ export function ChatInterface() {
     if (!scrollContainer) return true;
 
     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-    const threshold = 100; // pixels from bottom
+    const threshold = 50; // pixels from bottom
     return scrollTop + clientHeight >= scrollHeight - threshold;
   }, [getScrollContainer]);
 

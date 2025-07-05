@@ -369,6 +369,17 @@ function splitHtmlIntoElements(html: string): string[] {
   return elements.filter((el) => el.trim().length > 0);
 }
 
+// Common animation settings for all blocks
+const blockAnimation = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  transition: {
+    duration: 1.0,
+    ease: "easeInOut" as const,
+    delay: 0,
+  },
+};
+
 export function StreamingText({
   content,
   isStreaming,
@@ -466,16 +477,7 @@ export function StreamingText({
           const code = lines.slice(1, -1).join("\n");
 
           elements.push(
-            <motion.div
-              key={`code-${elementIndex++}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.4,
-                ease: "easeInOut",
-                delay: 0,
-              }}
-            >
+            <motion.div key={`code-${elementIndex++}`} {...blockAnimation}>
               <CollapsibleCodeBlock language={language}>
                 {code}
               </CollapsibleCodeBlock>
@@ -492,13 +494,7 @@ export function StreamingText({
           elements.push(
             <motion.div
               key={`element-${elementIndex++}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: 0.4,
-                ease: "easeInOut",
-                delay: 0,
-              }}
+              {...blockAnimation}
               dangerouslySetInnerHTML={{ __html: styledHtml }}
             />
           );
