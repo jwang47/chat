@@ -1,71 +1,82 @@
 import { useState } from "react";
+import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  getAllModels,
   getModelsByProvider,
-  getDefaultModel,
+  getModelById,
   type ModelInfo,
 } from "@/lib/models";
-import { motion, AnimatePresence } from "motion/react";
+import { cn } from "@/lib/utils";
 
 interface ModelSelectorProps {
-  selectedProvider: "openrouter" | "gemini";
   selectedModel: string;
   onModelSelect: (model: ModelInfo) => void;
 }
 
 export function ModelSelector({
-  selectedProvider,
   selectedModel,
   onModelSelect,
 }: ModelSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const availableModels = getModelsByProvider(selectedProvider);
-  const currentModel =
-    availableModels.find((m) => m.id === selectedModel) ||
-    getDefaultModel(selectedProvider);
+  const [open, setOpen] = useState(false);
+  const allModels = getAllModels();
+  const currentModel = getModelById(selectedModel) || allModels[0];
+
+  // Group models by provider
+  const openRouterModels = getModelsByProvider("openrouter");
+  const geminiModels = getModelsByProvider("gemini");
 
   return (
-    <div className="relative">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(!isOpen)}
-        className="text-xs font-mono bg-card border-muted-foreground/20 hover:bg-muted/20"
-      >
-        {currentModel.displayName}
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-          className="ml-1"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="text-xs font-mono bg-card border-muted-foreground/20 hover:bg-muted/20 justify-between min-w-[200px]"
         >
-          ▼
-        </motion.div>
-      </Button>
+          {currentModel.id}
+          <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="min-w-[300px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search models..." />
+          <CommandList>
+            <CommandEmpty>No model found.</CommandEmpty>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute top-full mt-2 left-0 z-30 min-w-[280px]"
-          >
-            <Card className="p-2 bg-card border-muted-foreground/20 shadow-lg">
-              <div className="space-y-1">
-                {availableModels.map((model) => (
-                  <Button
-                    key={model.id}
-                    variant={model.id === selectedModel ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => {
-                      onModelSelect(model);
-                      setIsOpen(false);
-                    }}
-                    className="w-full justify-start text-left p-2 h-auto"
-                  >
-                    <div className="flex flex-col items-start">
+            <CommandGroup heading="OpenRouter">
+              {openRouterModels.map((model) => (
+                <CommandItem
+                  key={model.id}
+                  value={model.id}
+                  onSelect={() => {
+                    onModelSelect(model);
+                    setOpen(false);
+                  }}
+                  className="flex flex-col items-start gap-1 p-3"
+                >
+                  <div className="flex items-center w-full">
+                    <CheckIcon
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedModel === model.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col items-start flex-1">
                       <span className="font-medium text-sm">
                         {model.displayName}
                       </span>
@@ -78,18 +89,49 @@ export function ModelSelector({
                         </span>
                       )}
                     </div>
-                  </Button>
-                ))}
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
 
-      {/* Backdrop to close dropdown */}
-      {isOpen && (
-        <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
-      )}
-    </div>
+            <CommandGroup heading="Gemini">
+              {geminiModels.map((model) => (
+                <CommandItem
+                  key={model.id}
+                  value={model.id}
+                  onSelect={() => {
+                    onModelSelect(model);
+                    setOpen(false);
+                  }}
+                  className="flex flex-col items-start gap-1 p-3"
+                >
+                  <div className="flex items-center w-full">
+                    <CheckIcon
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedModel === model.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col items-start flex-1">
+                      <span className="font-medium text-sm">
+                        {model.displayName}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {model.id}
+                      </span>
+                      {model.description && (
+                        <span className="text-xs text-muted-foreground mt-1">
+                          {model.description}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

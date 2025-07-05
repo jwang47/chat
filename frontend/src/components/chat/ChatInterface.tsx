@@ -7,15 +7,12 @@ import { OpenRouterService, type OpenRouterMessage } from "@/lib/openrouter";
 import { GeminiService, type GeminiMessage } from "@/lib/gemini";
 import type { Message } from "@/types/chat";
 import { motion, AnimatePresence } from "motion/react";
-import { Button } from "@/components/ui/button";
 import { mockMessages } from "@/data/mockChat";
 import { ModelSelector } from "@/components/ModelSelector";
-import { getDefaultModel, type ModelInfo } from "@/lib/models";
+import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
 
 // Debug: Simple render counter
 let renderCount = 0;
-
-type AIProvider = "openrouter" | "gemini";
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
@@ -24,25 +21,20 @@ export function ChatInterface() {
     null
   );
   const [error, setError] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] =
-    useState<AIProvider>("gemini");
   const [selectedModel, setSelectedModel] = useState<string>(
-    () => getDefaultModel("gemini").id
+    () => getDefaultModel().id
   );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+
+  // Get current provider from selected model
+  const currentProvider = getModelById(selectedModel)?.provider || "gemini";
 
   // Handle model selection
   const handleModelSelect = useCallback((model: ModelInfo) => {
     setSelectedModel(model.id);
   }, []);
 
-  // Handle provider change - update model to default for new provider
-  const handleProviderChange = useCallback((provider: AIProvider) => {
-    setSelectedProvider(provider);
-    const defaultModel = getDefaultModel(provider);
-    setSelectedModel(defaultModel.id);
-  }, []);
   const [contentHeight, setContentHeight] = useState(0);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
@@ -186,53 +178,55 @@ export function ChatInterface() {
 
       // Check if API key is available for selected provider
       const hasApiKey =
-        selectedProvider === "openrouter"
+        currentProvider === "openrouter"
           ? OpenRouterService.hasApiKey()
           : GeminiService.hasApiKey();
 
       if (!hasApiKey) {
         setError(
           `${
-            selectedProvider === "openrouter" ? "OpenRouter" : "Gemini"
+            currentProvider === "openrouter" ? "OpenRouter" : "Gemini"
           } API key not found. Please add your API key in settings.`
         );
         return;
       }
 
-      const newMessage: Message = {
+      // Create user message
+      const userMessage: Message = {
         id: generateMessageId(),
-        content,
         role: "user",
+        content,
         timestamp: new Date(),
         model: selectedModel,
       };
 
-      setMessages((prev) => [...prev, newMessage]);
-      setIsTyping(true);
+      // Add user message to state
+      setMessages((prev) => [...prev, userMessage]);
 
-      // Create AI response message with empty content for streaming
-      const aiResponseId = generateMessageId();
-      const aiResponse: Message = {
-        id: aiResponseId,
-        content: "",
+      // Create assistant message placeholder
+      const assistantMessage: Message = {
+        id: generateMessageId(),
         role: "assistant",
+        content: "",
         timestamp: new Date(),
         model: selectedModel,
-        isStreaming: true, // Mark as streaming
       };
 
-      setMessages((prev) => [...prev, aiResponse]);
-      setStreamingMessageId(aiResponseId);
+      // Add assistant message to state
+      setMessages((prev) => [...prev, assistantMessage]);
 
-      // Convert messages to appropriate format
-      const allMessages = [...messages, newMessage];
+      // Set up streaming
+      setIsTyping(true);
+      setStreamingMessageId(assistantMessage.id);
 
-      // Shared callback functions
+      // Get all messages for context
+      const allMessages = [...messages, userMessage];
+
       const onChunk = (chunk: string) => {
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === aiResponseId
-              ? { ...msg, content: msg.content + chunk, isStreaming: true }
+            msg.id === assistantMessage.id
+              ? { ...msg, content: msg.content + chunk }
               : msg
           )
         );
@@ -241,26 +235,20 @@ export function ChatInterface() {
       const onComplete = () => {
         setIsTyping(false);
         setStreamingMessageId(null);
-
-        // Mark message as no longer streaming
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === aiResponseId ? { ...msg, isStreaming: false } : msg
-          )
-        );
       };
 
       const onError = (error: Error) => {
+        setError(error.message);
         setIsTyping(false);
         setStreamingMessageId(null);
-        setError(error.message);
-
-        // Remove the empty AI response message on error
-        setMessages((prev) => prev.filter((msg) => msg.id !== aiResponseId));
+        // Remove the failed assistant message
+        setMessages((prev) =>
+          prev.filter((msg) => msg.id !== assistantMessage.id)
+        );
       };
 
-      // Stream response from selected provider
-      if (selectedProvider === "openrouter") {
+      // Call appropriate service based on current provider
+      if (currentProvider === "openrouter") {
         const openRouterMessages: OpenRouterMessage[] = allMessages.map(
           (msg) => ({
             role: msg.role,
@@ -300,46 +288,22 @@ export function ChatInterface() {
         );
       }
     },
-    [generateMessageId, messages, selectedProvider, selectedModel]
+    [generateMessageId, messages, currentProvider, selectedModel]
   );
 
   return (
     <div className="relative h-screen bg-background">
-      {/* Provider and Model Selector */}
+      {/* Model Selector */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         className="absolute top-4 left-4 z-20"
       >
-        <div className="flex gap-2 items-center">
-          <div className="flex gap-2">
-            <Button
-              variant={selectedProvider === "gemini" ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleProviderChange("gemini")}
-              className="text-xs"
-            >
-              Gemini
-            </Button>
-            <Button
-              variant={
-                selectedProvider === "openrouter" ? "default" : "outline"
-              }
-              size="sm"
-              onClick={() => handleProviderChange("openrouter")}
-              className="text-xs"
-            >
-              OpenRouter
-            </Button>
-          </div>
-          <div className="h-4 w-px bg-muted-foreground/30" />
-          <ModelSelector
-            selectedProvider={selectedProvider}
-            selectedModel={selectedModel}
-            onModelSelect={handleModelSelect}
-          />
-        </div>
+        <ModelSelector
+          selectedModel={selectedModel}
+          onModelSelect={handleModelSelect}
+        />
       </motion.div>
 
       {/* Error Display */}
@@ -456,8 +420,8 @@ export function ChatInterface() {
         <MessageInput
           onSendMessage={handleSendMessage}
           placeholder={`Ask ${
-            selectedProvider === "gemini" ? "Gemini" : "OpenRouter"
-          } (${selectedModel.split("/").pop()}) anything...`}
+            getModelById(selectedModel)?.displayName || "AI"
+          } anything...`}
           disabled={isTyping}
         />
       </motion.div>

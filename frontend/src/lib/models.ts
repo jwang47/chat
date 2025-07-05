@@ -68,6 +68,10 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
   },
 ];
 
+export const getAllModels = (): ModelInfo[] => {
+  return AVAILABLE_MODELS;
+};
+
 export const getModelsByProvider = (
   provider: "openrouter" | "gemini"
 ): ModelInfo[] => {
@@ -79,8 +83,11 @@ export const getModelById = (id: string): ModelInfo | undefined => {
 };
 
 export const getDefaultModel = (
-  provider: "openrouter" | "gemini"
+  provider?: "openrouter" | "gemini"
 ): ModelInfo => {
-  const models = getModelsByProvider(provider);
-  return models[0]; // Return first model as default
+  if (provider) {
+    const models = getModelsByProvider(provider);
+    return models[0]; // Return first model as default
+  }
+  return AVAILABLE_MODELS[0]; // Return first model overall as default
 };
