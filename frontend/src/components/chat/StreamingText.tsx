@@ -180,26 +180,27 @@ function addCustomStyling(html: string): string {
 function splitHtmlIntoElements(html: string): string[] {
   if (!html.trim()) return [];
 
-  // Split by major block elements but keep the tags
-  const elements = html
-    .split(/(<\/(?:p|h[1-6]|ul|ol|blockquote|div)>)/i)
-    .filter((part) => part.trim())
-    .reduce((acc: string[], part, index, array) => {
-      if (part.match(/^<\/(?:p|h[1-6]|ul|ol|blockquote|div)>$/i)) {
-        // This is a closing tag, combine with previous part
-        if (acc.length > 0) {
-          acc[acc.length - 1] += part;
-        }
-      } else {
-        // This is content or opening tag
-        acc.push(part);
-      }
-      return acc;
-    }, []);
+  // Create a temporary DOM element to parse the HTML properly
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = html;
 
-  return elements.filter(
-    (el) => el.trim() && !el.match(/^<\/(?:p|h[1-6]|ul|ol|blockquote|div)>$/i)
-  );
+  const elements: string[] = [];
+
+  // Process each top-level child element
+  Array.from(tempDiv.childNodes).forEach((node) => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      // For element nodes, get the complete HTML including all children
+      elements.push((node as Element).outerHTML);
+    } else if (node.nodeType === Node.TEXT_NODE) {
+      // For text nodes, only add if they have meaningful content
+      const textContent = node.textContent?.trim();
+      if (textContent) {
+        elements.push(`<p class="mb-2 last:mb-0">${textContent}</p>`);
+      }
+    }
+  });
+
+  return elements.filter((el) => el.trim().length > 0);
 }
 
 // Component to render markdown with custom code block handling
