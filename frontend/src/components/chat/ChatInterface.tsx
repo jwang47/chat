@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
+import { ChatMinimap } from "./ChatMinimap";
 import { MessageInput } from "./MessageInput";
 import { OpenRouterService, type OpenRouterMessage } from "@/lib/openrouter";
 import { GeminiService, type GeminiMessage } from "@/lib/gemini";
@@ -22,11 +23,14 @@ export function ChatInterface() {
   const [error, setError] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] =
     useState<AIProvider>("gemini");
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const messageIdCounter = useRef(0);
   const isUserScrolledUpRef = useRef(false);
+  const scrollUpdatePendingRef = useRef(false);
 
   // Debug: Log renders
   renderCount++;
@@ -66,28 +70,73 @@ export function ChatInterface() {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
         // Update state to reflect that we're now at the bottom
         isUserScrolledUpRef.current = false;
-        setShowScrollToBottom(false);
       });
     }
   }, [getScrollContainer]);
 
+  // Scroll to specific position (for minimap)
+  const scrollTo = useCallback(
+    (position: number) => {
+      const scrollContainer = getScrollContainer();
+      if (scrollContainer) {
+        requestAnimationFrame(() => {
+          scrollContainer.scrollTop = Math.max(
+            0,
+            Math.min(
+              position,
+              scrollContainer.scrollHeight - scrollContainer.clientHeight
+            )
+          );
+        });
+      }
+    },
+    [getScrollContainer]
+  );
+
   // Handle scroll events to track user scroll position
   const handleScroll = useCallback(() => {
-    const scrollContainer = getScrollContainer();
-    if (!scrollContainer) return;
+    if (scrollUpdatePendingRef.current) return;
 
-    // Update the scroll position tracking
-    const isAtBottomNow = isAtBottom();
-    isUserScrolledUpRef.current = !isAtBottomNow;
-    setShowScrollToBottom(!isAtBottomNow);
+    scrollUpdatePendingRef.current = true;
+    requestAnimationFrame(() => {
+      const scrollContainer = getScrollContainer();
+      if (!scrollContainer) {
+        scrollUpdatePendingRef.current = false;
+        return;
+      }
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+
+      // Update the scroll position tracking
+      const isAtBottomNow = isAtBottom();
+      isUserScrolledUpRef.current = !isAtBottomNow;
+
+      // Calculate scroll progress (0 to 1) - immediate update
+      const progress =
+        scrollHeight > clientHeight
+          ? scrollTop / (scrollHeight - clientHeight)
+          : 0;
+
+      // Update state for minimap dimensions
+      setScrollProgress(progress);
+      setViewportHeight(clientHeight);
+      setContentHeight(scrollHeight);
+
+      scrollUpdatePendingRef.current = false;
+    });
   }, [getScrollContainer, isAtBottom]);
 
-  // Set up scroll event listener
+  // Set up scroll event listener with more responsive options
   useEffect(() => {
     const scrollContainer = getScrollContainer();
     if (scrollContainer) {
-      scrollContainer.addEventListener("scroll", handleScroll);
-      return () => scrollContainer.removeEventListener("scroll", handleScroll);
+      // Use passive: false to allow immediate updates
+      scrollContainer.addEventListener("scroll", handleScroll, {
+        passive: false,
+      });
+      return () => {
+        scrollContainer.removeEventListener("scroll", handleScroll);
+      };
     }
   }, [getScrollContainer, handleScroll]);
 
@@ -106,7 +155,7 @@ export function ChatInterface() {
       scrollToBottom();
       // Initialize scroll tracking
       isUserScrolledUpRef.current = false;
-      setShowScrollToBottom(false);
+      setScrollProgress(0);
     }, 100);
 
     return () => clearTimeout(timer);
@@ -326,38 +375,14 @@ export function ChatInterface() {
         </div>
       </ScrollArea>
 
-      {/* Scroll to Bottom Button */}
-      <AnimatePresence>
-        {showScrollToBottom && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute bottom-24 right-8 z-10"
-          >
-            <Button
-              onClick={scrollToBottom}
-              size="sm"
-              className="rounded-full shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                />
-              </svg>
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Chat Minimap */}
+      <ChatMinimap
+        messages={messages}
+        scrollProgress={scrollProgress}
+        viewportHeight={viewportHeight}
+        contentHeight={contentHeight}
+        onScrollTo={scrollTo}
+      />
 
       {/* Floating Message Input */}
       <motion.div
