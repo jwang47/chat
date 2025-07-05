@@ -32,7 +32,7 @@ function CollapsibleCodeBlock({
     if (codeRef.current) {
       const height = codeRef.current.scrollHeight;
       const viewportHeight = window.innerHeight;
-      const maxHeight = viewportHeight * 0.25; // 25vh
+      const maxHeight = viewportHeight * 0.5; // 25vh
       setShouldShowToggle(height > maxHeight);
     }
   }, [children]);
