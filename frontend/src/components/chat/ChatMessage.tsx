@@ -8,19 +8,10 @@ interface ChatMessageProps {
   message: Message;
 }
 
-// Debug: Message render counter
-let messageRenderCount = 0;
-
 export const ChatMessage = memo(function ChatMessage({
   message,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
-
-  // Debug: Log message renders
-  messageRenderCount++;
-  console.log(
-    `ChatMessage render #${messageRenderCount} for message ${message.id}`
-  );
 
   return (
     <motion.div

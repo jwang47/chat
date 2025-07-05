@@ -11,9 +11,6 @@ import { mockMessages } from "@/data/mockChat";
 import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
 
-// Debug: Simple render counter
-let renderCount = 0;
-
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
@@ -41,10 +38,6 @@ export function ChatInterface() {
   const messageIdCounter = useRef(0);
   const isUserScrolledUpRef = useRef(false);
   const scrollUpdatePendingRef = useRef(false);
-
-  // Debug: Log renders
-  renderCount++;
-  console.log(`ChatInterface render #${renderCount}`);
 
   // Generate unique message ID
   const generateMessageId = useCallback(() => {
