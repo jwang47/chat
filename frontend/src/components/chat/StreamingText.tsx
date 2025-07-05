@@ -187,6 +187,36 @@ function MarkdownRenderer({ content }: { content: string }) {
       let remainingContent = content;
       let elementIndex = 0;
 
+      // Check if we're in the middle of a code block (for streaming)
+      const openCodeBlocks = (content.match(/```/g) || []).length;
+      const isInCodeBlock = openCodeBlocks % 2 === 1;
+
+      // If we're in a code block, temporarily close it for processing
+      let contentToProcess = remainingContent;
+      let incompleteCodeBlock: { language: string; code: string } | null = null;
+
+      if (isInCodeBlock) {
+        // Find the last opening ```
+        const lastCodeBlockStart = content.lastIndexOf("```");
+        if (lastCodeBlockStart !== -1) {
+          const beforeCodeBlock = content.substring(0, lastCodeBlockStart);
+          const codeBlockContent = content.substring(lastCodeBlockStart);
+
+          // Extract language and code
+          const languageMatch = codeBlockContent.match(/```(\w+)?\n([\s\S]*)/);
+          if (languageMatch) {
+            const language = languageMatch[1] || "";
+            const code = languageMatch[2];
+
+            incompleteCodeBlock = { language, code };
+            contentToProcess = beforeCodeBlock;
+          }
+        }
+      }
+
+      // Process the complete content (without the incomplete code block)
+      remainingContent = contentToProcess;
+
       // Process content sequentially
       while (remainingContent) {
         // Find the next code block
@@ -252,6 +282,18 @@ function MarkdownRenderer({ content }: { content: string }) {
         }
       }
 
+      // Add the incomplete code block if we have one
+      if (incompleteCodeBlock) {
+        elements.push(
+          <CollapsibleCodeBlock
+            key={`incomplete-code-${elementIndex++}`}
+            language={incompleteCodeBlock.language}
+          >
+            {incompleteCodeBlock.code}
+          </CollapsibleCodeBlock>
+        );
+      }
+
       return { elements };
     } catch (error) {
       console.error("Error rendering markdown:", error);
@@ -276,9 +318,12 @@ export function StreamingText({
   isStreaming,
   className,
 }: StreamingTextProps) {
+  // Add block character to streaming content
+  const displayContent = isStreaming && content ? content + "█" : content;
+
   return (
     <div className={className}>
-      <MarkdownRenderer content={content} />
+      <MarkdownRenderer content={displayContent} />
 
       {/* Streaming indicator */}
       {isStreaming && !content && (
