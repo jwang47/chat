@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChatMessage } from "./ChatMessage";
+import {
+  VirtualizedMessages,
+  type VirtualizedMessagesRef,
+} from "./VirtualizedMessages";
 import { ChatMinimap } from "./ChatMinimap";
 import { MessageInput } from "./MessageInput";
 import { LlmService, type LlmMessage } from "@/lib/llmService";
@@ -29,8 +31,7 @@ export function ChatInterface() {
   }, []);
 
   const [contentHeight, setContentHeight] = useState(0);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const virtualizedMessagesRef = useRef<VirtualizedMessagesRef>(null);
   const messageIdCounter = useRef(0);
   const isUserScrolledUpRef = useRef(false);
   const scrollUpdatePendingRef = useRef(false);
@@ -47,14 +48,9 @@ export function ChatInterface() {
     return `msg_${Date.now()}_${messageIdCounter.current}`;
   }, []);
 
-  // Cache the scroll container reference
+  // Get the scroll container from virtualized messages
   const getScrollContainer = useCallback(() => {
-    if (!scrollContainerRef.current && scrollAreaRef.current) {
-      scrollContainerRef.current = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
-      );
-    }
-    return scrollContainerRef.current;
+    return virtualizedMessagesRef.current?.getScrollContainer() || null;
   }, []);
 
   // Check if user is at or near the bottom of the chat
@@ -69,96 +65,57 @@ export function ChatInterface() {
 
   // Optimized scroll to bottom function
   const scrollToBottom = useCallback(() => {
-    const scrollContainer = getScrollContainer();
-    if (scrollContainer) {
-      requestAnimationFrame(() => {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        // Update state to reflect that we're now at the bottom
-        isUserScrolledUpRef.current = false;
-      });
-    }
-  }, [getScrollContainer]);
+    virtualizedMessagesRef.current?.scrollToBottom();
+    isUserScrolledUpRef.current = false;
+  }, []);
 
   // Scroll to specific position (for minimap)
-  const scrollTo = useCallback(
-    (position: number) => {
-      const scrollContainer = getScrollContainer();
-      if (scrollContainer) {
-        requestAnimationFrame(() => {
-          scrollContainer.scrollTop = Math.max(
-            0,
-            Math.min(
-              position,
-              scrollContainer.scrollHeight - scrollContainer.clientHeight
-            )
-          );
+  const scrollTo = useCallback((position: number) => {
+    virtualizedMessagesRef.current?.scrollTo(position);
+  }, []);
+
+  // Handle scroll events from virtualized messages
+  const handleScrollChange = useCallback(
+    (scrollTop: number, scrollHeight: number, clientHeight: number) => {
+      if (scrollUpdatePendingRef.current) return;
+
+      scrollUpdatePendingRef.current = true;
+      requestAnimationFrame(() => {
+        // Update the scroll position tracking
+        const isAtBottomNow = scrollTop + clientHeight >= scrollHeight - 50;
+        // During streaming, be more lenient about considering user at bottom
+        const threshold = streamingMessageId ? 100 : 50;
+        const isAtBottomWithThreshold =
+          scrollTop + clientHeight >= scrollHeight - threshold;
+        isUserScrolledUpRef.current = !isAtBottomWithThreshold;
+
+        // Calculate scroll progress (0 to 1)
+        const progress =
+          scrollHeight > clientHeight
+            ? scrollTop / (scrollHeight - clientHeight)
+            : 0;
+
+        // Batch state updates to prevent excessive re-renders
+        setScrollProgress((prev) => {
+          if (Math.abs(prev - progress) < 0.01) return prev; // Avoid micro-updates
+          return progress;
         });
-      }
-    },
-    [getScrollContainer]
-  );
 
-  // Handle scroll events to track user scroll position
-  const handleScroll = useCallback(() => {
-    if (scrollUpdatePendingRef.current) return;
+        setViewportHeight((prev) => {
+          if (prev === clientHeight) return prev;
+          return clientHeight;
+        });
 
-    scrollUpdatePendingRef.current = true;
-    requestAnimationFrame(() => {
-      const scrollContainer = getScrollContainer();
-      if (!scrollContainer) {
+        setContentHeight((prev) => {
+          if (prev === scrollHeight) return prev;
+          return scrollHeight;
+        });
+
         scrollUpdatePendingRef.current = false;
-        return;
-      }
-
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-
-      // Update the scroll position tracking
-      const isAtBottomNow = scrollTop + clientHeight >= scrollHeight - 50;
-      // During streaming, be more lenient about considering user at bottom
-      const threshold = streamingMessageId ? 100 : 50;
-      const isAtBottomWithThreshold =
-        scrollTop + clientHeight >= scrollHeight - threshold;
-      isUserScrolledUpRef.current = !isAtBottomWithThreshold;
-
-      // Calculate scroll progress (0 to 1)
-      const progress =
-        scrollHeight > clientHeight
-          ? scrollTop / (scrollHeight - clientHeight)
-          : 0;
-
-      // Batch state updates to prevent excessive re-renders
-      setScrollProgress((prev) => {
-        if (Math.abs(prev - progress) < 0.01) return prev; // Avoid micro-updates
-        return progress;
       });
-
-      setViewportHeight((prev) => {
-        if (prev === clientHeight) return prev;
-        return clientHeight;
-      });
-
-      setContentHeight((prev) => {
-        if (prev === scrollHeight) return prev;
-        return scrollHeight;
-      });
-
-      scrollUpdatePendingRef.current = false;
-    });
-  }, [getScrollContainer, streamingMessageId]);
-
-  // Set up scroll event listener with more responsive options
-  useEffect(() => {
-    const scrollContainer = getScrollContainer();
-    if (scrollContainer) {
-      // Use passive: false to allow immediate updates
-      scrollContainer.addEventListener("scroll", handleScroll, {
-        passive: false,
-      });
-      return () => {
-        scrollContainer.removeEventListener("scroll", handleScroll);
-      };
-    }
-  }, [getScrollContainer, handleScroll]);
+    },
+    [streamingMessageId]
+  );
 
   // Auto-scroll to bottom when new messages arrive or when streaming content changes
   useEffect(() => {
@@ -307,62 +264,13 @@ export function ChatInterface() {
       </AnimatePresence>
 
       {/* Messages Area */}
-      <ScrollArea ref={scrollAreaRef} className="h-full px-2 pb-20">
-        <div className="max-w-4xl mx-auto py-4">
-          <AnimatePresence mode="popLayout">
-            {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
-            ))}
-          </AnimatePresence>
-
-          {/* Typing Indicator */}
-          <AnimatePresence>
-            {isTyping && !streamingMessageId && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="flex p-4"
-              >
-                <div className="p-3 rounded-lg">
-                  <div className="flex gap-1">
-                    <motion.div
-                      className="w-2 h-2 bg-muted-foreground rounded-full"
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                      }}
-                    />
-                    <motion.div
-                      className="w-2 h-2 bg-muted-foreground rounded-full"
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: 0.2,
-                      }}
-                    />
-                    <motion.div
-                      className="w-2 h-2 bg-muted-foreground rounded-full"
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{
-                        duration: 0.8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: 0.4,
-                      }}
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </ScrollArea>
+      <VirtualizedMessages
+        ref={virtualizedMessagesRef}
+        messages={messages}
+        isTyping={isTyping}
+        streamingMessageId={streamingMessageId}
+        onScrollChange={handleScrollChange}
+      />
 
       {/* Chat Minimap */}
       <ChatMinimap
