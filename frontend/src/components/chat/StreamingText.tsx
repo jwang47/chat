@@ -123,7 +123,10 @@ function addCustomStyling(html: string): string {
     .replace(/<h5>/g, '<h5 class="text-sm font-semibold mb-2 mt-3 first:mt-0">')
     .replace(/<h6>/g, '<h6 class="text-sm font-semibold mb-2 mt-3 first:mt-0">')
     .replace(/<ul>/g, '<ul class="list-disc list-inside mb-4 space-y-1">')
-    .replace(/<ol>/g, '<ol class="list-decimal list-inside mb-4 space-y-1">')
+    .replace(
+      /<ol>/g,
+      '<ol class="list-decimal list-outside mb-4 space-y-1 pl-6">'
+    )
     .replace(/<li>/g, '<li class="">')
     .replace(
       /<li class="">\s*<p class="mb-4 last:mb-0([^"]*)">/g,
@@ -158,6 +161,13 @@ export function StreamingText({
   const [adaptiveDelay, setAdaptiveDelay] = useState(20);
   const lastContentUpdateRef = useRef(Date.now());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debug print when finished streaming
+  useEffect(() => {
+    if (!isStreaming) {
+      console.log("Streaming finished!", content);
+    }
+  }, [isStreaming]);
 
   // Reset displayed content when content changes significantly (new message)
   useEffect(() => {
