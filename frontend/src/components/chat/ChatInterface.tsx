@@ -126,6 +126,8 @@ export function ChatInterface() {
           if (isScrollingUp) {
             // Immediately mark user as scrolled up
             isUserScrolledUpRef.current = true;
+            // Stop continuous scroll tracking when user scrolls up
+            virtualizedMessagesRef.current?.stopContinuousScroll();
             // Clear any pending timeout
             if (userScrollTimeoutRef.current) {
               clearTimeout(userScrollTimeoutRef.current);
@@ -189,8 +191,9 @@ export function ChatInterface() {
     }
   }, [messages.length, scrollToBottom]);
 
-  // Handle streaming content updates - use a ref to track last content length
+  // Handle streaming content updates - continuous scroll as content comes in
   const lastStreamingContentLengthRef = useRef(0);
+  const streamingScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Auto-scroll during streaming if user hasn't scrolled up
@@ -208,15 +211,22 @@ export function ChatInterface() {
         streamingMessage.content &&
         streamingMessage.isStreaming
       ) {
-        // Only trigger scroll if content has actually grown
+        // Trigger scroll on ANY content change during streaming
         const contentLength = streamingMessage.content.length;
-        const hasGrowth =
-          contentLength > lastStreamingContentLengthRef.current + 10; // Very responsive threshold
+        const hasAnyGrowth =
+          contentLength > lastStreamingContentLengthRef.current;
 
-        if (hasGrowth && isAtBottom()) {
+        if (hasAnyGrowth && isAtBottom()) {
           lastStreamingContentLengthRef.current = contentLength;
-          const timer = setTimeout(() => {
-            // Triple-check: user hasn't scrolled up AND we're still at bottom
+
+          // Clear any existing timeout to prevent multiple scrolls
+          if (streamingScrollTimeoutRef.current) {
+            clearTimeout(streamingScrollTimeoutRef.current);
+          }
+
+          // Immediate scroll for continuous following
+          streamingScrollTimeoutRef.current = setTimeout(() => {
+            // Check user hasn't scrolled up while we were waiting
             if (
               !isUserScrolledUpRef.current &&
               !isProgrammaticScrollRef.current &&
@@ -224,8 +234,15 @@ export function ChatInterface() {
             ) {
               scrollToBottom(false, true); // Sticky scroll during streaming
             }
-          }, 25); // Very responsive delay
-          return () => clearTimeout(timer);
+            streamingScrollTimeoutRef.current = null;
+          }, 10); // Very fast response
+
+          return () => {
+            if (streamingScrollTimeoutRef.current) {
+              clearTimeout(streamingScrollTimeoutRef.current);
+              streamingScrollTimeoutRef.current = null;
+            }
+          };
         }
       }
     }
@@ -262,11 +279,14 @@ export function ChatInterface() {
     return () => clearTimeout(timer);
   }, [scrollToBottom]);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (userScrollTimeoutRef.current) {
         clearTimeout(userScrollTimeoutRef.current);
+      }
+      if (streamingScrollTimeoutRef.current) {
+        clearTimeout(streamingScrollTimeoutRef.current);
       }
     };
   }, []);
@@ -308,6 +328,9 @@ export function ChatInterface() {
       // Ensure we're considered at bottom for streaming
       isUserScrolledUpRef.current = false;
 
+      // Start continuous scroll tracking for streaming
+      virtualizedMessagesRef.current?.startContinuousScroll();
+
       // Get current messages for context using ref to avoid stale closure
       const allMessages = [...messagesRef.current, userMessage];
       const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
@@ -329,6 +352,8 @@ export function ChatInterface() {
         onComplete: () => {
           setIsTyping(false);
           setStreamingMessageId(null);
+          // Stop continuous scroll tracking
+          virtualizedMessagesRef.current?.stopContinuousScroll();
           // Clear streaming flag
           setMessages((prev) =>
             prev.map((msg) =>
@@ -342,6 +367,8 @@ export function ChatInterface() {
           setError(error.message);
           setIsTyping(false);
           setStreamingMessageId(null);
+          // Stop continuous scroll tracking
+          virtualizedMessagesRef.current?.stopContinuousScroll();
           // Remove the failed assistant message
           setMessages((prev) =>
             prev.filter((msg) => msg.id !== assistantMessage.id)

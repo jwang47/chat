@@ -27,6 +27,8 @@ export interface VirtualizedMessagesRef {
   scrollToBottomSmooth: () => void;
   scrollToBottomInstant: () => void;
   scrollToBottomSticky: () => void;
+  startContinuousScroll: () => void;
+  stopContinuousScroll: () => void;
   scrollTo: (position: number) => void;
   getScrollContainer: () => HTMLElement | null;
 }
@@ -85,6 +87,32 @@ export const VirtualizedMessages = forwardRef<
     scrollContainer.scrollTop = scrollContainer.scrollHeight;
   }, []);
 
+  // Continuous scroll tracking for streaming
+  const continuousScrollRef = useRef<number | null>(null);
+  const startContinuousScroll = useCallback(() => {
+    if (continuousScrollRef.current) return; // Already running
+
+    const scroll = () => {
+      if (!parentRef.current) {
+        continuousScrollRef.current = null;
+        return;
+      }
+
+      const scrollContainer = parentRef.current;
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      continuousScrollRef.current = requestAnimationFrame(scroll);
+    };
+
+    continuousScrollRef.current = requestAnimationFrame(scroll);
+  }, []);
+
+  const stopContinuousScroll = useCallback(() => {
+    if (continuousScrollRef.current) {
+      cancelAnimationFrame(continuousScrollRef.current);
+      continuousScrollRef.current = null;
+    }
+  }, []);
+
   // TanStack Virtual setup
   const virtualizer = useVirtualizer({
     count: messages.length,
@@ -116,6 +144,12 @@ export const VirtualizedMessages = forwardRef<
       },
       scrollToBottomSticky: () => {
         stickToBottom();
+      },
+      startContinuousScroll: () => {
+        startContinuousScroll();
+      },
+      stopContinuousScroll: () => {
+        stopContinuousScroll();
       },
       scrollTo: (position: number) => {
         if (parentRef.current) {
@@ -161,6 +195,13 @@ export const VirtualizedMessages = forwardRef<
       };
     }
   }, [handleScroll]);
+
+  // Cleanup continuous scroll on unmount
+  useEffect(() => {
+    return () => {
+      stopContinuousScroll();
+    };
+  }, [stopContinuousScroll]);
 
   return (
     <div className="h-full">
