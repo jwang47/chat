@@ -123,6 +123,119 @@ export const VirtualizedMessages = forwardRef<
 
   const items = virtualizer.getVirtualItems();
 
+  // Track DOM elements for remeasurement
+  const messageElementsRef = useRef<Map<number, HTMLElement>>(new Map());
+
+  // Force remeasurement when streaming content changes
+  useEffect(() => {
+    if (streamingMessageId) {
+      const streamingMessage = messages.find(
+        (msg) => msg.id === streamingMessageId
+      );
+      if (streamingMessage && streamingMessage.content) {
+        // Throttle remeasurement to avoid excessive calls
+        const timeoutId = setTimeout(() => {
+          // Find the streaming message index and remeasure it
+          const messageIndex = messages.findIndex(
+            (msg) => msg.id === streamingMessageId
+          );
+          if (messageIndex !== -1) {
+            const element = messageElementsRef.current.get(messageIndex);
+            if (element) {
+              // Use requestAnimationFrame to ensure DOM is updated
+              requestAnimationFrame(() => {
+                // Double-check element is still valid and visible
+                if (element.isConnected) {
+                  // Temporarily pause continuous scroll during measurement
+                  const wasContinuousScrolling =
+                    continuousScrollRef.current !== null;
+                  if (wasContinuousScrolling) {
+                    stopContinuousScroll();
+                  }
+
+                  virtualizer.measureElement(element);
+
+                  // Resume continuous scroll if it was active
+                  if (wasContinuousScrolling && streamingMessageId) {
+                    setTimeout(() => {
+                      startContinuousScroll();
+                    }, 50);
+                  }
+                }
+              });
+            }
+          }
+        }, 50); // Small delay to batch rapid content changes
+
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [streamingMessageId, messages, virtualizer]);
+
+  // Additional effect to handle streaming content length changes
+  const streamingContentLengthRef = useRef(0);
+  const remeasureTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (streamingMessageId) {
+      const streamingMessage = messages.find(
+        (msg) => msg.id === streamingMessageId
+      );
+      if (streamingMessage && streamingMessage.content) {
+        const contentLength = streamingMessage.content.length;
+        // Only remeasure if content has grown significantly
+        if (contentLength > streamingContentLengthRef.current + 50) {
+          streamingContentLengthRef.current = contentLength;
+          const messageIndex = messages.findIndex(
+            (msg) => msg.id === streamingMessageId
+          );
+          if (messageIndex !== -1) {
+            // Clear any existing timeout
+            if (remeasureTimeoutRef.current) {
+              clearTimeout(remeasureTimeoutRef.current);
+            }
+
+            // Debounce remeasurement to avoid excessive calls
+            remeasureTimeoutRef.current = setTimeout(() => {
+              const element = messageElementsRef.current.get(messageIndex);
+              if (element) {
+                // Use requestAnimationFrame to ensure DOM is updated
+                requestAnimationFrame(() => {
+                  // Double-check element is still valid and visible
+                  if (element.isConnected) {
+                    // Temporarily pause continuous scroll during measurement
+                    const wasContinuousScrolling =
+                      continuousScrollRef.current !== null;
+                    if (wasContinuousScrolling) {
+                      stopContinuousScroll();
+                    }
+
+                    virtualizer.measureElement(element);
+
+                    // Resume continuous scroll if it was active
+                    if (wasContinuousScrolling && streamingMessageId) {
+                      setTimeout(() => {
+                        startContinuousScroll();
+                      }, 50);
+                    }
+                  }
+                });
+              }
+              remeasureTimeoutRef.current = null;
+            }, 100); // Slightly longer delay for content-based remeasurement
+          }
+        }
+      }
+    } else {
+      // Reset when streaming ends
+      streamingContentLengthRef.current = 0;
+      if (remeasureTimeoutRef.current) {
+        clearTimeout(remeasureTimeoutRef.current);
+        remeasureTimeoutRef.current = null;
+      }
+    }
+  }, [streamingMessageId, messages, virtualizer]);
+
   // Expose scroll methods to parent
   useImperativeHandle(
     ref,
@@ -200,6 +313,13 @@ export const VirtualizedMessages = forwardRef<
   useEffect(() => {
     return () => {
       stopContinuousScroll();
+      // Clear element tracking
+      messageElementsRef.current.clear();
+      // Clear any pending remeasure timeout
+      if (remeasureTimeoutRef.current) {
+        clearTimeout(remeasureTimeoutRef.current);
+        remeasureTimeoutRef.current = null;
+      }
     };
   }, [stopContinuousScroll]);
 
@@ -239,7 +359,16 @@ export const VirtualizedMessages = forwardRef<
                 <div
                   key={virtualRow.key}
                   data-index={virtualRow.index}
-                  ref={virtualizer.measureElement}
+                  ref={(el) => {
+                    // Track the element for remeasurement
+                    if (el) {
+                      messageElementsRef.current.set(virtualRow.index, el);
+                    } else {
+                      messageElementsRef.current.delete(virtualRow.index);
+                    }
+                    // Also measure the element
+                    virtualizer.measureElement(el);
+                  }}
                   className="w-full"
                 >
                   <div
