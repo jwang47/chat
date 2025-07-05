@@ -65,6 +65,38 @@ export const mockMessages: Message[] = [
     timestamp: new Date(Date.now() - 1000 * 60 * 1), // 1 minute ago
     model: "openrouter/anthropic/claude-3.5-sonnet",
   },
+  {
+    id: "9",
+    content:
+      "Awesome! I'll start with Zustand and see how it goes. Thanks for the detailed explanation!",
+    role: "user",
+    timestamp: new Date(Date.now() - 1000 * 60 * 1), // 1 minute ago
+    model: "openrouter/anthropic/claude-3.5-sonnet",
+  },
+  {
+    id: "10",
+    content:
+      "Glad to help! Let me know if you have any other questions about Zustand or state management in general.",
+    role: "assistant",
+    timestamp: new Date(Date.now() - 1000 * 60 * 1), // 1 minute ago
+    model: "openrouter/anthropic/claude-3.5-sonnet",
+  },
+  {
+    id: "11",
+    content:
+      "By the way, I'm curious about those monkeys in the chat interface. How do they work?",
+    role: "user",
+    timestamp: new Date(Date.now() - 1000 * 60 * 1), // 1 minute ago
+    model: "openrouter/anthropic/claude-3.5-sonnet",
+  },
+  {
+    id: "12",
+    content:
+      "Well it's a long story. They were originally created by a monkey named ChatGPT. He was a very smart monkey and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people laugh. He was also very smart and he could talk to people. He was also very funny and he could make people.",
+    role: "assistant",
+    timestamp: new Date(Date.now() - 1000 * 60 * 1), // 1 minute ago
+    model: "openrouter/anthropic/claude-3.5-sonnet",
+  },
 ];
 
 export const mockChatSession: ChatSession = {
