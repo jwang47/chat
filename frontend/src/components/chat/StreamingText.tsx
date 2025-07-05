@@ -145,7 +145,7 @@ function addCustomStyling(html: string): string {
       // Paragraphs - preserve whitespace for better formatting, but not for paragraphs with inline code
       .replace(
         /<p>(?![^<]*<code)/g,
-        '<p class="mt-4 mb-4 whitespace-pre-line">'
+        '<p class="mt-2 mb-2 whitespace-pre-line">'
       )
       .replace(/<center>/g, '<div class="flex justify-center mb-4 last:mb-0">')
       .replace(/<p>(?=[^<]*<code)/g, '<p class="mb-4 last:mb-0">')
@@ -338,6 +338,7 @@ export function StreamingText({
   const [lastProcessedElements, setLastProcessedElements] = useState<string[]>(
     []
   );
+  const [stableElementCount, setStableElementCount] = useState(0);
   const prevIsStreamingRef = useRef(isStreaming);
 
   // Debug: Log when streaming is complete
@@ -365,6 +366,7 @@ export function StreamingText({
     if (!content) {
       setRenderedBlocks([]);
       setLastProcessedElements([]);
+      setStableElementCount(0);
       return;
     }
 
@@ -421,20 +423,41 @@ export function StreamingText({
         })),
       });
 
-      // Only process new elements that haven't been rendered yet
-      const newElementsStartIndex = lastProcessedElements.length;
-      const newElements = elementsToProcess.slice(newElementsStartIndex);
+      // Find how many elements from the beginning are unchanged (stable)
+      let stableCount = 0;
+      for (
+        let i = 0;
+        i < Math.min(elementsToProcess.length, lastProcessedElements.length);
+        i++
+      ) {
+        if (elementsToProcess[i] === lastProcessedElements[i]) {
+          stableCount++;
+        } else {
+          break;
+        }
+      }
 
-      if (newElements.length === 0) {
+      // Only regenerate blocks if we have new elements or if stable count changed
+      const needsUpdate =
+        stableCount !== stableElementCount ||
+        elementsToProcess.length > lastProcessedElements.length;
+
+      if (!needsUpdate) {
         return;
       }
 
-      // Create blocks for new elements only
+      // Keep existing stable blocks and only regenerate changed/new ones
       const newBlocks: React.ReactNode[] = [];
 
-      newElements.forEach((markdownElement, relativeIndex) => {
-        const absoluteIndex = newElementsStartIndex + relativeIndex;
-        const elementKey = generateElementKey(markdownElement, absoluteIndex);
+      // Keep stable blocks from existing rendered blocks
+      if (stableCount > 0 && renderedBlocks.length >= stableCount) {
+        newBlocks.push(...renderedBlocks.slice(0, stableCount));
+      }
+
+      // Generate blocks for changed/new elements
+      for (let i = stableCount; i < elementsToProcess.length; i++) {
+        const markdownElement = elementsToProcess[i];
+        const elementKey = generateElementKey(markdownElement, i);
 
         if (markdownElement.startsWith("```")) {
           // Code block
@@ -465,15 +488,21 @@ export function StreamingText({
             />
           );
         }
-      });
+      }
 
-      // Append new blocks to existing ones
-      setRenderedBlocks((prevBlocks) => [...prevBlocks, ...newBlocks]);
+      setRenderedBlocks(newBlocks);
       setLastProcessedElements(elementsToProcess);
+      setStableElementCount(stableCount);
     } catch (error) {
       console.error("Error processing streaming content:", error);
     }
-  }, [content, isStreaming, lastProcessedElements]);
+  }, [
+    content,
+    isStreaming,
+    lastProcessedElements,
+    stableElementCount,
+    renderedBlocks,
+  ]);
 
   // Add streaming cursor to the last block if streaming
   const displayBlocks = useMemo(() => {

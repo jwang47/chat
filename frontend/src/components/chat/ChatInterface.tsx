@@ -8,6 +8,7 @@ import { GeminiService, type GeminiMessage } from "@/lib/gemini";
 import type { Message } from "@/types/chat";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
+import { mockMessages } from "@/data/mockChat";
 
 // Debug: Simple render counter
 let renderCount = 0;
@@ -15,7 +16,7 @@ let renderCount = 0;
 type AIProvider = "openrouter" | "gemini";
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
