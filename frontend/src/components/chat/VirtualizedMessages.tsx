@@ -119,10 +119,10 @@ export const VirtualizedMessages = forwardRef<
   }, [streamingMessageId, virtualizer]);
 
   return (
-    <div className="h-full">
+    <div className="h-full pb-28">
       <div
         ref={parentRef}
-        className="h-full overflow-auto px-2 pb-20"
+        className="h-full overflow-auto px-2"
         style={{
           contain: "strict",
         }}
