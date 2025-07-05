@@ -17,13 +17,6 @@ export function StreamingText({
   const lastContentUpdateRef = useRef(Date.now());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debug print when finished streaming
-  useEffect(() => {
-    if (!isStreaming) {
-      console.log("Streaming finished!", content);
-    }
-  }, [isStreaming]);
-
   // Reset displayed content when content changes significantly (new message)
   useEffect(() => {
     if (content.length < displayedContent.length) {

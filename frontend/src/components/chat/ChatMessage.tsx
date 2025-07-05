@@ -1,6 +1,6 @@
 import type { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { motion } from "motion/react";
 import { StreamingText } from "./StreamingText";
 import { renderComplexContent } from "@/lib/markdown.tsx";
@@ -23,6 +23,13 @@ export const ChatMessage = memo(function ChatMessage({
 }: ChatMessageProps) {
   const isUser = message.role === "user";
   const isActivelyStreaming = message.isStreaming === true;
+
+  // Debug print when finished streaming
+  useEffect(() => {
+    if (!isActivelyStreaming) {
+      console.log("Streaming finished!", message.content);
+    }
+  }, [isActivelyStreaming]);
 
   if (disableAnimations) {
     return (
