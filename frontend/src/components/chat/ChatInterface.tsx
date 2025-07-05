@@ -16,7 +16,7 @@ let renderCount = 0;
 type AIProvider = "openrouter" | "gemini";
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
