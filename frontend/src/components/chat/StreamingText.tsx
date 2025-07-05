@@ -210,13 +210,27 @@ function addCustomStyling(html: string): string {
 function parseContentIntoElements(content: string): string[] {
   if (!content.trim()) return [];
 
+  // For simple content (no markdown structure), return as single element
+  const lines = content.split("\n");
+  const hasMarkdownStructure = lines.some(
+    (line) =>
+      line.match(/^#{1,6}\s/) || // Headers
+      line.match(/^>\s/) || // Blockquotes
+      line.match(/^[\s]*[-*+]\s/) || // Bullet lists
+      line.match(/^[\s]*\d+\.\s/) || // Numbered lists
+      line.startsWith("```") // Code blocks
+  );
+
+  // If no markdown structure and content is relatively short, treat as single element
+  if (!hasMarkdownStructure && content.length < 500) {
+    return [content.trim()];
+  }
+
   const elements: string[] = [];
   let currentElement = "";
   let inCodeBlock = false;
   let codeBlockLanguage = "";
   let codeBlockContent = "";
-
-  const lines = content.split("\n");
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -335,7 +349,6 @@ export function StreamingText({
   const [lastProcessedElements, setLastProcessedElements] = useState<string[]>(
     []
   );
-  const [stableElementCount, setStableElementCount] = useState(0);
   const prevIsStreamingRef = useRef(isStreaming);
 
   // Debug: Log when streaming is complete
@@ -363,7 +376,6 @@ export function StreamingText({
     if (!content) {
       setRenderedBlocks([]);
       setLastProcessedElements([]);
-      setStableElementCount(0);
       return;
     }
 
@@ -371,34 +383,8 @@ export function StreamingText({
       // Parse content into complete markdown elements
       const markdownElements = parseContentIntoElements(content);
 
-      // Only process elements that are complete (during streaming)
+      // Process all elements - no need for complex completion detection
       let elementsToProcess = markdownElements;
-
-      if (isStreaming) {
-        // During streaming, only show complete elements
-        // Check if the last element might be incomplete
-        const lastElement = markdownElements[markdownElements.length - 1];
-        if (lastElement) {
-          // More sophisticated check for complete elements
-          const isCompleteElement =
-            lastElement.endsWith(".") ||
-            lastElement.endsWith("!") ||
-            lastElement.endsWith("?") ||
-            lastElement.endsWith(":") ||
-            lastElement.endsWith(";") ||
-            lastElement.match(/```$/) ||
-            lastElement.match(/^#{1,6}\s/) || // Headings are usually complete
-            lastElement.match(/^>\s/) || // Blockquotes
-            lastElement.match(/^\d+\.\s.*[.!?]$/) || // Numbered list items that end with punctuation
-            lastElement.match(/^[-*+]\s.*[.!?]$/) || // Bullet list items that end with punctuation
-            (lastElement.trim().length < 15 && lastElement.trim().length > 0); // Very short elements are likely complete
-
-          if (!isCompleteElement) {
-            // Last element might be incomplete, exclude it during streaming
-            elementsToProcess = markdownElements.slice(0, -1);
-          }
-        }
-      }
 
       // Check if we need to update (only if elements changed)
       const elementsChanged =
@@ -412,49 +398,30 @@ export function StreamingText({
       console.log("🔄 Processing elements:", {
         total: elementsToProcess.length,
         isStreaming,
+        originalContent: content,
         elements: elementsToProcess.map((el, i) => ({
           index: i,
           type: el.startsWith("```") ? "code" : "text",
           length: el.length,
+          content: el,
           preview: el.substring(0, 50) + (el.length > 50 ? "..." : ""),
         })),
       });
 
-      // Find how many elements from the beginning are unchanged (stable)
-      let stableCount = 0;
-      for (
-        let i = 0;
-        i < Math.min(elementsToProcess.length, lastProcessedElements.length);
-        i++
-      ) {
-        if (elementsToProcess[i] === lastProcessedElements[i]) {
-          stableCount++;
-        } else {
-          break;
-        }
-      }
-
-      // Only regenerate blocks if we have new elements or if stable count changed
-      const needsUpdate =
-        stableCount !== stableElementCount ||
-        elementsToProcess.length > lastProcessedElements.length;
-
-      if (!needsUpdate) {
-        return;
-      }
-
-      // Keep existing stable blocks and only regenerate changed/new ones
+      // Always regenerate all blocks when content changes
+      // This ensures streaming updates are always reflected
       const newBlocks: React.ReactNode[] = [];
 
-      // Keep stable blocks from existing rendered blocks
-      if (stableCount > 0 && renderedBlocks.length >= stableCount) {
-        newBlocks.push(...renderedBlocks.slice(0, stableCount));
-      }
-
-      // Generate blocks for changed/new elements
-      for (let i = stableCount; i < elementsToProcess.length; i++) {
+      // Generate blocks for all elements
+      for (let i = 0; i < elementsToProcess.length; i++) {
         const markdownElement = elementsToProcess[i];
         const elementKey = generateElementKey(markdownElement, i);
+
+        console.log(`🎨 Rendering element ${i}:`, {
+          content: markdownElement,
+          length: markdownElement.length,
+          isCodeBlock: markdownElement.startsWith("```"),
+        });
 
         if (markdownElement.startsWith("```")) {
           // Code block
@@ -477,6 +444,12 @@ export function StreamingText({
           });
           const styledHtml = addCustomStyling(html);
 
+          console.log(`🎨 Generated HTML for element ${i}:`, {
+            originalMarkdown: markdownElement,
+            generatedHtml: html,
+            styledHtml: styledHtml,
+          });
+
           newBlocks.push(
             <motion.div
               key={`element-${elementKey}`}
@@ -487,19 +460,13 @@ export function StreamingText({
         }
       }
 
+      console.log(`🎭 Setting ${newBlocks.length} rendered blocks`);
       setRenderedBlocks(newBlocks);
       setLastProcessedElements(elementsToProcess);
-      setStableElementCount(stableCount);
     } catch (error) {
       console.error("Error processing streaming content:", error);
     }
-  }, [
-    content,
-    isStreaming,
-    lastProcessedElements,
-    stableElementCount,
-    renderedBlocks,
-  ]);
+  }, [content, isStreaming, lastProcessedElements, renderedBlocks]);
 
   // Add streaming cursor to the last block if streaming
   const displayBlocks = useMemo(() => {
