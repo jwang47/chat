@@ -1,4 +1,9 @@
-import { Home, Settings, PanelLeftOpen, PanelLeftClose } from "lucide-react";
+import {
+  Settings,
+  PanelLeftOpen,
+  PanelLeftClose,
+  SquarePen,
+} from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
 import {
@@ -17,14 +22,16 @@ import {
 // Menu items.
 const items = [
   {
-    title: "Chat",
+    title: "New Chat",
     url: "/",
-    icon: Home,
+    icon: SquarePen,
+    highlightIfActive: false,
   },
   {
     title: "Settings",
     url: "/settings",
     icon: Settings,
+    highlightIfActive: true,
   },
 ];
 
@@ -66,7 +73,9 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     tooltip={item.title}
-                    isActive={location.pathname === item.url}
+                    isActive={
+                      item.highlightIfActive && location.pathname === item.url
+                    }
                   >
                     <Link to={item.url}>
                       <item.icon />
