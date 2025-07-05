@@ -16,11 +16,11 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     description: "Free tier model from OpenRouter",
   },
   {
-    id: "openrouter/mistralai/mistral-7b-instruct:free",
-    name: "mistralai/mistral-7b-instruct:free",
+    id: "openrouter/moonshotai/kimi-dev-72b:free",
+    name: "moonshotai/kimi-dev-72b:free",
     provider: "openrouter",
-    displayName: "Mistral 7B (Free)",
-    description: "Mistral's 7B model - free tier",
+    displayName: "Kimi 7B (Free)",
+    description: "Kimi's 7B model - free tier",
   },
   {
     id: "openrouter/deepseek/deepseek-chat-v3-0324:free",
