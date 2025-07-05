@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Home, Settings, MessageSquare } from "lucide-react";
+import { Plus, Home, Settings } from "lucide-react";
 import {
   CommandDialog,
   CommandInput,

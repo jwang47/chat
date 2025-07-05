@@ -24,9 +24,13 @@ export const MessageInput = memo(function MessageInput({
       if (message.trim() && !disabled) {
         onSendMessage(message.trim());
         setMessage("");
-        // Maintain focus on the textarea after sending
+        // Reset textarea height and maintain focus after sending
         requestAnimationFrame(() => {
-          textareaRef.current?.focus();
+          if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = "52px";
+            textareaRef.current.focus();
+          }
         });
       }
     },
