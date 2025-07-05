@@ -292,27 +292,29 @@ function MarkdownRenderer({ content }: { content: string }) {
 
     try {
       const elements: React.ReactNode[] = [];
-      let remainingContent = preprocessContent(content);
       let elementIndex = 0;
 
-      // Check if we're in the middle of a code block (for streaming)
-      const openCodeBlocks = (remainingContent.match(/```/g) || []).length;
+      // Check if we're in the middle of a code block (for streaming) BEFORE preprocessing
+      const openCodeBlocks = (content.match(/```/g) || []).length;
       const isInCodeBlock = openCodeBlocks % 2 === 1;
 
       // If we're in a code block, completely hide it until it's finished
-      let contentToProcess = remainingContent;
+      let contentToProcess = content;
       let incompleteCodeBlock: { language: string; code: string } | null = null;
 
       if (isInCodeBlock) {
-        // Find the last opening ``` in the preprocessed content
-        const lastCodeBlockStart = remainingContent.lastIndexOf("```");
+        console.log("🔍 Incomplete code block detected in MarkdownRenderer");
+        // Find the last opening ``` in the original content
+        const lastCodeBlockStart = content.lastIndexOf("```");
         if (lastCodeBlockStart !== -1) {
-          const beforeCodeBlock = remainingContent.substring(
-            0,
-            lastCodeBlockStart
+          const beforeCodeBlock = content.substring(0, lastCodeBlockStart);
+          const codeBlockContent = content.substring(lastCodeBlockStart);
+
+          console.log("📝 Before code block:", JSON.stringify(beforeCodeBlock));
+          console.log(
+            "📝 Code block content:",
+            JSON.stringify(codeBlockContent)
           );
-          const codeBlockContent =
-            remainingContent.substring(lastCodeBlockStart);
 
           // Extract language and code
           const languageMatch = codeBlockContent.match(/```(\w+)?\n([\s\S]*)/);
@@ -322,10 +324,17 @@ function MarkdownRenderer({ content }: { content: string }) {
 
             incompleteCodeBlock = { language, code };
             // Hide the entire incomplete code block - don't process it at all
-            contentToProcess = beforeCodeBlock.replace(/\n\s*$/, "");
+            contentToProcess = beforeCodeBlock.replace(/\n+$/, "");
+            console.log(
+              "✂️ Processed content:",
+              JSON.stringify(contentToProcess)
+            );
           }
         }
       }
+
+      // Now preprocess the content after we've handled incomplete code blocks
+      let remainingContent = preprocessContent(contentToProcess);
 
       // Process the complete content (without the incomplete code block)
       remainingContent = contentToProcess;
@@ -489,27 +498,29 @@ export function StreamingText({
 
     try {
       const elements: React.ReactNode[] = [];
-      let remainingContent = preprocessContent(content);
       let elementIndex = 0;
 
-      // Check if we're in the middle of a code block (for streaming)
-      const openCodeBlocks = (remainingContent.match(/```/g) || []).length;
+      // Check if we're in the middle of a code block (for streaming) BEFORE preprocessing
+      const openCodeBlocks = (content.match(/```/g) || []).length;
       const isInCodeBlock = openCodeBlocks % 2 === 1;
 
       // If we're in a code block, completely hide it until it's finished
-      let contentToProcess = remainingContent;
+      let contentToProcess = content;
       let incompleteCodeBlock: { language: string; code: string } | null = null;
 
       if (isInCodeBlock) {
-        // Find the last opening ``` in the preprocessed content
-        const lastCodeBlockStart = remainingContent.lastIndexOf("```");
+        console.log("🔍 Incomplete code block detected in StreamingText");
+        // Find the last opening ``` in the original content
+        const lastCodeBlockStart = content.lastIndexOf("```");
         if (lastCodeBlockStart !== -1) {
-          const beforeCodeBlock = remainingContent.substring(
-            0,
-            lastCodeBlockStart
+          const beforeCodeBlock = content.substring(0, lastCodeBlockStart);
+          const codeBlockContent = content.substring(lastCodeBlockStart);
+
+          console.log("📝 Before code block:", JSON.stringify(beforeCodeBlock));
+          console.log(
+            "📝 Code block content:",
+            JSON.stringify(codeBlockContent)
           );
-          const codeBlockContent =
-            remainingContent.substring(lastCodeBlockStart);
 
           // Extract language and code
           const languageMatch = codeBlockContent.match(/```(\w+)?\n([\s\S]*)/);
@@ -519,13 +530,17 @@ export function StreamingText({
 
             incompleteCodeBlock = { language, code };
             // Hide the entire incomplete code block - don't process it at all
-            contentToProcess = beforeCodeBlock.replace(/\n\s*$/, "");
+            contentToProcess = beforeCodeBlock.replace(/\n+$/, "");
+            console.log(
+              "✂️ Processed content:",
+              JSON.stringify(contentToProcess)
+            );
           }
         }
       }
 
-      // Process the complete content (without the incomplete code block)
-      remainingContent = contentToProcess;
+      // Now preprocess the content after we've handled incomplete code blocks
+      let remainingContent = preprocessContent(contentToProcess);
 
       // Process content sequentially
       while (remainingContent) {
