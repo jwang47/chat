@@ -4,11 +4,10 @@ import {
   forwardRef,
   useImperativeHandle,
   useCallback,
-  useState,
-  useMemo,
 } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { motion, AnimatePresence } from "motion/react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { Message } from "@/types/chat";
 
 interface VirtualizedMessagesProps {
@@ -30,83 +29,48 @@ export interface VirtualizedMessagesRef {
   getScrollContainer: () => HTMLElement | null;
 }
 
-// Custom virtualization hook
-function useSimpleVirtualization(
-  messages: Message[],
-  containerHeight: number,
-  itemHeight: number = 150
-) {
-  const [scrollTop, setScrollTop] = useState(0);
-
-  // Calculate which messages should be visible
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - 5);
-  const visibleCount = Math.ceil(containerHeight / itemHeight) + 10;
-  const endIndex = Math.min(messages.length, startIndex + visibleCount);
-
-  const visibleMessages = useMemo(() => {
-    return messages.slice(startIndex, endIndex);
-  }, [messages, startIndex, endIndex]);
-
-  // Calculate spacer heights
-  const topSpacerHeight = startIndex * itemHeight;
-  const bottomSpacerHeight = (messages.length - endIndex) * itemHeight;
-
-  // Throttle scroll updates to reduce flashing
-  const throttledSetScrollTop = useCallback(
-    (newScrollTop: number) => {
-      if (Math.abs(newScrollTop - scrollTop) > 50) {
-        setScrollTop(newScrollTop);
-      }
-    },
-    [scrollTop]
-  );
-
-  return {
-    visibleMessages,
-    topSpacerHeight,
-    bottomSpacerHeight,
-    setScrollTop: throttledSetScrollTop,
-  };
-}
-
 export const VirtualizedMessages = forwardRef<
   VirtualizedMessagesRef,
   VirtualizedMessagesProps
 >(({ messages, isTyping, streamingMessageId, onScrollChange }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState(600);
 
-  // Use our custom virtualization
-  const { visibleMessages, topSpacerHeight, bottomSpacerHeight, setScrollTop } =
-    useSimpleVirtualization(
-      messages,
-      containerHeight,
-      150 // Fixed item height
-    );
+  // TanStack Virtual setup
+  const virtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 150, // Estimated message height
+    overscan: 5, // Render 5 extra items above/below visible area
+  });
+
+  const items = virtualizer.getVirtualItems();
 
   // Expose scroll methods to parent
   useImperativeHandle(
     ref,
     () => ({
       scrollToBottom: () => {
-        if (parentRef.current) {
-          parentRef.current.scrollTo({
-            top: parentRef.current.scrollHeight,
+        if (messages.length > 0) {
+          virtualizer.scrollToIndex(messages.length - 1, {
+            align: "end",
             behavior: "smooth",
           });
         }
       },
       scrollToBottomSmooth: () => {
-        if (parentRef.current) {
-          parentRef.current.scrollTo({
-            top: parentRef.current.scrollHeight,
+        if (messages.length > 0) {
+          virtualizer.scrollToIndex(messages.length - 1, {
+            align: "end",
             behavior: "smooth",
           });
         }
       },
       scrollToBottomInstant: () => {
-        if (parentRef.current) {
-          parentRef.current.scrollTop = parentRef.current.scrollHeight;
+        if (messages.length > 0) {
+          virtualizer.scrollToIndex(messages.length - 1, {
+            align: "end",
+            behavior: "auto",
+          });
         }
       },
       scrollTo: (position: number) => {
@@ -126,7 +90,7 @@ export const VirtualizedMessages = forwardRef<
       },
       getScrollContainer: () => parentRef.current,
     }),
-    []
+    [virtualizer, messages.length]
   );
 
   // Handle scroll events
@@ -135,19 +99,11 @@ export const VirtualizedMessages = forwardRef<
       const target = e.target as HTMLElement;
       const { scrollTop, scrollHeight, clientHeight } = target;
 
-      // Update our virtualization
-      setScrollTop(scrollTop);
-
-      // Update container height if needed
-      if (clientHeight !== containerHeight) {
-        setContainerHeight(clientHeight);
-      }
-
       if (onScrollChange) {
         onScrollChange(scrollTop, scrollHeight, clientHeight);
       }
     },
-    [onScrollChange, containerHeight, setScrollTop]
+    [onScrollChange]
   );
 
   // Set up scroll listener
@@ -155,9 +111,6 @@ export const VirtualizedMessages = forwardRef<
     const scrollElement = parentRef.current;
     if (scrollElement) {
       scrollElement.addEventListener("scroll", handleScroll, { passive: true });
-
-      // Initial height measurement
-      setContainerHeight(scrollElement.clientHeight);
 
       return () => {
         scrollElement.removeEventListener("scroll", handleScroll);
@@ -171,42 +124,47 @@ export const VirtualizedMessages = forwardRef<
         ref={parentRef}
         className="h-full overflow-auto px-2 pb-24"
         style={{
-          contain: "layout",
+          contain: "strict",
         }}
       >
         <div
           style={{
-            height: `${topSpacerHeight + bottomSpacerHeight}px`,
+            height: `${virtualizer.getTotalSize()}px`,
             width: "100%",
             position: "relative",
           }}
         >
-          {/* Top spacer for items before visible range */}
-          {topSpacerHeight > 0 && (
-            <div style={{ height: `${topSpacerHeight}px` }} />
-          )}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${items[0]?.start ?? 0}px)`,
+            }}
+          >
+            {items.map((virtualRow) => {
+              const message = messages[virtualRow.index];
+              const isLastMessage = virtualRow.index === messages.length - 1;
 
-          {/* Visible messages */}
-          {visibleMessages.map((message, index) => {
-            const messageIndex = messages.indexOf(message);
-            const isLastMessage = messageIndex === messages.length - 1;
-            return (
-              <div key={message.id} className="w-full">
+              return (
                 <div
-                  className={`max-w-4xl mx-auto py-4 ${
-                    isLastMessage ? "mb-24" : ""
-                  }`}
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  className="w-full"
                 >
-                  <ChatMessage message={message} disableAnimations={true} />
+                  <div
+                    className={`max-w-4xl mx-auto py-4 ${
+                      isLastMessage ? "mb-24" : ""
+                    }`}
+                  >
+                    <ChatMessage message={message} disableAnimations={true} />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-
-          {/* Bottom spacer for items after visible range */}
-          {bottomSpacerHeight > 0 && (
-            <div style={{ height: `${bottomSpacerHeight}px` }} />
-          )}
+              );
+            })}
+          </div>
         </div>
 
         {/* Typing Indicator - Always rendered at the bottom */}
@@ -219,7 +177,7 @@ export const VirtualizedMessages = forwardRef<
               transition={{ duration: 0.3, ease: "easeOut" }}
               style={{
                 position: "absolute",
-                top: `${topSpacerHeight + bottomSpacerHeight + 24}px`,
+                top: `${virtualizer.getTotalSize() + 24}px`,
                 left: 0,
                 width: "100%",
               }}
