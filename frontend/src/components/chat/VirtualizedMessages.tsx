@@ -26,6 +26,7 @@ export interface VirtualizedMessagesRef {
   scrollToBottom: () => void;
   scrollToBottomSmooth: () => void;
   scrollToBottomInstant: () => void;
+  scrollToBottomSticky: () => void;
   scrollTo: (position: number) => void;
   getScrollContainer: () => HTMLElement | null;
 }
@@ -42,7 +43,47 @@ export const VirtualizedMessages = forwardRef<
   const parentRef = useRef<HTMLDivElement>(null);
   const scrollingRef = useRef<number>(0);
 
-  // We'll implement smooth scrolling directly in the scroll methods
+  // Custom smooth scroll to bottom that tracks content changes
+  const smoothScrollToBottom = useCallback(() => {
+    if (!parentRef.current) return;
+
+    const scrollContainer = parentRef.current;
+    const duration = 300;
+    const start = scrollContainer.scrollTop;
+    const startTime = Date.now();
+
+    const animate = () => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Use easing function
+      const eased = easeInOutQuint(progress);
+
+      // Always scroll to the very bottom (current scrollHeight)
+      const target =
+        scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      const current = start + (target - start) * eased;
+
+      scrollContainer.scrollTop = current;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Ensure we're at the very bottom
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, []);
+
+  // Instant scroll to bottom that sticks during streaming
+  const stickToBottom = useCallback(() => {
+    if (!parentRef.current) return;
+    const scrollContainer = parentRef.current;
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+  }, []);
 
   // TanStack Virtual setup
   const virtualizer = useVirtualizer({
@@ -65,19 +106,16 @@ export const VirtualizedMessages = forwardRef<
         }
       },
       scrollToBottomSmooth: () => {
-        if (parentRef.current) {
-          const scrollContainer = parentRef.current;
-          scrollContainer.scrollTo({
-            top: scrollContainer.scrollHeight,
-            behavior: "smooth",
-          });
-        }
+        smoothScrollToBottom();
       },
       scrollToBottomInstant: () => {
         if (parentRef.current) {
           const scrollContainer = parentRef.current;
           scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
+      },
+      scrollToBottomSticky: () => {
+        stickToBottom();
       },
       scrollTo: (position: number) => {
         if (parentRef.current) {

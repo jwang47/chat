@@ -68,29 +68,35 @@ export function ChatInterface() {
   }, [getScrollContainer]);
 
   // Optimized scroll to bottom function
-  const scrollToBottom = useCallback((smooth: boolean = false) => {
-    // Don't scroll if user is actively scrolling up
-    if (isUserScrolledUpRef.current) return;
+  const scrollToBottom = useCallback(
+    (smooth: boolean = false, sticky: boolean = false) => {
+      // Don't scroll if user is actively scrolling up
+      if (isUserScrolledUpRef.current) return;
 
-    isProgrammaticScrollRef.current = true;
+      isProgrammaticScrollRef.current = true;
 
-    if (smooth) {
-      // Use smooth scrolling
-      virtualizedMessagesRef.current?.scrollToBottomSmooth();
-    } else {
-      // Use instant scrolling to avoid virtualization issues
-      virtualizedMessagesRef.current?.scrollToBottomInstant();
-    }
+      if (sticky) {
+        // Use sticky scrolling for streaming (instant, always to bottom)
+        virtualizedMessagesRef.current?.scrollToBottomSticky();
+      } else if (smooth) {
+        // Use smooth scrolling
+        virtualizedMessagesRef.current?.scrollToBottomSmooth();
+      } else {
+        // Use instant scrolling to avoid virtualization issues
+        virtualizedMessagesRef.current?.scrollToBottomInstant();
+      }
 
-    isUserScrolledUpRef.current = false;
-    // Extend the flag duration to prevent conflicts with user scrolling
-    setTimeout(
-      () => {
-        isProgrammaticScrollRef.current = false;
-      },
-      smooth ? 500 : 300
-    );
-  }, []);
+      isUserScrolledUpRef.current = false;
+      // Extend the flag duration to prevent conflicts with user scrolling
+      setTimeout(
+        () => {
+          isProgrammaticScrollRef.current = false;
+        },
+        smooth ? 500 : 300
+      );
+    },
+    []
+  );
 
   // Scroll to specific position (for minimap)
   const scrollTo = useCallback((position: number) => {
@@ -205,7 +211,7 @@ export function ChatInterface() {
         // Only trigger scroll if content has actually grown
         const contentLength = streamingMessage.content.length;
         const hasGrowth =
-          contentLength > lastStreamingContentLengthRef.current + 20; // Reduced threshold for more responsiveness
+          contentLength > lastStreamingContentLengthRef.current + 10; // Very responsive threshold
 
         if (hasGrowth && isAtBottom()) {
           lastStreamingContentLengthRef.current = contentLength;
@@ -216,9 +222,9 @@ export function ChatInterface() {
               !isProgrammaticScrollRef.current &&
               isAtBottom()
             ) {
-              scrollToBottom(true); // Smooth scroll during streaming
+              scrollToBottom(false, true); // Sticky scroll during streaming
             }
-          }, 50); // Reduced delay for more responsiveness
+          }, 25); // Very responsive delay
           return () => clearTimeout(timer);
         }
       }
