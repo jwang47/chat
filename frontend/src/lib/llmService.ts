@@ -1,0 +1,122 @@
+import { OpenRouterService, type OpenRouterMessage } from "./openrouter";
+import { GeminiService, type GeminiMessage } from "./gemini";
+import { getModelById } from "./models";
+
+export interface LlmMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+export interface StreamCallbacks {
+  onChunk: (content: string) => void;
+  onComplete: () => void;
+  onError: (error: Error) => void;
+}
+
+export class LlmService {
+  /**
+   * Stream chat completion using the specified model
+   */
+  static async streamChatCompletion(
+    model: string,
+    messages: LlmMessage[],
+    callbacks: StreamCallbacks
+  ): Promise<void> {
+    const { onChunk, onComplete, onError } = callbacks;
+
+    // Get model info to determine provider
+    const modelInfo = getModelById(model);
+    if (!modelInfo) {
+      onError(new Error(`Unknown model: ${model}`));
+      return;
+    }
+
+    const provider = modelInfo.provider;
+
+    // Check if API key is available for the provider
+    const hasApiKey = this.hasApiKey(provider);
+    if (!hasApiKey) {
+      onError(
+        new Error(
+          `${
+            provider === "openrouter" ? "OpenRouter" : "Gemini"
+          } API key not found. Please add your API key in settings.`
+        )
+      );
+      return;
+    }
+
+    // Extract model name from full model ID
+    const modelName = this.extractModelName(model, provider);
+
+    // Call appropriate service based on provider
+    if (provider === "openrouter") {
+      const openRouterMessages: OpenRouterMessage[] = messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      await OpenRouterService.streamChatCompletion(
+        openRouterMessages,
+        onChunk,
+        onComplete,
+        onError,
+        modelName
+      );
+    } else if (provider === "gemini") {
+      const geminiMessages: GeminiMessage[] = messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      await GeminiService.streamChatCompletion(
+        geminiMessages,
+        onChunk,
+        onComplete,
+        onError,
+        modelName
+      );
+    } else {
+      onError(new Error(`Unsupported provider: ${provider}`));
+    }
+  }
+
+  /**
+   * Check if API key is available for the given provider
+   */
+  private static hasApiKey(provider: "openrouter" | "gemini"): boolean {
+    return provider === "openrouter"
+      ? OpenRouterService.hasApiKey()
+      : GeminiService.hasApiKey();
+  }
+
+  /**
+   * Extract model name from full model ID
+   */
+  private static extractModelName(
+    fullModelId: string,
+    provider: "openrouter" | "gemini"
+  ): string {
+    if (provider === "openrouter" && fullModelId.startsWith("openrouter/")) {
+      return fullModelId.substring("openrouter/".length);
+    }
+    if (provider === "gemini" && fullModelId.startsWith("google/")) {
+      return fullModelId.substring("google/".length);
+    }
+    return fullModelId;
+  }
+
+  /**
+   * Get available providers
+   */
+  static getAvailableProviders(): Array<"openrouter" | "gemini"> {
+    return ["openrouter", "gemini"];
+  }
+
+  /**
+   * Check if any API key is available
+   */
+  static hasAnyApiKey(): boolean {
+    return OpenRouterService.hasApiKey() || GeminiService.hasApiKey();
+  }
+}

@@ -3,8 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
 import { ChatMinimap } from "./ChatMinimap";
 import { MessageInput } from "./MessageInput";
-import { OpenRouterService, type OpenRouterMessage } from "@/lib/openrouter";
-import { GeminiService, type GeminiMessage } from "@/lib/gemini";
+import { LlmService, type LlmMessage } from "@/lib/llmService";
 import type { Message } from "@/types/chat";
 import { motion, AnimatePresence } from "motion/react";
 import { mockMessages } from "@/data/mockChat";
@@ -23,9 +22,6 @@ export function ChatInterface() {
   );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
-
-  // Get current provider from selected model
-  const currentProvider = getModelById(selectedModel)?.provider || "gemini";
 
   // Handle model selection
   const handleModelSelect = useCallback((model: ModelInfo) => {
@@ -169,21 +165,6 @@ export function ChatInterface() {
       // Clear any previous error
       setError(null);
 
-      // Check if API key is available for selected provider
-      const hasApiKey =
-        currentProvider === "openrouter"
-          ? OpenRouterService.hasApiKey()
-          : GeminiService.hasApiKey();
-
-      if (!hasApiKey) {
-        setError(
-          `${
-            currentProvider === "openrouter" ? "OpenRouter" : "Gemini"
-          } API key not found. Please add your API key in settings.`
-        );
-        return;
-      }
-
       // Create user message
       const userMessage: Message = {
         id: generateMessageId(),
@@ -212,76 +193,40 @@ export function ChatInterface() {
       setIsTyping(true);
       setStreamingMessageId(assistantMessage.id);
 
-      // Get all messages for context
+      // Get all messages for context and convert to LlmMessage format
       const allMessages = [...messages, userMessage];
+      const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
 
-      const onChunk = (chunk: string) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessage.id
-              ? { ...msg, content: msg.content + chunk }
-              : msg
-          )
-        );
-      };
-
-      const onComplete = () => {
-        setIsTyping(false);
-        setStreamingMessageId(null);
-      };
-
-      const onError = (error: Error) => {
-        setError(error.message);
-        setIsTyping(false);
-        setStreamingMessageId(null);
-        // Remove the failed assistant message
-        setMessages((prev) =>
-          prev.filter((msg) => msg.id !== assistantMessage.id)
-        );
-      };
-
-      // Call appropriate service based on current provider
-      if (currentProvider === "openrouter") {
-        const openRouterMessages: OpenRouterMessage[] = allMessages.map(
-          (msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })
-        );
-
-        // Extract model name from full model ID (e.g., "openrouter/cypher-alpha:free" -> "cypher-alpha:free")
-        const modelName = selectedModel.startsWith("openrouter/")
-          ? selectedModel.substring("openrouter/".length)
-          : selectedModel;
-
-        OpenRouterService.streamChatCompletion(
-          openRouterMessages,
-          onChunk,
-          onComplete,
-          onError,
-          modelName
-        );
-      } else {
-        const geminiMessages: GeminiMessage[] = allMessages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
-
-        // Extract model name from full model ID (e.g., "google/gemini-2.5-flash" -> "gemini-2.5-flash")
-        const modelName = selectedModel.startsWith("google/")
-          ? selectedModel.substring("google/".length)
-          : selectedModel;
-
-        GeminiService.streamChatCompletion(
-          geminiMessages,
-          onChunk,
-          onComplete,
-          onError,
-          modelName
-        );
-      }
+      // Stream chat completion using the unified LlmService
+      LlmService.streamChatCompletion(selectedModel, llmMessages, {
+        onChunk: (chunk: string) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessage.id
+                ? { ...msg, content: msg.content + chunk }
+                : msg
+            )
+          );
+        },
+        onComplete: () => {
+          setIsTyping(false);
+          setStreamingMessageId(null);
+        },
+        onError: (error: Error) => {
+          setError(error.message);
+          setIsTyping(false);
+          setStreamingMessageId(null);
+          // Remove the failed assistant message
+          setMessages((prev) =>
+            prev.filter((msg) => msg.id !== assistantMessage.id)
+          );
+        },
+      });
     },
-    [generateMessageId, messages, currentProvider, selectedModel]
+    [generateMessageId, messages, selectedModel]
   );
 
   return (
