@@ -1,23 +1,22 @@
 import { useState, useRef, useCallback, useMemo, memo } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  maxHeight?: number;
 }
 
 export const MessageInput = memo(function MessageInput({
   onSendMessage,
   disabled = false,
   placeholder = "Type your message...",
+  maxHeight = 240,
 }: MessageInputProps) {
-  const [message, setMessage] = useState(
-    "how to bubble sort in python, and write me a screenplay about AGI"
-  );
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [message, setMessage] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -25,9 +24,9 @@ export const MessageInput = memo(function MessageInput({
       if (message.trim() && !disabled) {
         onSendMessage(message.trim());
         setMessage("");
-        // Maintain focus on the input after sending
+        // Maintain focus on the textarea after sending
         requestAnimationFrame(() => {
-          inputRef.current?.focus();
+          textareaRef.current?.focus();
         });
       }
     },
@@ -36,17 +35,26 @@ export const MessageInput = memo(function MessageInput({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSubmit(e);
+      if (e.key === "Enter") {
+        if (e.shiftKey) {
+          // Allow Shift+Enter to add newline - don't prevent default
+          return;
+        } else {
+          // Regular Enter submits the form
+          e.preventDefault();
+          handleSubmit(e);
+        }
       }
     },
     [handleSubmit]
   );
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setMessage(e.target.value);
-  }, []);
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setMessage(e.target.value);
+    },
+    []
+  );
 
   // Memoize the disabled state calculation
   const isButtonDisabled = useMemo(() => {
@@ -54,15 +62,26 @@ export const MessageInput = memo(function MessageInput({
   }, [disabled, message]);
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-3">
-      <Input
-        ref={inputRef}
+    <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+      <textarea
+        ref={textareaRef}
         value={message}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="flex-1 !bg-input bg-background border-border focus:border-accent h-12 py-3"
+        className="flex-1 bg-background border border-border focus:border-accent rounded-md px-3 py-3 text-sm resize-none min-h-[48px] overflow-y-auto focus:outline-none focus:ring-1 focus:ring-accent"
+        style={{
+          height: "auto",
+          minHeight: "48px",
+          maxHeight: `${maxHeight}px`,
+        }}
         autoFocus
+        rows={1}
+        onInput={(e) => {
+          const target = e.target as HTMLTextAreaElement;
+          target.style.height = "auto";
+          target.style.height = Math.min(target.scrollHeight, maxHeight) + "px";
+        }}
       />
       <Button
         type="submit"
