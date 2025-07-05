@@ -102,10 +102,10 @@ export function ChatInterface() {
   const scrollTo = useCallback((position: number) => {
     isProgrammaticScrollRef.current = true;
     virtualizedMessagesRef.current?.scrollTo(position);
-    // Extend the flag duration to prevent conflicts with user scrolling
+    // Short flag duration for responsive minimap dragging
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
-    }, 500);
+    }, 100);
   }, []);
 
   // Handle scroll events from virtualized messages

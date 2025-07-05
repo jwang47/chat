@@ -236,10 +236,10 @@ export function ChatMinimap({
 
         {/* Viewport indicator */}
         <div
-          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm cursor-grab active:cursor-grabbing hover:bg-accent/40 hover:border-accent/80 ${
+          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm cursor-grab active:cursor-grabbing hover:bg-accent/40 hover:border-accent/80 transition-none ${
             isDragging || isDraggingViewport
-              ? "bg-accent/50 border-accent/90 transition-none"
-              : "transition-all duration-300 ease-out"
+              ? "bg-accent/50 border-accent/90"
+              : ""
           }`}
           style={{
             top: `${viewportIndicatorTop}px`,

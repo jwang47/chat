@@ -274,10 +274,7 @@ export const VirtualizedMessages = forwardRef<
               parentRef.current.scrollHeight - parentRef.current.clientHeight
             )
           );
-          parentRef.current.scrollTo({
-            top: clampedPosition,
-            behavior: "smooth",
-          });
+          parentRef.current.scrollTop = clampedPosition;
         }
       },
       getScrollContainer: () => parentRef.current,
