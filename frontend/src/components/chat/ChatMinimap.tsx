@@ -22,6 +22,9 @@ export function ChatMinimap({
   const minimapRef = useRef<HTMLDivElement>(null);
   const [minimapHeight, setMinimapHeight] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingViewport, setIsDraggingViewport] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartScrollProgress, setDragStartScrollProgress] = useState(0);
 
   useEffect(() => {
     if (minimapRef.current) {
@@ -102,22 +105,60 @@ export function ChatMinimap({
     [handleMinimapInteraction]
   );
 
+  // Handle drag-to-scroll on viewport indicator
+  const handleViewportMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingViewport(true);
+      setDragStartY(e.clientY);
+      setDragStartScrollProgress(scrollProgress);
+    },
+    [scrollProgress]
+  );
+
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (isDragging) {
+      if (isDragging && !isDraggingViewport) {
         handleMinimapInteraction(e.clientY);
+      } else if (isDraggingViewport && minimapRef.current) {
+        // Calculate drag distance
+        const deltaY = e.clientY - dragStartY;
+        const rect = minimapRef.current.getBoundingClientRect();
+
+        // Convert drag distance to scroll progress change
+        const dragProgress = deltaY / rect.height;
+        const newScrollProgress = Math.max(
+          0,
+          Math.min(1, dragStartScrollProgress + dragProgress)
+        );
+
+        // Convert to scroll position
+        const scrollPosition =
+          newScrollProgress * (contentHeight - viewportHeight);
+        onScrollTo(scrollPosition);
       }
     },
-    [isDragging, handleMinimapInteraction]
+    [
+      isDragging,
+      isDraggingViewport,
+      handleMinimapInteraction,
+      dragStartY,
+      dragStartScrollProgress,
+      contentHeight,
+      viewportHeight,
+      onScrollTo,
+    ]
   );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    setIsDraggingViewport(false);
   }, []);
 
   // Add global mouse event listeners for dragging
   useEffect(() => {
-    if (isDragging) {
+    if (isDragging || isDraggingViewport) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
       document.body.style.cursor = "grabbing";
@@ -130,7 +171,7 @@ export function ChatMinimap({
         document.body.style.userSelect = "";
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, isDraggingViewport, handleMouseMove, handleMouseUp]);
 
   // Calculate viewport indicator dimensions and position
   const actualMinimapHeight = minimapHeight || 320;
@@ -153,7 +194,9 @@ export function ChatMinimap({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 1.0, ease: "easeOut" }}
-      className={`fixed right-8 top-1/2 -translate-y-1/2 w-12 h-80 bg-card/60 backdrop-blur-sm border border-accent/15 rounded-md overflow-hidden cursor-grab active:cursor-grabbing z-20 hover:bg-card/70 hover:border-accent/25 transition-all duration-500 ${className}`}
+      className={`fixed right-8 top-1/2 -translate-y-1/2 w-12 h-80 bg-card/60 backdrop-blur-sm border border-accent/15 rounded-md overflow-hidden z-20 hover:bg-card/70 hover:border-accent/25 transition-all duration-500 ${
+        isDragging || isDraggingViewport ? "cursor-grabbing" : "cursor-grab"
+      } ${className}`}
       onMouseDown={handleMouseDown}
       ref={minimapRef}
     >
@@ -174,7 +217,11 @@ export function ChatMinimap({
           return (
             <div
               key={position.id}
-              className={`absolute left-0.5 right-0.5 rounded-sm transition-all duration-300 ease-out ${
+              className={`absolute left-0.5 right-0.5 rounded-sm ${
+                isDragging || isDraggingViewport
+                  ? "transition-none"
+                  : "transition-all duration-300 ease-out"
+              } ${
                 position.role === "user"
                   ? "bg-accent/60"
                   : "bg-muted-foreground/40"
@@ -189,13 +236,16 @@ export function ChatMinimap({
 
         {/* Viewport indicator */}
         <div
-          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm transition-all duration-300 ease-out ${
-            isDragging ? "bg-accent/50 border-accent/90" : ""
+          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm cursor-grab active:cursor-grabbing hover:bg-accent/40 hover:border-accent/80 ${
+            isDragging || isDraggingViewport
+              ? "bg-accent/50 border-accent/90 transition-none"
+              : "transition-all duration-300 ease-out"
           }`}
           style={{
             top: `${viewportIndicatorTop}px`,
             height: `${viewportIndicatorHeight}px`,
           }}
+          onMouseDown={handleViewportMouseDown}
         />
       </div>
     </motion.div>
