@@ -284,11 +284,6 @@ export function StreamingText({
   return (
     <div className={`${className} [&>*:last-child]:mb-0`}>
       {renderContent()}
-
-      {/* Streaming cursor */}
-      {isStreaming && (
-        <span className="inline-block w-2 h-4 bg-accent ml-1 animate-pulse" />
-      )}
     </div>
   );
 }
