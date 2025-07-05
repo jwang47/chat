@@ -50,27 +50,21 @@ export const VirtualizedMessages = forwardRef<
     ref,
     () => ({
       scrollToBottom: () => {
-        if (messages.length > 0) {
-          virtualizer.scrollToIndex(messages.length - 1, {
-            align: "end",
-            behavior: "smooth",
-          });
+        if (parentRef.current) {
+          const scrollContainer = parentRef.current;
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
       },
       scrollToBottomSmooth: () => {
-        if (messages.length > 0) {
-          virtualizer.scrollToIndex(messages.length - 1, {
-            align: "end",
-            behavior: "smooth",
-          });
+        if (parentRef.current) {
+          const scrollContainer = parentRef.current;
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
       },
       scrollToBottomInstant: () => {
-        if (messages.length > 0) {
-          virtualizer.scrollToIndex(messages.length - 1, {
-            align: "end",
-            behavior: "auto",
-          });
+        if (parentRef.current) {
+          const scrollContainer = parentRef.current;
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
       },
       scrollTo: (position: number) => {
@@ -122,9 +116,10 @@ export const VirtualizedMessages = forwardRef<
     <div className="h-full">
       <div
         ref={parentRef}
-        className="h-full overflow-auto px-2 pb-24"
+        className="h-full overflow-auto px-2"
         style={{
           contain: "strict",
+          paddingBottom: "100px", // Reserve 100px for message input
         }}
       >
         <div
