@@ -80,7 +80,7 @@ export function ModelSelector({
                       {model.displayName}
                     </span>
                     <span className="text-xs text-muted-foreground font-mono truncate w-full">
-                      {model.id}
+                      {model.name}
                     </span>
                   </div>
                 </CommandItem>
@@ -109,7 +109,7 @@ export function ModelSelector({
                       {model.displayName}
                     </span>
                     <span className="text-xs text-muted-foreground font-mono truncate w-full">
-                      {model.id}
+                      {model.name}
                     </span>
                   </div>
                 </CommandItem>
