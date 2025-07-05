@@ -4,6 +4,7 @@ import { gfm, gfmHtml } from "micromark-extension-gfm";
 import { useState, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import DOMPurify from "dompurify";
 
 // Shared collapsible code block component
 interface CollapsibleCodeBlockProps {
@@ -68,6 +69,7 @@ function CollapsibleCodeBlock({
               shouldShowToggle && isExpanded ? "0.5rem 0.5rem 0 0" : "0.5rem",
           }}
         >
+          {/* Code content is safely rendered by SyntaxHighlighter - no need for additional sanitization */}
           {children}
         </SyntaxHighlighter>
       </div>
@@ -146,7 +148,7 @@ export function addCustomStyling(
     ? "rgba(25, 24, 21, 0.6)" // Darker for user messages
     : "rgba(45, 44, 40, 0.4)"; // Original for assistant messages
 
-  return html
+  const styledHtml = html
     .replace(/<p>/g, '<p class="mb-4 last:mb-0 whitespace-pre-line">')
     .replace(/<h1>/g, '<h1 class="text-xl font-semibold mb-3 mt-6 first:mt-0">')
     .replace(/<h2>/g, '<h2 class="text-lg font-semibold mb-3 mt-5 first:mt-0">')
@@ -185,6 +187,34 @@ export function addCustomStyling(
       /<code>/g,
       `<code class="px-1 py-0.5 rounded text-xs font-mono" style="background-color: ${inlineCodeBg};">`
     );
+
+  // Sanitize the HTML to prevent XSS attacks
+  return DOMPurify.sanitize(styledHtml, {
+    ALLOWED_TAGS: [
+      "p",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "ul",
+      "ol",
+      "li",
+      "blockquote",
+      "hr",
+      "strong",
+      "em",
+      "a",
+      "code",
+      "pre",
+      "br",
+    ],
+    ALLOWED_ATTR: ["class", "href", "target", "rel", "style"],
+    ALLOW_DATA_ATTR: false,
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  });
 }
 
 // Shared complex content renderer with code block support
