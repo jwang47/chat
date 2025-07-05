@@ -39,7 +39,7 @@ export function ChatInterface() {
   const isProgrammaticScrollRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const messagesRef = useRef<Message[]>(messages);
-  const scrollThreshold = 20;
+  const scrollThreshold = 50;
   const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep messagesRef in sync with messages state
