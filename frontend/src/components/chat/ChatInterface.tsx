@@ -9,6 +9,8 @@ import type { Message } from "@/types/chat";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { mockMessages } from "@/data/mockChat";
+import { ModelSelector } from "@/components/ModelSelector";
+import { getDefaultModel, type ModelInfo } from "@/lib/models";
 
 // Debug: Simple render counter
 let renderCount = 0;
@@ -24,8 +26,23 @@ export function ChatInterface() {
   const [error, setError] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] =
     useState<AIProvider>("gemini");
+  const [selectedModel, setSelectedModel] = useState<string>(
+    () => getDefaultModel("gemini").id
+  );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+
+  // Handle model selection
+  const handleModelSelect = useCallback((model: ModelInfo) => {
+    setSelectedModel(model.id);
+  }, []);
+
+  // Handle provider change - update model to default for new provider
+  const handleProviderChange = useCallback((provider: AIProvider) => {
+    setSelectedProvider(provider);
+    const defaultModel = getDefaultModel(provider);
+    setSelectedModel(defaultModel.id);
+  }, []);
   const [contentHeight, setContentHeight] = useState(0);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
@@ -187,6 +204,7 @@ export function ChatInterface() {
         content,
         role: "user",
         timestamp: new Date(),
+        model: selectedModel,
       };
 
       setMessages((prev) => [...prev, newMessage]);
@@ -199,6 +217,7 @@ export function ChatInterface() {
         content: "",
         role: "assistant",
         timestamp: new Date(),
+        model: selectedModel,
         isStreaming: true, // Mark as streaming
       };
 
@@ -249,11 +268,17 @@ export function ChatInterface() {
           })
         );
 
+        // Extract model name from full model ID (e.g., "openrouter/cypher-alpha:free" -> "cypher-alpha:free")
+        const modelName = selectedModel.startsWith("openrouter/")
+          ? selectedModel.substring("openrouter/".length)
+          : selectedModel;
+
         OpenRouterService.streamChatCompletion(
           openRouterMessages,
           onChunk,
           onComplete,
-          onError
+          onError,
+          modelName
         );
       } else {
         const geminiMessages: GeminiMessage[] = allMessages.map((msg) => ({
@@ -261,43 +286,59 @@ export function ChatInterface() {
           content: msg.content,
         }));
 
+        // Extract model name from full model ID (e.g., "google/gemini-2.5-flash" -> "gemini-2.5-flash")
+        const modelName = selectedModel.startsWith("google/")
+          ? selectedModel.substring("google/".length)
+          : selectedModel;
+
         GeminiService.streamChatCompletion(
           geminiMessages,
           onChunk,
           onComplete,
-          onError
+          onError,
+          modelName
         );
       }
     },
-    [generateMessageId, messages, selectedProvider]
+    [generateMessageId, messages, selectedProvider, selectedModel]
   );
 
   return (
     <div className="relative h-screen bg-background">
-      {/* Provider Selector */}
+      {/* Provider and Model Selector */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
         className="absolute top-4 left-4 z-20"
       >
-        <div className="flex gap-2">
-          <Button
-            variant={selectedProvider === "gemini" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedProvider("gemini")}
-            className="text-xs"
-          >
-            Gemini
-          </Button>
-          <Button
-            variant={selectedProvider === "openrouter" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedProvider("openrouter")}
-            className="text-xs"
-          >
-            OpenRouter
-          </Button>
+        <div className="flex gap-2 items-center">
+          <div className="flex gap-2">
+            <Button
+              variant={selectedProvider === "gemini" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleProviderChange("gemini")}
+              className="text-xs"
+            >
+              Gemini
+            </Button>
+            <Button
+              variant={
+                selectedProvider === "openrouter" ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => handleProviderChange("openrouter")}
+              className="text-xs"
+            >
+              OpenRouter
+            </Button>
+          </div>
+          <div className="h-4 w-px bg-muted-foreground/30" />
+          <ModelSelector
+            selectedProvider={selectedProvider}
+            selectedModel={selectedModel}
+            onModelSelect={handleModelSelect}
+          />
         </div>
       </motion.div>
 
@@ -416,7 +457,7 @@ export function ChatInterface() {
           onSendMessage={handleSendMessage}
           placeholder={`Ask ${
             selectedProvider === "gemini" ? "Gemini" : "OpenRouter"
-          } anything...`}
+          } (${selectedModel.split("/").pop()}) anything...`}
           disabled={isTyping}
         />
       </motion.div>
