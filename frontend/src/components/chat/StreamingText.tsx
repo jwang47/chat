@@ -51,7 +51,7 @@ function CollapsibleCodeBlock({
   };
 
   return (
-    <div className="relative mb-2">
+    <div className="relative mb-4">
       <div
         ref={codeRef}
         className={`overflow-hidden transition-all duration-500 rounded-lg ${
@@ -145,29 +145,58 @@ function addCustomStyling(html: string): string {
       // Paragraphs - preserve whitespace for better formatting, but not for paragraphs with inline code
       .replace(
         /<p>(?![^<]*<code)/g,
-        '<p class="mb-1 last:mb-0 whitespace-pre-line">'
+        '<p class="mb-4 last:mb-0 whitespace-pre-line">'
       )
-      .replace(/<p>(?=[^<]*<code)/g, '<p class="mb-1 last:mb-0">')
-      // Headings
-      .replace(/<h1>/g, '<h1 class="text-lg font-semibold mb-2">')
-      .replace(/<h2>/g, '<h2 class="text-base font-semibold mb-2">')
-      .replace(/<h3>/g, '<h3 class="text-sm font-semibold mb-1">')
-      .replace(/<h4>/g, '<h4 class="text-sm font-semibold mb-1">')
-      .replace(/<h5>/g, '<h5 class="text-sm font-semibold mb-1">')
-      .replace(/<h6>/g, '<h6 class="text-sm font-semibold mb-1">')
-      // Lists
-      .replace(/<ul>/g, '<ul class="list-disc list-inside mb-1 ml-4">')
-      .replace(/<ol>/g, '<ol class="list-decimal list-inside mb-1 ml-4">')
-      .replace(/<li>/g, '<li class="mb-0.5">')
+      .replace(/<p>(?=[^<]*<code)/g, '<p class="mb-4 last:mb-0">')
+      // Headings - larger spacing for better hierarchy
+      .replace(
+        /<h1>/g,
+        '<h1 class="text-xl font-semibold mb-3 mt-6 first:mt-0">'
+      )
+      .replace(
+        /<h2>/g,
+        '<h2 class="text-lg font-semibold mb-3 mt-5 first:mt-0">'
+      )
+      .replace(
+        /<h3>/g,
+        '<h3 class="text-base font-semibold mb-2 mt-4 first:mt-0">'
+      )
+      .replace(
+        /<h4>/g,
+        '<h4 class="text-sm font-semibold mb-2 mt-3 first:mt-0">'
+      )
+      .replace(
+        /<h5>/g,
+        '<h5 class="text-sm font-semibold mb-2 mt-3 first:mt-0">'
+      )
+      .replace(
+        /<h6>/g,
+        '<h6 class="text-sm font-semibold mb-2 mt-3 first:mt-0">'
+      )
+      // Lists - better spacing
+      .replace(
+        /<ul>/g,
+        '<ul class="list-disc list-inside mb-4 ml-4 space-y-1">'
+      )
+      .replace(
+        /<ol>/g,
+        '<ol class="list-decimal list-inside mb-4 ml-4 space-y-1">'
+      )
+      .replace(/<li>/g, '<li class="">')
       // Fix list items with paragraphs - remove margin from paragraphs inside list items
       .replace(
-        /<li class="mb-0.5">\s*<p class="mb-1 last:mb-0([^"]*)">/g,
-        '<li class="mb-0.5"><p class="mb-0$1">'
+        /<li class="">\s*<p class="mb-4 last:mb-0([^"]*)">/g,
+        '<li class=""><p class="mb-0$1">'
       )
-      // Blockquotes
+      // Blockquotes - more prominent spacing
       .replace(
         /<blockquote>/g,
-        '<blockquote class="border-l-2 border-accent/30 pl-4 italic mb-1 whitespace-pre-line">'
+        '<blockquote class="border-l-2 border-accent/30 pl-4 italic mb-4 mt-2 whitespace-pre-line">'
+      )
+      // Horizontal rules
+      .replace(
+        /<hr\s*\/?>/g,
+        '<hr class="border-0 h-px bg-muted-foreground/20 my-6" />'
       )
       // Text formatting
       .replace(/<strong>/g, '<strong class="font-semibold">')
@@ -361,7 +390,7 @@ function splitHtmlIntoElements(html: string): string[] {
       // For text nodes, only add if they have meaningful content
       const textContent = node.textContent?.trim();
       if (textContent) {
-        elements.push(`<p class="mb-1 last:mb-0">${textContent}</p>`);
+        elements.push(`<p class="mb-4 last:mb-0">${textContent}</p>`);
       }
     }
   });
