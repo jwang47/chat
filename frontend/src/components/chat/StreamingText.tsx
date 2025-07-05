@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import React from "react";
 import { micromark } from "micromark";
 import { gfm, gfmHtml } from "micromark-extension-gfm";
@@ -30,7 +30,7 @@ function CollapsibleCodeBlock({
     const maxHeight = viewportHeight * 0.25;
     const estimatedHeight = lineCount * 20; // Rough estimate
     setShouldShowToggle(estimatedHeight > maxHeight);
-  }, [children, lineCount]);
+  }, [lineCount]); // Only depend on lineCount, not children
 
   const maxHeight = shouldShowToggle && !isExpanded ? "25vh" : "none";
 
@@ -155,14 +155,22 @@ export function StreamingText({
   className,
 }: StreamingTextProps) {
   const [displayedContent, setDisplayedContent] = useState("");
-  const [lastContentUpdate, setLastContentUpdate] = useState(Date.now());
   const [adaptiveDelay, setAdaptiveDelay] = useState(20);
+  const lastContentUpdateRef = useRef(Date.now());
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Reset displayed content when content changes significantly (new message)
+  useEffect(() => {
+    if (content.length < displayedContent.length) {
+      setDisplayedContent(content);
+    }
+  }, [content.length, displayedContent.length]);
 
   // Track content arrival speed and adjust typewriter speed accordingly
   useEffect(() => {
     if (content.length > displayedContent.length) {
       const now = Date.now();
-      const timeSinceLastUpdate = now - lastContentUpdate;
+      const timeSinceLastUpdate = now - lastContentUpdateRef.current;
 
       // Calculate adaptive delay based on content arrival speed
       // If content is arriving fast (< 100ms), speed up typewriter
@@ -177,20 +185,26 @@ export function StreamingText({
         newDelay = Math.min(50, adaptiveDelay * 1.2);
       }
 
-      setAdaptiveDelay(newDelay);
-      setLastContentUpdate(now);
+      if (newDelay !== adaptiveDelay) {
+        setAdaptiveDelay(newDelay);
+      }
+      lastContentUpdateRef.current = now;
     }
-  }, [
-    content.length,
-    displayedContent.length,
-    lastContentUpdate,
-    adaptiveDelay,
-  ]);
+  }, [content.length, displayedContent.length, adaptiveDelay]);
 
+  // Typewriter effect
   useEffect(() => {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
     if (!isStreaming) {
       // When streaming is complete, show all content immediately
-      setDisplayedContent(content);
+      if (displayedContent !== content) {
+        setDisplayedContent(content);
+      }
       return;
     }
 
@@ -207,21 +221,19 @@ export function StreamingText({
     );
 
     // Typewriter effect - gradually reveal content with adaptive speed
-    const timer = setTimeout(() => {
-      setDisplayedContent(
-        content.substring(0, displayedContent.length + charsToReveal)
+    timerRef.current = setTimeout(() => {
+      setDisplayedContent((prev) =>
+        content.substring(0, prev.length + charsToReveal)
       );
     }, adaptiveDelay);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [content, isStreaming, displayedContent, adaptiveDelay]);
-
-  // Reset displayed content when content changes significantly (new message)
-  useEffect(() => {
-    if (content.length < displayedContent.length) {
-      setDisplayedContent(content);
-    }
-  }, [content, displayedContent.length]);
 
   // Render the content
   const renderContent = () => {
