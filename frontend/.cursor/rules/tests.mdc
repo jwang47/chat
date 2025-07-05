@@ -1,0 +1,34 @@
+---
+globs: *.test.ts
+alwaysApply: false
+---
+
+# Testing Guide
+
+## Quick Start
+
+```bash
+npm test          # Run tests in watch mode
+npm test -- --run # Run tests once
+```
+
+## Test Structure
+
+- Place `.test.ts` files next to source code
+- Use `describe()` for grouping, `it()` for individual tests
+- Import: `import { describe, it, expect } from 'vitest'`
+
+# Testing Guide
+
+## Quick Start
+
+```bash
+npm test          # Run tests in watch mode
+npm test -- --run # Run tests once
+```
+
+## Test Structure
+
+- Place `.test.ts` files next to source code
+- Use `describe()` for grouping, `it()` for individual tests
+- Import: `import { describe, it, expect } from 'vitest'`
