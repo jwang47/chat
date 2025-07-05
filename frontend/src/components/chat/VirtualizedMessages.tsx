@@ -141,6 +141,8 @@ export const VirtualizedMessages = forwardRef<
             {items.map((virtualRow) => {
               const message = messages[virtualRow.index];
               const isLastMessage = virtualRow.index === messages.length - 1;
+              const isStreaming =
+                message.isStreaming || streamingMessageId === message.id;
 
               return (
                 <div
@@ -151,7 +153,7 @@ export const VirtualizedMessages = forwardRef<
                 >
                   <div
                     className={`max-w-4xl mx-auto py-4 ${
-                      isLastMessage ? "mb-24" : ""
+                      isLastMessage ? "mb-[100px]" : ""
                     }`}
                   >
                     <ChatMessage message={message} disableAnimations={true} />
@@ -175,9 +177,10 @@ export const VirtualizedMessages = forwardRef<
                 top: `${virtualizer.getTotalSize() + 24}px`,
                 left: 0,
                 width: "100%",
+                marginBottom: "100px", // Ensure it doesn't overlap with input
               }}
             >
-              <div className="max-w-4xl mx-auto py-4">
+              <div className="max-w-4xl mx-auto py-4 mb-[100px]">
                 <div className="flex p-4">
                   <div className="p-3 rounded-lg">
                     <div className="flex gap-1">

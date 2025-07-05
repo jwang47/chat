@@ -39,6 +39,7 @@ export function ChatInterface() {
   const isProgrammaticScrollRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const messagesRef = useRef<Message[]>(messages);
+  const scrollThreshold = 20;
 
   // Keep messagesRef in sync with messages state
   useEffect(() => {
@@ -62,8 +63,7 @@ export function ChatInterface() {
     if (!scrollContainer) return true;
 
     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-    const threshold = 50; // pixels from bottom
-    return scrollTop + clientHeight >= scrollHeight - threshold;
+    return scrollTop + clientHeight >= scrollHeight - scrollThreshold;
   }, [getScrollContainer]);
 
   // Optimized scroll to bottom function
@@ -88,7 +88,7 @@ export function ChatInterface() {
     // Extend the flag duration to prevent conflicts with user scrolling
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
-    }, 300); // Increased from 150ms to 300ms
+    }, 500);
   }, []);
 
   // Handle scroll events from virtualized messages
@@ -98,18 +98,14 @@ export function ChatInterface() {
 
       scrollUpdatePendingRef.current = true;
       requestAnimationFrame(() => {
-        // Update the scroll position tracking with 50px threshold
-        const threshold = 50;
-        const isAtBottomWithThreshold =
-          scrollTop + clientHeight >= scrollHeight - threshold;
-
         // Only update scroll tracking if this isn't a programmatic scroll
         if (!isProgrammaticScrollRef.current) {
-          // Detect if user is actively scrolling up (50px threshold)
-          const isScrollingUp = scrollTop < lastScrollTopRef.current - 50;
+          // Detect if user is actively scrolling up
+          const isScrollingUp =
+            scrollTop < lastScrollTopRef.current - scrollThreshold;
           if (isScrollingUp) {
             isUserScrolledUpRef.current = true;
-          } else if (isAtBottomWithThreshold) {
+          } else if (isAtBottom()) {
             // Reset to auto-scroll when user is back at bottom
             isUserScrolledUpRef.current = false;
           }
@@ -142,8 +138,8 @@ export function ChatInterface() {
         scrollUpdatePendingRef.current = false;
       });
     },
-    []
-  ); // Removed streamingMessageId dependency to prevent unnecessary re-creation
+    [isAtBottom]
+  );
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
