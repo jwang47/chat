@@ -96,7 +96,7 @@ export function ChatMinimap({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className={`fixed right-4 top-1/2 -translate-y-1/2 w-12 h-80 bg-card/60 backdrop-blur-sm border border-accent/15 rounded-md overflow-hidden cursor-grab active:cursor-grabbing z-20 hover:bg-card/70 hover:border-accent/25 transition-all duration-50 ${className}`}
+      className={`fixed right-8 top-1/2 -translate-y-1/2 w-12 h-80 bg-card/60 backdrop-blur-sm border border-accent/15 rounded-md overflow-hidden cursor-grab active:cursor-grabbing z-20 hover:bg-card/70 hover:border-accent/25 transition-all duration-50 ${className}`}
       onMouseDown={handleMouseDown}
       ref={minimapRef}
     >
