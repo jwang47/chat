@@ -145,8 +145,9 @@ function addCustomStyling(html: string): string {
       // Paragraphs - preserve whitespace for better formatting, but not for paragraphs with inline code
       .replace(
         /<p>(?![^<]*<code)/g,
-        '<p class="mb-4 last:mb-0 whitespace-pre-line">'
+        '<p class="mt-4 mb-4 last:mb-0 whitespace-pre-line">'
       )
+      .replace(/<center>/g, '<div class="flex justify-center mb-4 last:mb-0">')
       .replace(/<p>(?=[^<]*<code)/g, '<p class="mb-4 last:mb-0">')
       // Headings - larger spacing for better hierarchy
       .replace(
@@ -174,14 +175,8 @@ function addCustomStyling(html: string): string {
         '<h6 class="text-sm font-semibold mb-2 mt-3 first:mt-0">'
       )
       // Lists - better spacing
-      .replace(
-        /<ul>/g,
-        '<ul class="list-disc list-inside mb-4 ml-4 space-y-1">'
-      )
-      .replace(
-        /<ol>/g,
-        '<ol class="list-decimal list-inside mb-4 ml-4 space-y-1">'
-      )
+      .replace(/<ul>/g, '<ul class="list-disc list-inside mb-4 space-y-1">')
+      .replace(/<ol>/g, '<ol class="list-decimal list-inside mb-4 space-y-1">')
       .replace(/<li>/g, '<li class="">')
       // Fix list items with paragraphs - remove margin from paragraphs inside list items
       .replace(
