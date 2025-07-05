@@ -119,10 +119,10 @@ export const VirtualizedMessages = forwardRef<
   }, [streamingMessageId, virtualizer]);
 
   return (
-    <div className="h-full pb-28">
+    <div className="h-full">
       <div
         ref={parentRef}
-        className="h-full overflow-auto px-2"
+        className="h-full overflow-auto px-2 pb-24"
         style={{
           contain: "strict",
         }}
@@ -146,6 +146,7 @@ export const VirtualizedMessages = forwardRef<
             <AnimatePresence mode="popLayout">
               {items.map((virtualItem) => {
                 const message = messages[virtualItem.index];
+                const isLastMessage = virtualItem.index === messages.length - 1;
                 return (
                   <div
                     key={message.id}
@@ -153,7 +154,11 @@ export const VirtualizedMessages = forwardRef<
                     ref={virtualizer.measureElement}
                     className="w-full"
                   >
-                    <div className="max-w-4xl mx-auto py-4">
+                    <div
+                      className={`max-w-4xl mx-auto py-4 ${
+                        isLastMessage ? "mb-24" : ""
+                      }`}
+                    >
                       <ChatMessage message={message} />
                     </div>
                   </div>
@@ -172,7 +177,7 @@ export const VirtualizedMessages = forwardRef<
                 transition={{ duration: 0.3, ease: "easeOut" }}
                 style={{
                   position: "absolute",
-                  top: `${virtualizer.getTotalSize()}px`,
+                  top: `${virtualizer.getTotalSize() + 24}px`, // Position with some spacing
                   left: 0,
                   width: "100%",
                 }}

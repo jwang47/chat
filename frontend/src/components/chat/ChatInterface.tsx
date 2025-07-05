@@ -13,8 +13,8 @@ import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  // const [messages, setMessages] = useState<Message[]>(mockMessages);
+  // const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
