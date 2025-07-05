@@ -145,9 +145,9 @@ function addCustomStyling(html: string): string {
       // Paragraphs - preserve whitespace for better formatting, but not for paragraphs with inline code
       .replace(
         /<p>(?![^<]*<code)/g,
-        '<p class="mb-2 last:mb-0 whitespace-pre-line">'
+        '<p class="mb-1 last:mb-0 whitespace-pre-line">'
       )
-      .replace(/<p>(?=[^<]*<code)/g, '<p class="mb-2 last:mb-0">')
+      .replace(/<p>(?=[^<]*<code)/g, '<p class="mb-1 last:mb-0">')
       // Headings
       .replace(/<h1>/g, '<h1 class="text-lg font-semibold mb-2">')
       .replace(/<h2>/g, '<h2 class="text-base font-semibold mb-2">')
@@ -156,18 +156,18 @@ function addCustomStyling(html: string): string {
       .replace(/<h5>/g, '<h5 class="text-sm font-semibold mb-1">')
       .replace(/<h6>/g, '<h6 class="text-sm font-semibold mb-1">')
       // Lists
-      .replace(/<ul>/g, '<ul class="list-disc list-inside mb-2 ml-4">')
-      .replace(/<ol>/g, '<ol class="list-decimal list-inside mb-2 ml-4">')
-      .replace(/<li>/g, '<li class="mb-1">')
+      .replace(/<ul>/g, '<ul class="list-disc list-inside mb-1 ml-4">')
+      .replace(/<ol>/g, '<ol class="list-decimal list-inside mb-1 ml-4">')
+      .replace(/<li>/g, '<li class="mb-0.5">')
       // Fix list items with paragraphs - remove margin from paragraphs inside list items
       .replace(
-        /<li class="mb-1">\s*<p class="mb-2 last:mb-0([^"]*)">/g,
-        '<li class="mb-1"><p class="mb-0$1">'
+        /<li class="mb-0.5">\s*<p class="mb-1 last:mb-0([^"]*)">/g,
+        '<li class="mb-0.5"><p class="mb-0$1">'
       )
       // Blockquotes
       .replace(
         /<blockquote>/g,
-        '<blockquote class="border-l-2 border-accent/30 pl-4 italic mb-2 whitespace-pre-line">'
+        '<blockquote class="border-l-2 border-accent/30 pl-4 italic mb-1 whitespace-pre-line">'
       )
       // Text formatting
       .replace(/<strong>/g, '<strong class="font-semibold">')
@@ -185,32 +185,113 @@ function addCustomStyling(html: string): string {
   );
 }
 
-// Helper function to preprocess content to fix HTML/markdown spacing issues
-function preprocessContent(content: string): string {
-  // First, protect code blocks by temporarily replacing them with placeholders
-  const codeBlocks: string[] = [];
-  let contentWithPlaceholders = content.replace(/```[\s\S]*?```/g, (match) => {
-    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-    codeBlocks.push(match);
-    return placeholder;
-  });
+// Helper function to parse content into complete markdown elements
+function parseContentIntoElements(content: string): string[] {
+  if (!content.trim()) return [];
 
-  // Apply preprocessing to non-code-block content
-  contentWithPlaceholders = contentWithPlaceholders
-    .replace(/(<\/center>)\s*\n(>)/g, "$1\n\n$2")
-    .replace(/(<center>[^<]*<\/center>)\s*\n(>)/g, "$1\n\n$2")
-    // Preserve line breaks by converting single line breaks to markdown line breaks
-    .replace(/\n(?!\n)/g, "  \n");
+  const elements: string[] = [];
+  let currentElement = "";
+  let inCodeBlock = false;
+  let codeBlockLanguage = "";
+  let codeBlockContent = "";
 
-  // Restore code blocks
-  codeBlocks.forEach((codeBlock, index) => {
-    contentWithPlaceholders = contentWithPlaceholders.replace(
-      `__CODE_BLOCK_${index}__`,
-      codeBlock
-    );
-  });
+  const lines = content.split("\n");
 
-  return contentWithPlaceholders;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Check for code block markers
+    if (line.startsWith("```")) {
+      if (!inCodeBlock) {
+        // Starting a code block
+        // First, save any current element
+        if (currentElement.trim()) {
+          elements.push(currentElement.trim());
+          currentElement = "";
+        }
+
+        inCodeBlock = true;
+        codeBlockLanguage = line.substring(3).trim();
+        codeBlockContent = "";
+      } else {
+        // Ending a code block
+        inCodeBlock = false;
+        elements.push(
+          `\`\`\`${codeBlockLanguage}\n${codeBlockContent}\n\`\`\``
+        );
+        codeBlockLanguage = "";
+        codeBlockContent = "";
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBlockContent += (codeBlockContent ? "\n" : "") + line;
+      continue;
+    }
+
+    // Handle different markdown elements
+    if (line.trim() === "") {
+      // Empty line - if we have a current element, complete it
+      if (currentElement.trim()) {
+        elements.push(currentElement.trim());
+        currentElement = "";
+      }
+    } else if (line.match(/^#{1,6}\s/)) {
+      // Heading - complete any current element first
+      if (currentElement.trim()) {
+        elements.push(currentElement.trim());
+        currentElement = "";
+      }
+      elements.push(line);
+    } else if (line.match(/^>\s/)) {
+      // Blockquote - complete any current element first
+      if (currentElement.trim()) {
+        elements.push(currentElement.trim());
+        currentElement = "";
+      }
+      elements.push(line);
+    } else if (line.match(/^[\s]*[-*+]\s/) || line.match(/^[\s]*\d+\.\s/)) {
+      // List item
+      if (
+        currentElement.trim() &&
+        !currentElement.includes("- ") &&
+        !currentElement.includes("* ") &&
+        !currentElement.match(/\d+\./)
+      ) {
+        // Complete non-list element
+        elements.push(currentElement.trim());
+        currentElement = "";
+      }
+      currentElement += (currentElement ? "\n" : "") + line;
+    } else {
+      // Regular paragraph content
+      if (
+        currentElement.trim() &&
+        (currentElement.includes("- ") ||
+          currentElement.includes("* ") ||
+          currentElement.match(/\d+\./))
+      ) {
+        // Complete list element
+        elements.push(currentElement.trim());
+        currentElement = "";
+      }
+      currentElement += (currentElement ? "\n" : "") + line;
+    }
+  }
+
+  // Add any remaining element
+  if (currentElement.trim()) {
+    elements.push(currentElement.trim());
+  }
+
+  // Handle incomplete code block (streaming)
+  if (inCodeBlock) {
+    // Don't add incomplete code blocks - they'll be hidden during streaming
+    return elements;
+  }
+
+  return elements.filter((el) => el.trim().length > 0);
 }
 
 // Helper function to split HTML into individual elements
@@ -280,7 +361,7 @@ function splitHtmlIntoElements(html: string): string[] {
       // For text nodes, only add if they have meaningful content
       const textContent = node.textContent?.trim();
       if (textContent) {
-        elements.push(`<p class="mb-2 last:mb-0">${textContent}</p>`);
+        elements.push(`<p class="mb-1 last:mb-0">${textContent}</p>`);
       }
     }
   });
@@ -294,7 +375,9 @@ export function StreamingText({
   className,
 }: StreamingTextProps) {
   const [renderedBlocks, setRenderedBlocks] = useState<React.ReactNode[]>([]);
-  const [lastContentHash, setLastContentHash] = useState<string>("");
+  const [lastProcessedElements, setLastProcessedElements] = useState<string[]>(
+    []
+  );
   const elementIndexRef = useRef(0);
   const prevIsStreamingRef = useRef(isStreaming);
 
@@ -309,197 +392,133 @@ export function StreamingText({
     prevIsStreamingRef.current = isStreaming;
   }, [isStreaming, content]);
 
-  // Simple hash function for content comparison
-  const hashContent = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.toString();
-  };
-
   // Process content and generate blocks
   useEffect(() => {
     if (!content) {
       setRenderedBlocks([]);
-      setLastContentHash("");
+      setLastProcessedElements([]);
       elementIndexRef.current = 0;
       return;
     }
 
-    // Check if content has actually changed
-    const currentHash = hashContent(content);
-    if (currentHash === lastContentHash) {
-      return;
-    }
-
     try {
-      const elements: React.ReactNode[] = [];
-      let elementIndex = 0;
+      // Parse content into complete markdown elements
+      const markdownElements = parseContentIntoElements(content);
 
-      // Check if we're in the middle of a code block (for streaming) BEFORE preprocessing
-      const openCodeBlocks = (content.match(/```/g) || []).length;
-      const isInCodeBlock = openCodeBlocks % 2 === 1;
+      // Only process elements that are complete (during streaming)
+      let elementsToProcess = markdownElements;
 
-      // If we're in a code block, completely hide it until it's finished
-      let contentToProcess = content;
-      let incompleteCodeBlock: { language: string; code: string } | null = null;
+      if (isStreaming) {
+        // During streaming, only show complete elements
+        // Check if the last element might be incomplete
+        const lastElement = markdownElements[markdownElements.length - 1];
+        if (lastElement) {
+          // More sophisticated check for complete elements
+          const isCompleteElement =
+            lastElement.endsWith(".") ||
+            lastElement.endsWith("!") ||
+            lastElement.endsWith("?") ||
+            lastElement.endsWith(":") ||
+            lastElement.endsWith(";") ||
+            lastElement.match(/```$/) ||
+            lastElement.match(/^#{1,6}\s/) || // Headings are usually complete
+            lastElement.match(/^>\s/) || // Blockquotes
+            lastElement.match(/^\d+\.\s.*[.!?]$/) || // Numbered list items that end with punctuation
+            lastElement.match(/^[-*+]\s.*[.!?]$/) || // Bullet list items that end with punctuation
+            (lastElement.trim().length < 15 && lastElement.trim().length > 0); // Very short elements are likely complete
 
-      if (isInCodeBlock) {
-        console.log("🔍 Incomplete code block detected in StreamingText");
-        // Find the last opening ``` in the original content
-        const lastCodeBlockStart = content.lastIndexOf("```");
-        if (lastCodeBlockStart !== -1) {
-          const beforeCodeBlock = content.substring(0, lastCodeBlockStart);
-          const codeBlockContent = content.substring(lastCodeBlockStart);
-
-          console.log("📝 Before code block:", JSON.stringify(beforeCodeBlock));
-          console.log(
-            "📝 Code block content:",
-            JSON.stringify(codeBlockContent)
-          );
-
-          // Extract language and code
-          const languageMatch = codeBlockContent.match(/```(\w+)?\n([\s\S]*)/);
-          if (languageMatch) {
-            const language = languageMatch[1] || "";
-            const code = languageMatch[2];
-
-            incompleteCodeBlock = { language, code };
-            // Hide the entire incomplete code block - don't process it at all
-            contentToProcess = beforeCodeBlock.replace(/\n+$/, "");
-            console.log(
-              "✂️ Processed content:",
-              JSON.stringify(contentToProcess)
-            );
+          if (!isCompleteElement) {
+            // Last element might be incomplete, exclude it during streaming
+            elementsToProcess = markdownElements.slice(0, -1);
           }
         }
       }
 
-      // Now preprocess the content after we've handled incomplete code blocks
-      let remainingContent = preprocessContent(contentToProcess);
+      // Check if we need to update (only if elements changed)
+      const elementsChanged =
+        JSON.stringify(elementsToProcess) !==
+        JSON.stringify(lastProcessedElements);
 
-      // Process content sequentially
-      while (remainingContent) {
-        // Find the next code block
-        const codeBlockMatch = remainingContent.match(
-          /```(\w+)?\n([\s\S]*?)```/
-        );
+      if (!elementsChanged) {
+        return;
+      }
 
-        if (codeBlockMatch) {
-          const beforeCodeBlock = remainingContent.substring(
-            0,
-            codeBlockMatch.index
-          );
-          const language = codeBlockMatch[1] || "";
-          const code = codeBlockMatch[2].trim();
+      console.log("🔄 Processing elements:", {
+        total: elementsToProcess.length,
+        isStreaming,
+        elements: elementsToProcess.map((el, i) => ({
+          index: i,
+          type: el.startsWith("```") ? "code" : "text",
+          length: el.length,
+          preview: el.substring(0, 50) + (el.length > 50 ? "..." : ""),
+        })),
+      });
 
-          // Add content before the code block
-          if (beforeCodeBlock.trim()) {
-            const html = micromark(beforeCodeBlock, {
-              extensions: [gfm()],
-              htmlExtensions: [gfmHtml()],
-            });
-            const styledHtml = addCustomStyling(html);
+      const elements: React.ReactNode[] = [];
+      let elementIndex = 0;
 
-            // Split the HTML into individual elements
-            const htmlElements = splitHtmlIntoElements(styledHtml);
+      // Process each complete markdown element
+      elementsToProcess.forEach((markdownElement, index) => {
+        if (markdownElement.startsWith("```")) {
+          // Code block
+          const lines = markdownElement.split("\n");
+          const language = lines[0].substring(3).trim();
+          const code = lines.slice(1, -1).join("\n");
 
-            htmlElements.forEach((elementHtml) => {
-              elements.push(
-                <motion.div
-                  key={`html-${elementIndex++}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1.0, ease: "easeOut" }}
-                  dangerouslySetInnerHTML={{ __html: elementHtml }}
-                />
-              );
-            });
-          }
-
-          // Add the code block
           elements.push(
             <motion.div
               key={`code-${elementIndex++}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 1.0, ease: "easeOut" }}
+              transition={{
+                duration: 0.3,
+                ease: "easeOut",
+                delay: 0,
+              }}
             >
               <CollapsibleCodeBlock language={language}>
                 {code}
               </CollapsibleCodeBlock>
             </motion.div>
           );
-
-          // Continue with the rest of the content
-          remainingContent = remainingContent.substring(
-            codeBlockMatch.index! + codeBlockMatch[0].length
-          );
         } else {
-          // No more code blocks, process the remaining content
-          if (remainingContent.trim()) {
-            const html = micromark(remainingContent, {
-              extensions: [gfm()],
-              htmlExtensions: [gfmHtml()],
-            });
-            const styledHtml = addCustomStyling(html);
+          // Regular markdown element
+          const html = micromark(markdownElement, {
+            extensions: [gfm()],
+            htmlExtensions: [gfmHtml()],
+          });
+          const styledHtml = addCustomStyling(html);
 
-            // Split the HTML into individual elements
-            const htmlElements = splitHtmlIntoElements(styledHtml);
-
-            htmlElements.forEach((elementHtml) => {
-              elements.push(
-                <motion.div
-                  key={`html-${elementIndex++}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1.0, ease: "easeOut" }}
-                  dangerouslySetInnerHTML={{ __html: elementHtml }}
-                />
-              );
-            });
-          }
-          break;
+          elements.push(
+            <motion.div
+              key={`element-${elementIndex++}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: 0.3,
+                ease: "easeOut",
+                delay: 0,
+              }}
+              dangerouslySetInnerHTML={{ __html: styledHtml }}
+            />
+          );
         }
-      }
-
-      // Don't render incomplete code blocks - they look bad while streaming
-      // Only show them once they're properly closed with ```
-
-      // Only update if we have different number of elements or content changed significantly
-      setRenderedBlocks((prevBlocks) => {
-        if (prevBlocks.length !== elements.length) {
-          return elements;
-        }
-        return prevBlocks;
       });
 
-      setLastContentHash(currentHash);
+      setRenderedBlocks(elements);
+      setLastProcessedElements(elementsToProcess);
     } catch (error) {
       console.error("Error processing streaming content:", error);
     }
-  }, [content, lastContentHash]);
+  }, [content, isStreaming, lastProcessedElements]);
 
   // Add streaming cursor to the last block if streaming
   const displayBlocks = useMemo(() => {
-    if (!isStreaming || !content || renderedBlocks.length === 0) {
-      return renderedBlocks;
-    }
-
-    // Add cursor as a separate element after the blocks
-    return [
-      ...renderedBlocks,
-      <span key="streaming-cursor" className="animate-pulse">
-        █
-      </span>,
-    ];
+    return renderedBlocks;
   }, [renderedBlocks, isStreaming, content]);
 
   return (
-    <div className={className}>
+    <div className={`${className} [&>*:last-child]:mb-0`}>
       {displayBlocks}
 
       {/* Streaming indicator */}
@@ -508,8 +527,8 @@ export function StreamingText({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
-          transition={{ duration: 1.0, ease: "easeOut" }}
-          className="inline-flex items-center gap-1 mt-2"
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="inline-flex items-center gap-1"
         >
           <motion.div
             className="w-1 h-1 bg-accent rounded-full"
