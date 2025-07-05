@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import ReactMarkdown from "react-markdown";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { motion } from "motion/react";
+import { micromark } from "micromark";
+import { gfm, gfmHtml } from "micromark-extension-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
@@ -136,6 +137,167 @@ function CollapsibleCodeBlock({
   );
 }
 
+// Post-process HTML to add custom styling classes
+function addCustomStyling(html: string): string {
+  return (
+    html
+      // Paragraphs
+      .replace(/<p>/g, '<p class="mb-2 last:mb-0">')
+      // Headings
+      .replace(/<h1>/g, '<h1 class="text-lg font-semibold mb-2">')
+      .replace(/<h2>/g, '<h2 class="text-base font-semibold mb-2">')
+      .replace(/<h3>/g, '<h3 class="text-sm font-semibold mb-1">')
+      .replace(/<h4>/g, '<h4 class="text-sm font-semibold mb-1">')
+      .replace(/<h5>/g, '<h5 class="text-sm font-semibold mb-1">')
+      .replace(/<h6>/g, '<h6 class="text-sm font-semibold mb-1">')
+      // Lists
+      .replace(/<ul>/g, '<ul class="list-disc list-inside mb-2 ml-4">')
+      .replace(/<ol>/g, '<ol class="list-decimal list-inside mb-2 ml-4">')
+      .replace(/<li>/g, '<li class="mb-1">')
+      // Blockquotes
+      .replace(
+        /<blockquote>/g,
+        '<blockquote class="border-l-2 border-accent/30 pl-4 italic mb-2">'
+      )
+      // Text formatting
+      .replace(/<strong>/g, '<strong class="font-semibold">')
+      .replace(/<em>/g, '<em class="italic">')
+      // Links
+      .replace(
+        /<a href="([^"]*)">/g,
+        '<a href="$1" class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">'
+      )
+      // Inline code
+      .replace(
+        /<code>/g,
+        '<code class="px-1 py-0.5 rounded text-xs font-mono" style="background-color: rgba(45, 44, 40, 0.4);">'
+      )
+  );
+}
+
+// Component to render markdown with custom code block handling
+function MarkdownRenderer({ content }: { content: string }) {
+  const [processedContent, setProcessedContent] = useState<{
+    html: string;
+    codeBlocks: Array<{
+      id: string;
+      language: string;
+      code: string;
+      placeholder: string;
+    }>;
+  }>({ html: "", codeBlocks: [] });
+
+  useEffect(() => {
+    if (!content) {
+      setProcessedContent({ html: "", codeBlocks: [] });
+      return;
+    }
+
+    try {
+      // Extract code blocks first
+      const codeBlocks: Array<{
+        id: string;
+        language: string;
+        code: string;
+        placeholder: string;
+      }> = [];
+      const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+      let match;
+      let contentWithPlaceholders = content;
+
+      while ((match = codeBlockRegex.exec(content)) !== null) {
+        const id = Math.random().toString(36).substr(2, 9);
+        const placeholder = `__CODE_BLOCK_${id}__`;
+        codeBlocks.push({
+          id,
+          language: match[1] || "",
+          code: match[2].trim(),
+          placeholder,
+        });
+
+        // Replace the code block with a placeholder
+        contentWithPlaceholders = contentWithPlaceholders.replace(
+          match[0],
+          `\n\n${placeholder}\n\n`
+        );
+      }
+
+      // Generate HTML from markdown (without code blocks)
+      const rawHtml = micromark(contentWithPlaceholders, {
+        extensions: [gfm()],
+        htmlExtensions: [gfmHtml()],
+      });
+
+      // Add custom styling
+      const styledHtml = addCustomStyling(rawHtml);
+
+      setProcessedContent({ html: styledHtml, codeBlocks });
+    } catch (error) {
+      console.error("Error rendering markdown:", error);
+      setProcessedContent({
+        html: `<p class="mb-2 last:mb-0">${content}</p>`,
+        codeBlocks: [],
+      });
+    }
+  }, [content]);
+
+  // Split HTML by code block placeholders and render
+  const renderContent = () => {
+    const { html, codeBlocks } = processedContent;
+
+    if (codeBlocks.length === 0) {
+      return <div dangerouslySetInnerHTML={{ __html: html }} />;
+    }
+
+    // Split HTML by placeholders and intersperse with code blocks
+    let currentHtml = html;
+    const elements: React.ReactNode[] = [];
+
+    codeBlocks.forEach((block, index) => {
+      const parts = currentHtml.split(block.placeholder);
+
+      if (parts.length > 1) {
+        // Add the HTML before the code block
+        if (parts[0].trim()) {
+          elements.push(
+            <div
+              key={`text-${index}`}
+              dangerouslySetInnerHTML={{ __html: parts[0] }}
+            />
+          );
+        }
+
+        // Add the code block
+        elements.push(
+          <CollapsibleCodeBlock
+            key={`code-${block.id}`}
+            language={block.language}
+          >
+            {block.code}
+          </CollapsibleCodeBlock>
+        );
+
+        // Continue with the rest of the HTML
+        currentHtml = parts.slice(1).join(block.placeholder);
+      }
+    });
+
+    // Add any remaining HTML
+    if (currentHtml.trim()) {
+      elements.push(
+        <div
+          key="text-final"
+          dangerouslySetInnerHTML={{ __html: currentHtml }}
+        />
+      );
+    }
+
+    return <>{elements}</>;
+  };
+
+  return <>{renderContent()}</>;
+}
+
 export function StreamingText({
   content,
   isStreaming,
@@ -143,76 +305,7 @@ export function StreamingText({
 }: StreamingTextProps) {
   return (
     <div className={className}>
-      <ReactMarkdown
-        components={{
-          // Clean components without any animations
-          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-          h1: ({ children }) => (
-            <h1 className="text-lg font-semibold mb-2">{children}</h1>
-          ),
-          h2: ({ children }) => (
-            <h2 className="text-base font-semibold mb-2">{children}</h2>
-          ),
-          h3: ({ children }) => (
-            <h3 className="text-sm font-semibold mb-1">{children}</h3>
-          ),
-          code: ({ children, className }) => {
-            const match = /language-(\w+)/.exec(className || "");
-            const language = match ? match[1] : "";
-
-            // If it's a code block (has language class), use collapsible wrapper
-            if (match) {
-              return (
-                <CollapsibleCodeBlock language={language}>
-                  {String(children).replace(/\n$/, "")}
-                </CollapsibleCodeBlock>
-              );
-            }
-
-            // Inline code
-            return (
-              <code
-                className="px-1 py-0.5 rounded text-xs font-mono"
-                style={{ backgroundColor: "rgba(45, 44, 40, 0.4)" }}
-              >
-                {children}
-              </code>
-            );
-          },
-          ul: ({ children }) => (
-            <ul className="list-disc list-inside mb-2 ml-4">{children}</ul>
-          ),
-          ol: ({ children }) => (
-            <ol className="list-decimal list-inside mb-2 ml-4">{children}</ol>
-          ),
-          li: ({ children }) => <li className="mb-1">{children}</li>,
-          blockquote: ({ children }) => (
-            <blockquote className="border-l-2 border-accent/30 pl-4 italic mb-2">
-              {children}
-            </blockquote>
-          ),
-          pre: ({ children }) => {
-            // Don't wrap code blocks in pre since SyntaxHighlighter handles it
-            return <>{children}</>;
-          },
-          strong: ({ children }) => (
-            <strong className="font-semibold">{children}</strong>
-          ),
-          em: ({ children }) => <em className="italic">{children}</em>,
-          a: ({ children, href }) => (
-            <a
-              href={href}
-              className="text-accent hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {children}
-            </a>
-          ),
-        }}
-      >
-        {content}
-      </ReactMarkdown>
+      <MarkdownRenderer content={content} />
 
       {/* Streaming indicator */}
       {isStreaming && (
