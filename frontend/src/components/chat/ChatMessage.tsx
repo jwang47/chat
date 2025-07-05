@@ -56,7 +56,7 @@ function CollapsibleCodeBlock({
       <div
         ref={codeRef}
         className={cn(
-          "overflow-hidden transition-all duration-100 rounded-lg",
+          "overflow-hidden transition-all duration-500 rounded-lg",
           shouldShowToggle &&
             !isExpanded &&
             "cursor-pointer hover:ring-1 hover:ring-accent/30",
@@ -91,12 +91,12 @@ function CollapsibleCodeBlock({
             onClick={handleToggle}
             onMouseEnter={() => setIsButtonHovered(true)}
             onMouseLeave={() => setIsButtonHovered(false)}
-            className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 bg-background/90 cursor-pointer"
+            className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-500 flex items-center justify-center gap-1 bg-background/90 cursor-pointer"
           >
             Show more ({lineCount} lines)
             <svg
               className={cn(
-                "w-3 h-3 transition-transform duration-100",
+                "w-3 h-3 transition-transform duration-500",
                 isExpanded && "rotate-180"
               )}
               fill="none"
@@ -116,12 +116,12 @@ function CollapsibleCodeBlock({
           <div className="border-t border-[rgba(45,44,40,0.8)] bg-[rgba(45,44,40,0.4)] rounded-b-lg">
             <button
               onClick={handleToggle}
-              className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(45,44,40,0.6)] rounded-b-lg"
+              className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-500 flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(45,44,40,0.6)] rounded-b-lg"
             >
               Show less
               <svg
                 className={cn(
-                  "w-3 h-3 transition-transform duration-100",
+                  "w-3 h-3 transition-transform duration-500",
                   isExpanded && "rotate-180"
                 )}
                 fill="none"
@@ -158,7 +158,7 @@ export const ChatMessage = memo(function ChatMessage({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      transition={{ duration: 1.5, ease: "easeOut" }}
       className={cn("flex p-4", isUser && "justify-end")}
       data-message-id={message.id}
     >

@@ -54,7 +54,7 @@ function CollapsibleCodeBlock({
     <div className="relative mb-2">
       <div
         ref={codeRef}
-        className={`overflow-hidden transition-all duration-100 rounded-lg ${
+        className={`overflow-hidden transition-all duration-500 rounded-lg ${
           shouldShowToggle &&
           !isExpanded &&
           "cursor-pointer hover:ring-1 hover:ring-accent/30"
@@ -88,11 +88,11 @@ function CollapsibleCodeBlock({
             onClick={handleToggle}
             onMouseEnter={() => setIsButtonHovered(true)}
             onMouseLeave={() => setIsButtonHovered(false)}
-            className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 bg-background/90 cursor-pointer"
+            className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-500 flex items-center justify-center gap-1 bg-background/90 cursor-pointer"
           >
             Show more ({lineCount} lines)
             <svg
-              className={`w-3 h-3 transition-transform duration-100 ${
+              className={`w-3 h-3 transition-transform duration-500 ${
                 isExpanded && "rotate-180"
               }`}
               fill="none"
@@ -112,11 +112,11 @@ function CollapsibleCodeBlock({
           <div className="border-t border-[rgba(45,44,40,0.8)] bg-[rgba(45,44,40,0.4)] rounded-b-lg">
             <button
               onClick={handleToggle}
-              className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-100 flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(45,44,40,0.6)] rounded-b-lg"
+              className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors duration-500 flex items-center justify-center gap-1 cursor-pointer hover:bg-[rgba(45,44,40,0.6)] rounded-b-lg"
             >
               Show less
               <svg
-                className={`w-3 h-3 transition-transform duration-100 ${
+                className={`w-3 h-3 transition-transform duration-500 ${
                   isExpanded && "rotate-180"
                 }`}
                 fill="none"
@@ -411,9 +411,9 @@ export function StreamingText({
               elements.push(
                 <motion.div
                   key={`html-${elementIndex++}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 1.0, ease: "easeOut" }}
                   dangerouslySetInnerHTML={{ __html: elementHtml }}
                 />
               );
@@ -424,9 +424,9 @@ export function StreamingText({
           elements.push(
             <motion.div
               key={`code-${elementIndex++}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1.0, ease: "easeOut" }}
             >
               <CollapsibleCodeBlock language={language}>
                 {code}
@@ -454,9 +454,9 @@ export function StreamingText({
               elements.push(
                 <motion.div
                   key={`html-${elementIndex++}`}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 1.0, ease: "easeOut" }}
                   dangerouslySetInnerHTML={{ __html: elementHtml }}
                 />
               );
@@ -508,19 +508,19 @@ export function StreamingText({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          transition={{ duration: 1.0, ease: "easeOut" }}
           className="inline-flex items-center gap-1 mt-2"
         >
           <motion.div
             className="w-1 h-1 bg-accent rounded-full"
             animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+            transition={{ duration: 1.0, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
             className="w-1 h-1 bg-accent rounded-full"
             animate={{ scale: [1, 1.2, 1] }}
             transition={{
-              duration: 1,
+              duration: 1.0,
               repeat: Infinity,
               ease: "easeInOut",
               delay: 0.2,
@@ -530,7 +530,7 @@ export function StreamingText({
             className="w-1 h-1 bg-accent rounded-full"
             animate={{ scale: [1, 1.2, 1] }}
             transition={{
-              duration: 1,
+              duration: 1.0,
               repeat: Infinity,
               ease: "easeInOut",
               delay: 0.4,

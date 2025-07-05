@@ -38,7 +38,7 @@ export function ChatMinimap({
     }
   }, [messages]);
 
-  // Query actual message positions from DOM
+  // Query actual message positions from DOM with smooth updates
   useEffect(() => {
     const updateMessagePositions = () => {
       const positions: Array<{
@@ -77,9 +77,58 @@ export function ChatMinimap({
       setMessagePositions(positions);
     };
 
-    // Update positions after a short delay to ensure DOM is ready
-    const timer = setTimeout(updateMessagePositions, 100);
-    return () => clearTimeout(timer);
+    // Update positions immediately and then repeatedly for smooth streaming
+    updateMessagePositions();
+
+    // Set up interval for smooth updates during streaming
+    const interval = setInterval(updateMessagePositions, 100); // Update every 200ms
+
+    return () => clearInterval(interval);
+  }, [messages]);
+
+  // Additional effect for more frequent updates during streaming
+  useEffect(() => {
+    const hasStreamingMessage = messages.some((msg) => msg.isStreaming);
+
+    if (hasStreamingMessage) {
+      const fastUpdateInterval = setInterval(() => {
+        const positions: Array<{
+          id: string;
+          top: number;
+          height: number;
+          role: "user" | "assistant";
+        }> = [];
+
+        messages.forEach((message) => {
+          const messageElement = document.querySelector(
+            `[data-message-id="${message.id}"]`
+          );
+          if (messageElement) {
+            const rect = messageElement.getBoundingClientRect();
+            const scrollContainer = document.querySelector(
+              "[data-radix-scroll-area-viewport]"
+            );
+
+            if (scrollContainer) {
+              const containerRect = scrollContainer.getBoundingClientRect();
+              const relativeTop =
+                rect.top - containerRect.top + scrollContainer.scrollTop;
+
+              positions.push({
+                id: message.id,
+                top: relativeTop,
+                height: rect.height,
+                role: message.role,
+              });
+            }
+          }
+        });
+
+        setMessagePositions(positions);
+      }, 100); // Update every 100ms during streaming
+
+      return () => clearInterval(fastUpdateInterval);
+    }
   }, [messages]);
 
   const handleMinimapInteraction = useCallback(
@@ -156,8 +205,8 @@ export function ChatMinimap({
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      className={`fixed right-8 top-1/2 -translate-y-1/2 w-12 h-80 bg-card/60 backdrop-blur-sm border border-accent/15 rounded-md overflow-hidden cursor-grab active:cursor-grabbing z-20 hover:bg-card/70 hover:border-accent/25 transition-all duration-50 ${className}`}
+      transition={{ duration: 1.0, ease: "easeOut" }}
+      className={`fixed right-8 top-1/2 -translate-y-1/2 w-12 h-80 bg-card/60 backdrop-blur-sm border border-accent/15 rounded-md overflow-hidden cursor-grab active:cursor-grabbing z-20 hover:bg-card/70 hover:border-accent/25 transition-all duration-500 ${className}`}
       onMouseDown={handleMouseDown}
       ref={minimapRef}
     >
@@ -178,7 +227,7 @@ export function ChatMinimap({
           return (
             <div
               key={position.id}
-              className={`absolute left-0.5 right-0.5 rounded-sm ${
+              className={`absolute left-0.5 right-0.5 rounded-sm transition-all duration-500 ease-out ${
                 position.role === "user"
                   ? "bg-accent/60"
                   : "bg-muted-foreground/40"
@@ -193,7 +242,7 @@ export function ChatMinimap({
 
         {/* Viewport indicator */}
         <div
-          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm transition-all duration-100 ${
+          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm transition-all duration-500 ease-out ${
             isDragging ? "bg-accent/50 border-accent/90" : ""
           }`}
           style={{
