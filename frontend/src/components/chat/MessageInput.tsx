@@ -74,6 +74,8 @@ export const MessageInput = memo(function MessageInput({
           height: "auto",
           minHeight: "52px",
           maxHeight: `${maxHeight}px`,
+          fontFamily:
+            'Inter, "SF Pro Text", "IBM Plex Sans", system-ui, -apple-system, sans-serif',
         }}
         autoFocus
         rows={1}
