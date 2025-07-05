@@ -14,7 +14,9 @@ export const MessageInput = memo(function MessageInput({
   disabled = false,
   placeholder = "Type your message...",
 }: MessageInputProps) {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(
+    "how to bubble sort in python, and write me a screenplay about AGI"
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback(

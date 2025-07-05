@@ -142,8 +142,12 @@ function CollapsibleCodeBlock({
 function addCustomStyling(html: string): string {
   return (
     html
-      // Paragraphs
-      .replace(/<p>/g, '<p class="mb-2 last:mb-0">')
+      // Paragraphs - preserve whitespace for better formatting, but not for paragraphs with inline code
+      .replace(
+        /<p>(?![^<]*<code)/g,
+        '<p class="mb-2 last:mb-0 whitespace-pre-line">'
+      )
+      .replace(/<p>(?=[^<]*<code)/g, '<p class="mb-2 last:mb-0">')
       // Headings
       .replace(/<h1>/g, '<h1 class="text-lg font-semibold mb-2">')
       .replace(/<h2>/g, '<h2 class="text-base font-semibold mb-2">')
@@ -158,7 +162,7 @@ function addCustomStyling(html: string): string {
       // Blockquotes
       .replace(
         /<blockquote>/g,
-        '<blockquote class="border-l-2 border-accent/30 pl-4 italic mb-2">'
+        '<blockquote class="border-l-2 border-accent/30 pl-4 italic mb-2 whitespace-pre-line">'
       )
       // Text formatting
       .replace(/<strong>/g, '<strong class="font-semibold">')
@@ -176,9 +180,39 @@ function addCustomStyling(html: string): string {
   );
 }
 
+// Helper function to preprocess content to fix HTML/markdown spacing issues
+function preprocessContent(content: string): string {
+  // First, protect code blocks by temporarily replacing them with placeholders
+  const codeBlocks: string[] = [];
+  let contentWithPlaceholders = content.replace(/```[\s\S]*?```/g, (match) => {
+    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
+    codeBlocks.push(match);
+    return placeholder;
+  });
+
+  // Apply preprocessing to non-code-block content
+  contentWithPlaceholders = contentWithPlaceholders
+    .replace(/(<\/center>)\s*\n(>)/g, "$1\n\n$2")
+    .replace(/(<center>[^<]*<\/center>)\s*\n(>)/g, "$1\n\n$2")
+    // Preserve line breaks by converting single line breaks to markdown line breaks
+    .replace(/\n(?!\n)/g, "  \n");
+
+  // Restore code blocks
+  codeBlocks.forEach((codeBlock, index) => {
+    contentWithPlaceholders = contentWithPlaceholders.replace(
+      `__CODE_BLOCK_${index}__`,
+      codeBlock
+    );
+  });
+
+  return contentWithPlaceholders;
+}
+
 // Helper function to split HTML into individual elements
 function splitHtmlIntoElements(html: string): string[] {
   if (!html.trim()) return [];
+
+  console.log("🔍 Processing HTML:", html);
 
   // Create a temporary DOM element to parse the HTML properly
   const tempDiv = document.createElement("div");
@@ -199,6 +233,12 @@ function splitHtmlIntoElements(html: string): string[] {
           const pContent = paragraphs[0].textContent || "";
           const lines = pContent.split("\n").filter((line) => line.trim());
 
+          console.log("🔍 Blockquote processing:", {
+            originalContent: pContent,
+            lines: lines,
+            lineCount: lines.length,
+          });
+
           if (lines.length > 1) {
             // Split into individual lines, each wrapped in its own blockquote
             lines.forEach((line) => {
@@ -209,6 +249,7 @@ function splitHtmlIntoElements(html: string): string[] {
               p.textContent = line.trim();
               singleBlockquote.appendChild(p);
               elements.push(singleBlockquote.outerHTML);
+              console.log("✅ Added blockquote line:", line.trim());
             });
           } else {
             // Single line blockquote, keep as is
@@ -251,11 +292,11 @@ function MarkdownRenderer({ content }: { content: string }) {
 
     try {
       const elements: React.ReactNode[] = [];
-      let remainingContent = content;
+      let remainingContent = preprocessContent(content);
       let elementIndex = 0;
 
       // Check if we're in the middle of a code block (for streaming)
-      const openCodeBlocks = (content.match(/```/g) || []).length;
+      const openCodeBlocks = (remainingContent.match(/```/g) || []).length;
       const isInCodeBlock = openCodeBlocks % 2 === 1;
 
       // If we're in a code block, temporarily close it for processing
@@ -263,11 +304,15 @@ function MarkdownRenderer({ content }: { content: string }) {
       let incompleteCodeBlock: { language: string; code: string } | null = null;
 
       if (isInCodeBlock) {
-        // Find the last opening ```
-        const lastCodeBlockStart = content.lastIndexOf("```");
+        // Find the last opening ``` in the preprocessed content
+        const lastCodeBlockStart = remainingContent.lastIndexOf("```");
         if (lastCodeBlockStart !== -1) {
-          const beforeCodeBlock = content.substring(0, lastCodeBlockStart);
-          const codeBlockContent = content.substring(lastCodeBlockStart);
+          const beforeCodeBlock = remainingContent.substring(
+            0,
+            lastCodeBlockStart
+          );
+          const codeBlockContent =
+            remainingContent.substring(lastCodeBlockStart);
 
           // Extract language and code
           const languageMatch = codeBlockContent.match(/```(\w+)?\n([\s\S]*)/);
@@ -456,11 +501,11 @@ export function StreamingText({
 
     try {
       const elements: React.ReactNode[] = [];
-      let remainingContent = content;
+      let remainingContent = preprocessContent(content);
       let elementIndex = 0;
 
       // Check if we're in the middle of a code block (for streaming)
-      const openCodeBlocks = (content.match(/```/g) || []).length;
+      const openCodeBlocks = (remainingContent.match(/```/g) || []).length;
       const isInCodeBlock = openCodeBlocks % 2 === 1;
 
       // If we're in a code block, temporarily close it for processing
@@ -468,11 +513,15 @@ export function StreamingText({
       let incompleteCodeBlock: { language: string; code: string } | null = null;
 
       if (isInCodeBlock) {
-        // Find the last opening ```
-        const lastCodeBlockStart = content.lastIndexOf("```");
+        // Find the last opening ``` in the preprocessed content
+        const lastCodeBlockStart = remainingContent.lastIndexOf("```");
         if (lastCodeBlockStart !== -1) {
-          const beforeCodeBlock = content.substring(0, lastCodeBlockStart);
-          const codeBlockContent = content.substring(lastCodeBlockStart);
+          const beforeCodeBlock = remainingContent.substring(
+            0,
+            lastCodeBlockStart
+          );
+          const codeBlockContent =
+            remainingContent.substring(lastCodeBlockStart);
 
           // Extract language and code
           const languageMatch = codeBlockContent.match(/```(\w+)?\n([\s\S]*)/);
