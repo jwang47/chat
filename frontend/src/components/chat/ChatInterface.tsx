@@ -157,86 +157,71 @@ export function ChatInterface() {
   ); // Removed streamingMessageId dependency to prevent unnecessary re-creation
 
   // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    // Only auto-scroll when message count changes (new messages added)
-    // Add additional check to ensure we're not in the middle of user scrolling
-    if (
-      messages.length > 0 &&
-      !isUserScrolledUpRef.current &&
-      !isProgrammaticScrollRef.current
-    ) {
-      // Use a small delay to ensure DOM is updated
-      const timer = setTimeout(() => {
-        // Double-check user hasn't scrolled up while we were waiting
-        if (!isUserScrolledUpRef.current) {
-          scrollToBottom(true); // Use smooth scroll for new messages
-        }
-      }, 50); // Increased delay from 10ms to 50ms
-      return () => clearTimeout(timer);
-    }
-  }, [messages.length, scrollToBottom]); // Only depend on message count, not content
+  // useEffect(() => {
+  //   // Only auto-scroll when message count changes (new messages added)
+  //   // Add additional check to ensure we're not in the middle of user scrolling
+  //   if (messages.length > 0 && !isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
+  //     // Use a small delay to ensure DOM is updated
+  //     const timer = setTimeout(() => {
+  //       // Double-check user hasn't scrolled up while we were waiting
+  //       if (!isUserScrolledUpRef.current) {
+  //         scrollToBottom(true); // Use smooth scroll for new messages
+  //       }
+  //     }, 50); // Increased delay from 10ms to 50ms
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [messages.length, scrollToBottom]); // Only depend on message count, not content
 
   // Handle streaming content updates
-  useEffect(() => {
-    // Only auto-scroll during streaming if user is at bottom and content is actually changing
-    if (
-      streamingMessageId &&
-      !isUserScrolledUpRef.current &&
-      !isProgrammaticScrollRef.current
-    ) {
-      const streamingMessage = messages.find(
-        (msg) => msg.id === streamingMessageId
-      );
-      // Only scroll if there's actual content and we're still streaming
-      if (
-        streamingMessage &&
-        streamingMessage.content &&
-        streamingMessage.isStreaming
-      ) {
-        const timer = setTimeout(() => {
-          // Double-check user hasn't scrolled up while we were waiting
-          if (
-            !isUserScrolledUpRef.current &&
-            !isProgrammaticScrollRef.current
-          ) {
-            scrollToBottom(true); // Use smooth scroll during streaming too
-          }
-        }, 100); // Increased delay from 10ms to 100ms
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [streamingMessageId, messages, scrollToBottom]);
+  // useEffect(() => {
+  //   // Only auto-scroll during streaming if user is at bottom and content is actually changing
+  //   if (streamingMessageId && !isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
+  //     const streamingMessage = messages.find(
+  //       (msg) => msg.id === streamingMessageId
+  //     );
+  //     // Only scroll if there's actual content and we're still streaming
+  //     if (
+  //       streamingMessage &&
+  //       streamingMessage.content &&
+  //       streamingMessage.isStreaming
+  //     ) {
+  //       const timer = setTimeout(() => {
+  //         // Double-check user hasn't scrolled up while we were waiting
+  //         if (!isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
+  //           scrollToBottom(true); // Use smooth scroll during streaming too
+  //         }
+  //       }, 100); // Increased delay from 10ms to 100ms
+  //       return () => clearTimeout(timer);
+  //     }
+  //   }
+  // }, [streamingMessageId, messages, scrollToBottom]);
 
   // Handle end of streaming - ensure we're at the very bottom
-  useEffect(() => {
-    // When streaming ends, if user was at bottom, ensure we're at the very bottom with smooth scroll
-    if (
-      !streamingMessageId &&
-      !isUserScrolledUpRef.current &&
-      !isProgrammaticScrollRef.current
-    ) {
-      const timer = setTimeout(() => {
-        // Triple-check user hasn't scrolled up while we were waiting
-        if (!isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
-          scrollToBottom(true); // Use smooth scroll when streaming ends
-        }
-      }, 150); // Increased delay from 50ms to 150ms
-      return () => clearTimeout(timer);
-    }
-  }, [streamingMessageId, scrollToBottom]);
+  // useEffect(() => {
+  //   // When streaming ends, if user was at bottom, ensure we're at the very bottom with smooth scroll
+  //   if (!streamingMessageId && !isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
+  //     const timer = setTimeout(() => {
+  //       // Triple-check user hasn't scrolled up while we were waiting
+  //       if (!isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
+  //         scrollToBottom(true); // Use smooth scroll when streaming ends
+  //       }
+  //     }, 150); // Increased delay from 50ms to 150ms
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [streamingMessageId, scrollToBottom]);
 
   // Scroll to bottom on initial load
-  useEffect(() => {
-    // Small delay to ensure DOM is fully rendered
-    const timer = setTimeout(() => {
-      scrollToBottom(true); // Use smooth scroll for initial load
-      // Initialize scroll tracking
-      isUserScrolledUpRef.current = false;
-      setScrollProgress(0);
-    }, 100);
+  // useEffect(() => {
+  //   // Small delay to ensure DOM is fully rendered
+  //   const timer = setTimeout(() => {
+  //     scrollToBottom(true); // Use smooth scroll for initial load
+  //     // Initialize scroll tracking
+  //     isUserScrolledUpRef.current = false;
+  //     setScrollProgress(0);
+  //   }, 100);
 
-    return () => clearTimeout(timer);
-  }, [scrollToBottom]);
+  //   return () => clearTimeout(timer);
+  // }, [scrollToBottom]);
 
   const handleSendMessage = useCallback(
     (content: string) => {

@@ -34,22 +34,53 @@ export const VirtualizedMessages = forwardRef<
   VirtualizedMessagesProps
 >(({ messages, isTyping, streamingMessageId, onScrollChange }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Estimate item size based on typical message height
-  const estimateSize = useCallback(() => {
-    // Base height for a message including padding and typical content
-    // This is just an estimate - dynamic sizing will adjust automatically
-    return 100;
+  const estimateSize = useCallback((index: number) => {
+    // Temporarily use fixed height to test if dynamic sizing is the issue
+    return 150; // Fixed height for all messages
+
+    // const message = messages[index];
+    // if (!message) return 120;
+
+    // // Better estimation based on content length and type
+    // const contentLength = message.content.length;
+    // const isUser = message.role === "user";
+
+    // // Base height includes padding and typical content
+    // let estimatedHeight = 80; // Base height for container padding
+
+    // // Estimate based on content length (rough calculation)
+    // const charsPerLine = 80; // Approximate characters per line
+    // const lineHeight = 20; // Approximate line height
+    // const estimatedLines = Math.max(1, Math.ceil(contentLength / charsPerLine));
+    // estimatedHeight += estimatedLines * lineHeight;
+
+    // // Add extra height for code blocks (rough heuristic)
+    // const codeBlockMatches = message.content.match(/```/g);
+    // if (codeBlockMatches && codeBlockMatches.length >= 2) {
+    //   estimatedHeight += 100; // Extra height for code blocks
+    // }
+
+    // // Cap the estimation to prevent extreme values
+    // return Math.min(Math.max(estimatedHeight, 100), 800);
   }, []);
 
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
     estimateSize,
-    // Add overscan for better scrolling experience
-    overscan: 3,
+    // Increase overscan to reduce abrupt transitions
+    overscan: 5,
     // Enable dynamic sizing with proper key generation
     getItemKey: (index) => messages[index]?.id || index,
+    // Temporarily disable custom measurement
+    // measureElement: (element) => {
+    //   if (!element) return 0;
+    //   return element.getBoundingClientRect().height;
+    // },
   });
 
   const items = virtualizer.getVirtualItems();
@@ -104,6 +135,36 @@ export const VirtualizedMessages = forwardRef<
   const handleScroll = useCallback(
     (e: Event) => {
       const target = e.target as HTMLElement;
+
+      // Track scrolling state
+      isScrollingRef.current = true;
+
+      // Clear existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      // Set timeout to detect end of scrolling
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 150);
+
+      // Debug logging
+      const { scrollTop, scrollHeight, clientHeight } = target;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      const totalSize = virtualizer.getTotalSize();
+
+      // Log when there's a significant difference between virtualizer size and actual scroll height
+      if (Math.abs(totalSize - scrollHeight) > 50) {
+        console.log("Height mismatch:", {
+          virtualizerSize: totalSize,
+          actualScrollHeight: scrollHeight,
+          difference: Math.abs(totalSize - scrollHeight),
+          scrollTop,
+          isAtBottom,
+        });
+      }
+
       if (onScrollChange) {
         onScrollChange(
           target.scrollTop,
@@ -112,7 +173,7 @@ export const VirtualizedMessages = forwardRef<
         );
       }
     },
-    [onScrollChange]
+    [onScrollChange, virtualizer]
   );
 
   // Set up scroll listener
@@ -122,28 +183,46 @@ export const VirtualizedMessages = forwardRef<
       scrollElement.addEventListener("scroll", handleScroll, { passive: true });
       return () => {
         scrollElement.removeEventListener("scroll", handleScroll);
+        // Clean up scroll timeout
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
       };
     }
   }, [handleScroll]);
 
   // Remeasure when messages change
-  useEffect(() => {
-    // Debounce the remeasurement to prevent excessive calls
-    const timer = setTimeout(() => {
-      virtualizer.measure();
-    }, 16); // One frame delay to batch measurements
-    return () => clearTimeout(timer);
-  }, [messages, virtualizer]);
+  // useEffect(() => {
+  //   // Only remeasure if the message count changed (new messages added)
+  //   // Don't remeasure for content updates to existing messages
+  //   const timer = setTimeout(() => {
+  //     // Don't remeasure during active scrolling
+  //     if (!isScrollingRef.current) {
+  //       virtualizer.measure();
+  //     }
+  //   }, 50); // Increased delay to reduce frequency
+  //   return () => clearTimeout(timer);
+  // }, [messages.length, virtualizer]); // Only depend on message count, not content
 
-  // More frequent remeasurement for streaming messages
-  useEffect(() => {
-    if (streamingMessageId) {
-      const interval = setInterval(() => {
-        virtualizer.measure();
-      }, 500); // Reduced frequency from 250ms to 500ms to minimize height changes
-      return () => clearInterval(interval);
-    }
-  }, [streamingMessageId, virtualizer]);
+  // Throttled remeasurement for streaming messages
+  // useEffect(() => {
+  //   if (streamingMessageId) {
+  //     const interval = setInterval(() => {
+  //       // Only remeasure if we're not scrolling and near the bottom
+  //       if (!isScrollingRef.current) {
+  //         const scrollContainer = parentRef.current;
+  //         if (scrollContainer) {
+  //           const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+  //           const isNearBottom = scrollTop + clientHeight >= scrollHeight - 200;
+  //           if (isNearBottom) {
+  //             virtualizer.measure();
+  //           }
+  //         }
+  //       }
+  //     }, 1000); // Further reduced frequency from 500ms to 1000ms
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [streamingMessageId, virtualizer]);
 
   return (
     <div className="h-full">
@@ -151,8 +230,7 @@ export const VirtualizedMessages = forwardRef<
         ref={parentRef}
         className="h-full overflow-auto px-2 pb-24"
         style={{
-          contain: "strict",
-          scrollBehavior: "smooth",
+          contain: "layout",
         }}
       >
         <div
@@ -160,6 +238,7 @@ export const VirtualizedMessages = forwardRef<
             height: `${virtualizer.getTotalSize()}px`,
             width: "100%",
             position: "relative",
+            minHeight: "100%",
           }}
         >
           <div
