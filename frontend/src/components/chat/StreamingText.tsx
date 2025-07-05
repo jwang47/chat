@@ -375,6 +375,18 @@ export function StreamingText({
   const [renderedBlocks, setRenderedBlocks] = useState<React.ReactNode[]>([]);
   const [lastContentHash, setLastContentHash] = useState<string>("");
   const elementIndexRef = useRef(0);
+  const prevIsStreamingRef = useRef(isStreaming);
+
+  // Debug: Log when streaming is complete
+  useEffect(() => {
+    if (prevIsStreamingRef.current && !isStreaming) {
+      console.log("🎯 STREAMING COMPLETE - Full LLM Output:");
+      console.log("Content length:", content.length);
+      console.log("Full content:", content);
+      console.log("─".repeat(80));
+    }
+    prevIsStreamingRef.current = isStreaming;
+  }, [isStreaming, content]);
 
   // Simple hash function for content comparison
   const hashContent = (str: string) => {
