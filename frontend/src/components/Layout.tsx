@@ -1,6 +1,7 @@
 import { ThemeProvider } from "./theme-provider";
 import { SidebarProvider } from "./ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
+import { CommandPalette } from "./CommandPalette";
 import { Outlet } from "react-router-dom";
 
 export function Layout() {
@@ -13,6 +14,7 @@ export function Layout() {
             <Outlet />
           </div>
         </main>
+        <CommandPalette />
       </SidebarProvider>
     </ThemeProvider>
   );
