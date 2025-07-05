@@ -67,9 +67,13 @@ export function ChatInterface() {
   }, [getScrollContainer]);
 
   // Optimized scroll to bottom function
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((smooth: boolean = false) => {
     isProgrammaticScrollRef.current = true;
-    virtualizedMessagesRef.current?.scrollToBottom();
+    if (smooth) {
+      virtualizedMessagesRef.current?.scrollToBottomSmooth();
+    } else {
+      virtualizedMessagesRef.current?.scrollToBottomInstant();
+    }
     isUserScrolledUpRef.current = false;
     // Reset the flag after a moderate delay to balance responsiveness and accuracy
     setTimeout(() => {
@@ -149,7 +153,7 @@ export function ChatInterface() {
     if (messages.length > 0 && !isUserScrolledUpRef.current) {
       // Use a small delay to ensure DOM is updated
       const timer = setTimeout(() => {
-        scrollToBottom();
+        scrollToBottom(true); // Use smooth scroll for new messages
       }, 10);
       return () => clearTimeout(timer);
     }
@@ -171,7 +175,7 @@ export function ChatInterface() {
         const timer = setTimeout(() => {
           // Double-check user hasn't scrolled up while we were waiting
           if (!isUserScrolledUpRef.current) {
-            scrollToBottom();
+            scrollToBottom(false); // Use instant scroll during streaming to avoid conflicts
           }
         }, 10);
         return () => clearTimeout(timer);
@@ -181,10 +185,10 @@ export function ChatInterface() {
 
   // Handle end of streaming - ensure we're at the very bottom
   useEffect(() => {
-    // When streaming ends, if user was at bottom, ensure we're at the very bottom
+    // When streaming ends, if user was at bottom, ensure we're at the very bottom with smooth scroll
     if (!streamingMessageId && !isUserScrolledUpRef.current) {
       const timer = setTimeout(() => {
-        scrollToBottom();
+        scrollToBottom(true); // Use smooth scroll when streaming ends
       }, 50); // Slightly longer delay to ensure DOM is fully updated
       return () => clearTimeout(timer);
     }
@@ -194,7 +198,7 @@ export function ChatInterface() {
   useEffect(() => {
     // Small delay to ensure DOM is fully rendered
     const timer = setTimeout(() => {
-      scrollToBottom();
+      scrollToBottom(true); // Use smooth scroll for initial load
       // Initialize scroll tracking
       isUserScrolledUpRef.current = false;
       setScrollProgress(0);

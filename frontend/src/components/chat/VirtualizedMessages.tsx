@@ -23,6 +23,8 @@ interface VirtualizedMessagesProps {
 
 export interface VirtualizedMessagesRef {
   scrollToBottom: () => void;
+  scrollToBottomSmooth: () => void;
+  scrollToBottomInstant: () => void;
   scrollTo: (position: number) => void;
   getScrollContainer: () => HTMLElement | null;
 }
@@ -57,19 +59,40 @@ export const VirtualizedMessages = forwardRef<
     ref,
     () => ({
       scrollToBottom: () => {
+        // Default to smooth scrolling
+        if (parentRef.current) {
+          parentRef.current.scrollTo({
+            top: parentRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      },
+      scrollToBottomSmooth: () => {
+        if (parentRef.current) {
+          parentRef.current.scrollTo({
+            top: parentRef.current.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      },
+      scrollToBottomInstant: () => {
         if (parentRef.current) {
           parentRef.current.scrollTop = parentRef.current.scrollHeight;
         }
       },
       scrollTo: (position: number) => {
         if (parentRef.current) {
-          parentRef.current.scrollTop = Math.max(
+          const clampedPosition = Math.max(
             0,
             Math.min(
               position,
               parentRef.current.scrollHeight - parentRef.current.clientHeight
             )
           );
+          parentRef.current.scrollTo({
+            top: clampedPosition,
+            behavior: "smooth",
+          });
         }
       },
       getScrollContainer: () => parentRef.current,
@@ -125,6 +148,7 @@ export const VirtualizedMessages = forwardRef<
         className="h-full overflow-auto px-2 pb-24"
         style={{
           contain: "strict",
+          scrollBehavior: "smooth",
         }}
       >
         <div
