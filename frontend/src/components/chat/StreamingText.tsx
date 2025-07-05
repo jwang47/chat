@@ -145,7 +145,7 @@ function addCustomStyling(html: string): string {
       // Paragraphs - preserve whitespace for better formatting, but not for paragraphs with inline code
       .replace(
         /<p>(?![^<]*<code)/g,
-        '<p class="mt-4 mb-4 last:mb-0 whitespace-pre-line">'
+        '<p class="mt-4 mb-4 whitespace-pre-line">'
       )
       .replace(/<center>/g, '<div class="flex justify-center mb-4 last:mb-0">')
       .replace(/<p>(?=[^<]*<code)/g, '<p class="mb-4 last:mb-0">')
@@ -318,81 +318,6 @@ function parseContentIntoElements(content: string): string[] {
   return elements.filter((el) => el.trim().length > 0);
 }
 
-// Helper function to split HTML into individual elements
-function splitHtmlIntoElements(html: string): string[] {
-  if (!html.trim()) return [];
-
-  console.log("🔍 Processing HTML:", html);
-
-  // Create a temporary DOM element to parse the HTML properly
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = html;
-
-  const elements: string[] = [];
-
-  // Process each top-level child element
-  Array.from(tempDiv.childNodes).forEach((node) => {
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as Element;
-
-      // Special handling for blockquotes - split them into individual lines
-      if (element.tagName.toLowerCase() === "blockquote") {
-        const paragraphs = element.querySelectorAll("p");
-        if (paragraphs.length === 1) {
-          // Check if the single paragraph contains newlines
-          const pContent = paragraphs[0].textContent || "";
-          const lines = pContent.split("\n").filter((line) => line.trim());
-
-          console.log("🔍 Blockquote processing:", {
-            originalContent: pContent,
-            lines: lines,
-            lineCount: lines.length,
-          });
-
-          if (lines.length > 1) {
-            // Split into individual lines, each wrapped in its own blockquote
-            lines.forEach((line) => {
-              const singleBlockquote = document.createElement("blockquote");
-              singleBlockquote.className = element.className;
-              const p = document.createElement("p");
-              p.className = paragraphs[0].className;
-              p.textContent = line.trim();
-              singleBlockquote.appendChild(p);
-              elements.push(singleBlockquote.outerHTML);
-              console.log("✅ Added blockquote line:", line.trim());
-            });
-          } else {
-            // Single line blockquote, keep as is
-            elements.push(element.outerHTML);
-          }
-        } else if (paragraphs.length > 1) {
-          // Multiple paragraphs, split them into individual blockquotes
-          paragraphs.forEach((p) => {
-            const singleBlockquote = document.createElement("blockquote");
-            singleBlockquote.className = element.className;
-            singleBlockquote.appendChild(p.cloneNode(true));
-            elements.push(singleBlockquote.outerHTML);
-          });
-        } else {
-          // No paragraphs, keep as is
-          elements.push(element.outerHTML);
-        }
-      } else {
-        // For other element nodes, get the complete HTML including all children
-        elements.push(element.outerHTML);
-      }
-    } else if (node.nodeType === Node.TEXT_NODE) {
-      // For text nodes, only add if they have meaningful content
-      const textContent = node.textContent?.trim();
-      if (textContent) {
-        elements.push(`<p class="mb-4 last:mb-0">${textContent}</p>`);
-      }
-    }
-  });
-
-  return elements.filter((el) => el.trim().length > 0);
-}
-
 // Common animation settings for all blocks
 const blockAnimation = {
   initial: { opacity: 0 },
@@ -413,7 +338,6 @@ export function StreamingText({
   const [lastProcessedElements, setLastProcessedElements] = useState<string[]>(
     []
   );
-  const elementIndexRef = useRef(0);
   const prevIsStreamingRef = useRef(isStreaming);
 
   // Debug: Log when streaming is complete
@@ -427,12 +351,20 @@ export function StreamingText({
     prevIsStreamingRef.current = isStreaming;
   }, [isStreaming, content]);
 
+  // Generate stable key for an element based on its content
+  const generateElementKey = (element: string, index: number): string => {
+    // Use a simple hash of the content combined with index for uniqueness
+    const hash = element.split("").reduce((acc, char) => {
+      return ((acc << 5) - acc + char.charCodeAt(0)) & 0xffffffff;
+    }, 0);
+    return `${index}-${Math.abs(hash)}`;
+  };
+
   // Process content and generate blocks
   useEffect(() => {
     if (!content) {
       setRenderedBlocks([]);
       setLastProcessedElements([]);
-      elementIndexRef.current = 0;
       return;
     }
 
@@ -489,19 +421,29 @@ export function StreamingText({
         })),
       });
 
-      const elements: React.ReactNode[] = [];
-      let elementIndex = 0;
+      // Only process new elements that haven't been rendered yet
+      const newElementsStartIndex = lastProcessedElements.length;
+      const newElements = elementsToProcess.slice(newElementsStartIndex);
 
-      // Process each complete markdown element
-      elementsToProcess.forEach((markdownElement, index) => {
+      if (newElements.length === 0) {
+        return;
+      }
+
+      // Create blocks for new elements only
+      const newBlocks: React.ReactNode[] = [];
+
+      newElements.forEach((markdownElement, relativeIndex) => {
+        const absoluteIndex = newElementsStartIndex + relativeIndex;
+        const elementKey = generateElementKey(markdownElement, absoluteIndex);
+
         if (markdownElement.startsWith("```")) {
           // Code block
           const lines = markdownElement.split("\n");
           const language = lines[0].substring(3).trim();
           const code = lines.slice(1, -1).join("\n");
 
-          elements.push(
-            <motion.div key={`code-${elementIndex++}`} {...blockAnimation}>
+          newBlocks.push(
+            <motion.div key={`code-${elementKey}`} {...blockAnimation}>
               <CollapsibleCodeBlock language={language}>
                 {code}
               </CollapsibleCodeBlock>
@@ -515,9 +457,9 @@ export function StreamingText({
           });
           const styledHtml = addCustomStyling(html);
 
-          elements.push(
+          newBlocks.push(
             <motion.div
-              key={`element-${elementIndex++}`}
+              key={`element-${elementKey}`}
               {...blockAnimation}
               dangerouslySetInnerHTML={{ __html: styledHtml }}
             />
@@ -525,7 +467,8 @@ export function StreamingText({
         }
       });
 
-      setRenderedBlocks(elements);
+      // Append new blocks to existing ones
+      setRenderedBlocks((prevBlocks) => [...prevBlocks, ...newBlocks]);
       setLastProcessedElements(elementsToProcess);
     } catch (error) {
       console.error("Error processing streaming content:", error);
@@ -535,7 +478,7 @@ export function StreamingText({
   // Add streaming cursor to the last block if streaming
   const displayBlocks = useMemo(() => {
     return renderedBlocks;
-  }, [renderedBlocks, isStreaming, content]);
+  }, [renderedBlocks]);
 
   return (
     <div className={`${className} [&>*:last-child]:mb-0`}>
