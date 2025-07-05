@@ -241,19 +241,8 @@ export function StreamingText({
       return null;
     }
 
-    // Check if content contains code blocks
-    if (displayedContent.includes("```")) {
-      return renderComplexContent(displayedContent);
-    }
-
-    // Simple content - render as markdown
-    const html = micromark(displayedContent, {
-      extensions: [gfm()],
-      htmlExtensions: [gfmHtml()],
-    });
-    const styledHtml = addCustomStyling(html);
-
-    return <div dangerouslySetInnerHTML={{ __html: styledHtml }} />;
+    // Always render as markdown-aware content to handle code blocks properly
+    return renderComplexContent(displayedContent);
   };
 
   const renderComplexContent = (text: string) => {
@@ -271,7 +260,7 @@ export function StreamingText({
       if (line.startsWith("```")) {
         if (!inCodeBlock) {
           // Starting code block
-          if (currentIndex < parts.length) {
+          if (currentIndex < i) {
             // Add any preceding content
             const precedingContent = lines.slice(currentIndex, i).join("\n");
             if (precedingContent.trim()) {
@@ -312,10 +301,22 @@ export function StreamingText({
       }
     }
 
-    // Add any remaining content
+    // Handle incomplete code block or remaining content
     if (currentIndex < lines.length) {
       const remainingContent = lines.slice(currentIndex).join("\n");
-      if (remainingContent.trim()) {
+
+      if (inCodeBlock && codeBlockContent.trim()) {
+        // We're in an incomplete code block - render it as a code block
+        parts.push(
+          <CollapsibleCodeBlock
+            key={`code-${parts.length}`}
+            language={codeBlockLanguage}
+          >
+            {codeBlockContent}
+          </CollapsibleCodeBlock>
+        );
+      } else if (remainingContent.trim()) {
+        // Regular content - render as markdown
         const html = micromark(remainingContent, {
           extensions: [gfm()],
           htmlExtensions: [gfmHtml()],
@@ -328,6 +329,16 @@ export function StreamingText({
           />
         );
       }
+    }
+
+    // If no parts were created, render the entire content as markdown
+    if (parts.length === 0 && text.trim()) {
+      const html = micromark(text, {
+        extensions: [gfm()],
+        htmlExtensions: [gfmHtml()],
+      });
+      const styledHtml = addCustomStyling(html);
+      return <div dangerouslySetInnerHTML={{ __html: styledHtml }} />;
     }
 
     return <div>{parts}</div>;
