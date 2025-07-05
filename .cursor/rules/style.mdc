@@ -1,9 +1,4 @@
----
-globs: *.tsx,*.css
-alwaysApply: false
----
-
-## Style Guide: Minimal Technical Dark Mode Interface
+## Style Guide: Minimal Technical Dark Mode Interface (Grayscale)
 
 ### 1. Color Palette
 
@@ -13,10 +8,10 @@ alwaysApply: false
 | Surface / Card  | `rgb(45, 44, 40)` | Slight contrast for grouping     |
 | Foreground Text | `#F5F5F5`         | Off-white for primary content    |
 | Muted Text      | `#999999`         | Labels, hints                    |
-| Accent          | `#4EA3F1`         | Buttons, highlights              |
-| Highlight       | `#E2FF61`         | Use sparingly                    |
-| Success         | `#3FB68B`         | Confirmation states              |
-| Error           | `#D95555`         | Error states                     |
+| Accent          | `#CCCCCC`         | Buttons, highlights              |
+| Highlight       | `#FFFFFF`         | Use sparingly                    |
+| Success         | `#B8B8B8`         | Confirmation states              |
+| Error           | `#888888`         | Error states                     |
 
 ---
 
@@ -51,9 +46,9 @@ alwaysApply: false
 
 #### Buttons
 
-- BG: `#4EA3F1`
+- BG: `#CCCCCC`
 - Text: `#0C0C0C`
-- Hover: `#65B0F5`
+- Hover: `#DDDDDD`
 - Border radius: `6px`
 - Padding: `0.5rem 1rem`
 - No shadow or subtle shadow only
@@ -63,7 +58,7 @@ alwaysApply: false
 - BG: `#1A1A1A`
 - Text: `#F5F5F5`
 - Placeholder: `#777777`
-- Focus ring: `1px #4EA3F1`
+- Focus ring: `1px #CCCCCC`
 
 #### Cards / Panels
 
@@ -95,6 +90,10 @@ alwaysApply: false
 ---
 
 ### 7. Accessibility
+
+- Text contrast: ≥ 4.5:1
+- Use ARIA labels
+- Full keyboard navigation
 
 - Text contrast: ≥ 4.5:1
 - Use ARIA labels
