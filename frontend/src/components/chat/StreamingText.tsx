@@ -79,9 +79,6 @@ function CollapsibleCodeBlock({
           >
             {children}
           </SyntaxHighlighter>
-          <div className="absolute top-2 right-3 text-xs text-muted-foreground bg-[rgba(25,24,21,0.8)] px-2 py-1 rounded">
-            {lineCount} {lineCount === 1 ? "line" : "lines"}
-          </div>
         </div>
         {shouldShowToggle && !isExpanded && (
           <button
