@@ -1,100 +1,87 @@
-## Style Guide: Minimal Technical Dark Mode Interface (Grayscale)
+---
+globs: *.tsx,*.css
+alwaysApply: false
+---
 
-### 1. Color Palette
+## Minimal Flat UI Style Guide
 
-| Use             | Color             | Notes                            |
-| --------------- | ----------------- | -------------------------------- |
-| Background      | `rgb(25, 24, 21)` | Deep black (but not pure `#000`) |
-| Surface / Card  | `rgb(45, 44, 40)` | Slight contrast for grouping     |
-| Foreground Text | `#F5F5F5`         | Off-white for primary content    |
-| Muted Text      | `#999999`         | Labels, hints                    |
-| Accent          | `#CCCCCC`         | Buttons, highlights              |
-| Highlight       | `#FFFFFF`         | Use sparingly                    |
-| Success         | `#B8B8B8`         | Confirmation states              |
-| Error           | `#888888`         | Error states                     |
+### 0. Look & Feel
+
+- **Visual style**: Minimal, elegant, and aesthetic
+- **Tone**: Quiet UI with clear structure
+- **Avoid clutter**: Prioritize whitespace and consistent spacing
+- **Separation**: Use color contrast and spacing instead of borders
+- **Interaction**: Subtle motion and transitions, no visual noise
 
 ---
 
-### 2. Typography
-
-- **Font**: `Inter`, `SF Pro Text`, or `IBM Plex Sans`, `sans-serif`
-- **Sizes**:
-
-  - Title: `1.5rem–2rem` (`text-xl` to `text-2xl`)
-  - Body: `0.95rem–1rem` (`text-base`)
-  - Caption: `0.75rem–0.85rem` (`text-sm`)
-
-- **Weights**: Use `400`, `500`, and `600`
-
----
-
-### 3. Layout & Spacing
+### 1. Layout & Spacing
 
 - **Max width**: `960px`
-- **Grid**: 12-column grid using `grid` or `flex`
-- **Whitespace**:
-
-  - Vertical spacing: `1.25rem` between elements
-  - Section spacing: `2rem–3rem`
-  - Component padding: `1rem` max
-
-- **No borders**: Use background color contrast and spacing
+- **Grid**: 12-column using `grid` or `flex`
+- **Vertical spacing**: `1.25rem` between elements
+- **Section spacing**: `2rem–3rem`
+- **Component padding**: max `1rem`
+- **Borders**: Avoid — use spacing and background contrast
 
 ---
 
-### 4. Components
+### 2. Components
 
 #### Buttons
 
-- BG: `#CCCCCC`
-- Text: `#0C0C0C`
-- Hover: `#DDDDDD`
-- Border radius: `6px`
-- Padding: `0.5rem 1rem`
-- No shadow or subtle shadow only
+- **Background**: `rgb(29, 29, 28)`
+- **Text**: `rgb(255, 255, 227)`
+- **Hover**: `rgb(119, 119, 119)`
+- **Radius**: `6px`
+- **Padding**: `0.5rem 1rem`
+- **Shadow**: None or subtle (`0px 1px 2px rgba(0,0,0,0.1)`)
+- **Transition**: `150ms ease-in-out`
 
 #### Inputs
 
-- BG: `#1A1A1A`
-- Text: `#F5F5F5`
-- Placeholder: `#777777`
-- Focus ring: `1px #CCCCCC`
+- **Background**: `rgb(25, 24, 21)`
+- **Text**: `rgb(247, 247, 247)`
+- **Placeholder**: `rgb(138, 138, 138)`
+- **Focus**: `outline: 1px solid rgb(211, 211, 211)`
+- **Radius**: match buttons (`6px`)
+- **Padding**: `0.5rem`
 
 #### Cards / Panels
 
-- BG: `#1A1A1A`
-- Padding: `1rem`
-- Optional subtle shadow for elevation
+- **Background**: `rgb(33, 33, 33)`
+- **Padding**: `1rem`
+- **Shadow**: Optional subtle (`0px 2px 4px rgba(0,0,0,0.1)`)
 
 ---
 
-### 5. Navigation
+### 3. Navigation
 
-- Vertical layout preferred
-- Active item: bold text or left accent bar
-- Group labels: `uppercase`, muted color, small
-
----
-
-### 6. Motion
-
-- Transition duration: `100ms–250ms`
-- Animate:
-
-  - Button hover
-  - Focus
-  - Expand/collapse
-
-- Easing: `ease-in-out`
+- **Layout**: Vertical preferred
+- **Active item**: bold text or left accent bar
+- **Group labels**: `uppercase`, muted color, small text
+- **Spacing**: consistent vertical spacing (`1rem`) between items
 
 ---
 
-### 7. Accessibility
+### 4. Motion
 
-- Text contrast: ≥ 4.5:1
-- Use ARIA labels
-- Full keyboard navigation
+- **Duration**: `100ms–250ms`
+- **Easing**: `ease-in-out`
+- **Animate**:
 
-- Text contrast: ≥ 4.5:1
-- Use ARIA labels
-- Full keyboard navigation
+  - Button hover/focus
+  - Input focus
+  - Expand/collapse panels
+
+---
+
+### 5. Accessibility
+
+- **Text contrast**: Minimum 4.5:1
+- **ARIA**: Use proper `aria-*` labels for interactive elements
+- **Keyboard**: Full navigation support with focus indicators
+
+---
+
+Let me know if you want this turned into a design tokens file, Tailwind config, or Figma reference.
