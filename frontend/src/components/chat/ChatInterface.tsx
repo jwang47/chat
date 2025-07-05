@@ -175,7 +175,7 @@ export function ChatInterface() {
         const timer = setTimeout(() => {
           // Double-check user hasn't scrolled up while we were waiting
           if (!isUserScrolledUpRef.current) {
-            scrollToBottom(false); // Use instant scroll during streaming to avoid conflicts
+            scrollToBottom(true); // Use smooth scroll during streaming too
           }
         }, 10);
         return () => clearTimeout(timer);
