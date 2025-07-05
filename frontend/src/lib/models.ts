@@ -43,6 +43,55 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     displayName: "GPT-4o Mini",
     description: "OpenAI's GPT-4o Mini via OpenRouter",
   },
+  {
+    id: "openrouter/openai/gpt-4o",
+    name: "openai/gpt-4o",
+    provider: "openrouter",
+    displayName: "GPT-4o",
+    description: "OpenAI's GPT-4o via OpenRouter",
+  },
+  {
+    id: "openrouter/anthropic/claude-3-haiku",
+    name: "anthropic/claude-3-haiku",
+    provider: "openrouter",
+    displayName: "Claude 3 Haiku",
+    description: "Anthropic's Claude 3 Haiku via OpenRouter",
+  },
+  {
+    id: "openrouter/meta-llama/llama-3.1-70b-instruct",
+    name: "meta-llama/llama-3.1-70b-instruct",
+    provider: "openrouter",
+    displayName: "Llama 3.1 70B",
+    description: "Meta's Llama 3.1 70B model",
+  },
+  {
+    id: "openrouter/meta-llama/llama-3.1-405b-instruct",
+    name: "meta-llama/llama-3.1-405b-instruct",
+    provider: "openrouter",
+    displayName: "Llama 3.1 405B",
+    description: "Meta's Llama 3.1 405B model",
+  },
+  {
+    id: "openrouter/google/gemma-2-9b-it",
+    name: "google/gemma-2-9b-it",
+    provider: "openrouter",
+    displayName: "Gemma 2 9B",
+    description: "Google's Gemma 2 9B model",
+  },
+  {
+    id: "openrouter/mistralai/mistral-7b-instruct:free",
+    name: "mistralai/mistral-7b-instruct:free",
+    provider: "openrouter",
+    displayName: "Mistral 7B (Free)",
+    description: "Mistral's 7B model - free tier",
+  },
+  {
+    id: "openrouter/mistralai/mixtral-8x7b-instruct",
+    name: "mistralai/mixtral-8x7b-instruct",
+    provider: "openrouter",
+    displayName: "Mixtral 8x7B",
+    description: "Mistral's Mixtral 8x7B model",
+  },
 
   // Gemini models
   {
@@ -65,6 +114,13 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     provider: "gemini",
     displayName: "Gemini 1.5 Flash",
     description: "Google's Gemini 1.5 Flash model",
+  },
+  {
+    id: "google/gemini-1.5-flash-8b",
+    name: "gemini-1.5-flash-8b",
+    provider: "gemini",
+    displayName: "Gemini 1.5 Flash 8B",
+    description: "Google's Gemini 1.5 Flash 8B model",
   },
 ];
 
