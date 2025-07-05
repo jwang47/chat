@@ -54,4 +54,14 @@ describe("Markdown sanitization", () => {
     // Should remove dangerous javascript: URLs
     expect(sanitized).not.toContain("javascript:");
   });
+
+  it("should allow center tag", () => {
+    const htmlWithCenter = "<center>Centered content</center>";
+    const sanitized = addCustomStyling(htmlWithCenter);
+
+    // Should preserve center tag
+    expect(sanitized).toContain("<center>");
+    expect(sanitized).toContain("</center>");
+    expect(sanitized).toContain("Centered content");
+  });
 });

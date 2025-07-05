@@ -209,6 +209,7 @@ export function addCustomStyling(
       "code",
       "pre",
       "br",
+      "center",
     ],
     ALLOWED_ATTR: ["class", "href", "target", "rel", "style"],
     ALLOW_DATA_ATTR: false,
