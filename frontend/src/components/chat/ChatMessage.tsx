@@ -3,10 +3,18 @@ import { cn } from "@/lib/utils";
 import { memo } from "react";
 import { motion } from "motion/react";
 import { StreamingText } from "./StreamingText";
+import { renderComplexContent } from "@/lib/markdown.tsx";
 
 interface ChatMessageProps {
   message: Message;
   disableAnimations?: boolean;
+}
+
+// Static markdown renderer for completed messages with full code block support
+function StaticMarkdown({ content }: { content: string }) {
+  return (
+    <div className="[&>*:last-child]:mb-0">{renderComplexContent(content)}</div>
+  );
 }
 
 export const ChatMessage = memo(function ChatMessage({
@@ -14,6 +22,7 @@ export const ChatMessage = memo(function ChatMessage({
   disableAnimations = false,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const isActivelyStreaming = message.isStreaming === true;
 
   if (disableAnimations) {
     return (
@@ -28,10 +37,12 @@ export const ChatMessage = memo(function ChatMessage({
           )}
         >
           <div className="text-sm leading-relaxed">
-            <StreamingText
-              content={message.content}
-              isStreaming={message.isStreaming || false}
-            />
+            {/* Use StreamingText only for actively streaming messages */}
+            {isActivelyStreaming ? (
+              <StreamingText content={message.content} isStreaming={true} />
+            ) : (
+              <StaticMarkdown content={message.content} />
+            )}
           </div>
         </div>
       </div>
@@ -56,10 +67,12 @@ export const ChatMessage = memo(function ChatMessage({
         )}
       >
         <div className="text-sm leading-relaxed">
-          <StreamingText
-            content={message.content}
-            isStreaming={message.isStreaming || false}
-          />
+          {/* Use StreamingText only for actively streaming messages */}
+          {isActivelyStreaming ? (
+            <StreamingText content={message.content} isStreaming={true} />
+          ) : (
+            <StaticMarkdown content={message.content} />
+          )}
         </div>
       </motion.div>
     </motion.div>
