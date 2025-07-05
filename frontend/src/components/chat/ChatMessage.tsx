@@ -166,7 +166,7 @@ export const ChatMessage = memo(function ChatMessage({
         animate={{ scale: 1 }}
         transition={{ duration: 0.2, ease: "easeOut", delay: 0.1 }}
         className={cn(
-          "p-3 rounded-lg max-w-[80%]",
+          "p-3 rounded-lg max-w-[90%]",
           isUser && "bg-accent/20 text-foreground border border-accent/30"
         )}
       >

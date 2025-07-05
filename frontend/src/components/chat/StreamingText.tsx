@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import React from "react";
 import { motion } from "motion/react";
 import { micromark } from "micromark";
 import { gfm, gfmHtml } from "micromark-extension-gfm";
@@ -175,6 +176,32 @@ function addCustomStyling(html: string): string {
   );
 }
 
+// Helper function to split HTML into individual elements
+function splitHtmlIntoElements(html: string): string[] {
+  if (!html.trim()) return [];
+
+  // Split by major block elements but keep the tags
+  const elements = html
+    .split(/(<\/(?:p|h[1-6]|ul|ol|blockquote|div)>)/i)
+    .filter((part) => part.trim())
+    .reduce((acc: string[], part, index, array) => {
+      if (part.match(/^<\/(?:p|h[1-6]|ul|ol|blockquote|div)>$/i)) {
+        // This is a closing tag, combine with previous part
+        if (acc.length > 0) {
+          acc[acc.length - 1] += part;
+        }
+      } else {
+        // This is content or opening tag
+        acc.push(part);
+      }
+      return acc;
+    }, []);
+
+  return elements.filter(
+    (el) => el.trim() && !el.match(/^<\/(?:p|h[1-6]|ul|ol|blockquote|div)>$/i)
+  );
+}
+
 // Component to render markdown with custom code block handling
 function MarkdownRenderer({ content }: { content: string }) {
   const processedContent = useMemo(() => {
@@ -240,22 +267,34 @@ function MarkdownRenderer({ content }: { content: string }) {
             });
             const styledHtml = addCustomStyling(html);
 
-            elements.push(
-              <div
-                key={`html-${elementIndex++}`}
-                dangerouslySetInnerHTML={{ __html: styledHtml }}
-              />
-            );
+            // Split the HTML into individual elements
+            const htmlElements = splitHtmlIntoElements(styledHtml);
+
+            htmlElements.forEach((elementHtml) => {
+              elements.push(
+                <motion.div
+                  key={`html-${elementIndex++}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  dangerouslySetInnerHTML={{ __html: elementHtml }}
+                />
+              );
+            });
           }
 
           // Add the code block
           elements.push(
-            <CollapsibleCodeBlock
+            <motion.div
               key={`code-${elementIndex++}`}
-              language={language}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              {code}
-            </CollapsibleCodeBlock>
+              <CollapsibleCodeBlock language={language}>
+                {code}
+              </CollapsibleCodeBlock>
+            </motion.div>
           );
 
           // Continue with the rest of the content
@@ -271,12 +310,20 @@ function MarkdownRenderer({ content }: { content: string }) {
             });
             const styledHtml = addCustomStyling(html);
 
-            elements.push(
-              <div
-                key={`html-${elementIndex++}`}
-                dangerouslySetInnerHTML={{ __html: styledHtml }}
-              />
-            );
+            // Split the HTML into individual elements
+            const htmlElements = splitHtmlIntoElements(styledHtml);
+
+            htmlElements.forEach((elementHtml) => {
+              elements.push(
+                <motion.div
+                  key={`html-${elementIndex++}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  dangerouslySetInnerHTML={{ __html: elementHtml }}
+                />
+              );
+            });
           }
           break;
         }
@@ -285,12 +332,16 @@ function MarkdownRenderer({ content }: { content: string }) {
       // Add the incomplete code block if we have one
       if (incompleteCodeBlock) {
         elements.push(
-          <CollapsibleCodeBlock
+          <motion.div
             key={`incomplete-code-${elementIndex++}`}
-            language={incompleteCodeBlock.language}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
-            {incompleteCodeBlock.code}
-          </CollapsibleCodeBlock>
+            <CollapsibleCodeBlock language={incompleteCodeBlock.language}>
+              {incompleteCodeBlock.code}
+            </CollapsibleCodeBlock>
+          </motion.div>
         );
       }
 
@@ -299,8 +350,11 @@ function MarkdownRenderer({ content }: { content: string }) {
       console.error("Error rendering markdown:", error);
       return {
         elements: [
-          <div
+          <motion.div
             key="error"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             dangerouslySetInnerHTML={{
               __html: `<p class="mb-2 last:mb-0">${content}</p>`,
             }}
@@ -318,12 +372,204 @@ export function StreamingText({
   isStreaming,
   className,
 }: StreamingTextProps) {
-  // Add block character to streaming content
-  const displayContent = isStreaming && content ? content + "█" : content;
+  const [renderedBlocks, setRenderedBlocks] = useState<React.ReactNode[]>([]);
+  const [lastContentHash, setLastContentHash] = useState<string>("");
+  const elementIndexRef = useRef(0);
+
+  // Simple hash function for content comparison
+  const hashContent = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString();
+  };
+
+  // Process content and generate blocks
+  useEffect(() => {
+    if (!content) {
+      setRenderedBlocks([]);
+      setLastContentHash("");
+      elementIndexRef.current = 0;
+      return;
+    }
+
+    // Check if content has actually changed
+    const currentHash = hashContent(content);
+    if (currentHash === lastContentHash) {
+      return;
+    }
+
+    try {
+      const elements: React.ReactNode[] = [];
+      let remainingContent = content;
+      let elementIndex = 0;
+
+      // Check if we're in the middle of a code block (for streaming)
+      const openCodeBlocks = (content.match(/```/g) || []).length;
+      const isInCodeBlock = openCodeBlocks % 2 === 1;
+
+      // If we're in a code block, temporarily close it for processing
+      let contentToProcess = remainingContent;
+      let incompleteCodeBlock: { language: string; code: string } | null = null;
+
+      if (isInCodeBlock) {
+        // Find the last opening ```
+        const lastCodeBlockStart = content.lastIndexOf("```");
+        if (lastCodeBlockStart !== -1) {
+          const beforeCodeBlock = content.substring(0, lastCodeBlockStart);
+          const codeBlockContent = content.substring(lastCodeBlockStart);
+
+          // Extract language and code
+          const languageMatch = codeBlockContent.match(/```(\w+)?\n([\s\S]*)/);
+          if (languageMatch) {
+            const language = languageMatch[1] || "";
+            const code = languageMatch[2];
+
+            incompleteCodeBlock = { language, code };
+            contentToProcess = beforeCodeBlock;
+          }
+        }
+      }
+
+      // Process the complete content (without the incomplete code block)
+      remainingContent = contentToProcess;
+
+      // Process content sequentially
+      while (remainingContent) {
+        // Find the next code block
+        const codeBlockMatch = remainingContent.match(
+          /```(\w+)?\n([\s\S]*?)```/
+        );
+
+        if (codeBlockMatch) {
+          const beforeCodeBlock = remainingContent.substring(
+            0,
+            codeBlockMatch.index
+          );
+          const language = codeBlockMatch[1] || "";
+          const code = codeBlockMatch[2].trim();
+
+          // Add content before the code block
+          if (beforeCodeBlock.trim()) {
+            const html = micromark(beforeCodeBlock, {
+              extensions: [gfm()],
+              htmlExtensions: [gfmHtml()],
+            });
+            const styledHtml = addCustomStyling(html);
+
+            // Split the HTML into individual elements
+            const htmlElements = splitHtmlIntoElements(styledHtml);
+
+            htmlElements.forEach((elementHtml) => {
+              elements.push(
+                <motion.div
+                  key={`html-${elementIndex++}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  dangerouslySetInnerHTML={{ __html: elementHtml }}
+                />
+              );
+            });
+          }
+
+          // Add the code block
+          elements.push(
+            <motion.div
+              key={`code-${elementIndex++}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <CollapsibleCodeBlock language={language}>
+                {code}
+              </CollapsibleCodeBlock>
+            </motion.div>
+          );
+
+          // Continue with the rest of the content
+          remainingContent = remainingContent.substring(
+            codeBlockMatch.index! + codeBlockMatch[0].length
+          );
+        } else {
+          // No more code blocks, process the remaining content
+          if (remainingContent.trim()) {
+            const html = micromark(remainingContent, {
+              extensions: [gfm()],
+              htmlExtensions: [gfmHtml()],
+            });
+            const styledHtml = addCustomStyling(html);
+
+            // Split the HTML into individual elements
+            const htmlElements = splitHtmlIntoElements(styledHtml);
+
+            htmlElements.forEach((elementHtml) => {
+              elements.push(
+                <motion.div
+                  key={`html-${elementIndex++}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  dangerouslySetInnerHTML={{ __html: elementHtml }}
+                />
+              );
+            });
+          }
+          break;
+        }
+      }
+
+      // Add the incomplete code block if we have one
+      if (incompleteCodeBlock) {
+        elements.push(
+          <motion.div
+            key={`incomplete-code-${elementIndex++}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
+            <CollapsibleCodeBlock language={incompleteCodeBlock.language}>
+              {incompleteCodeBlock.code}
+            </CollapsibleCodeBlock>
+          </motion.div>
+        );
+      }
+
+      // Only update if we have different number of elements or content changed significantly
+      setRenderedBlocks((prevBlocks) => {
+        if (prevBlocks.length !== elements.length) {
+          return elements;
+        }
+        return prevBlocks;
+      });
+
+      setLastContentHash(currentHash);
+    } catch (error) {
+      console.error("Error processing streaming content:", error);
+    }
+  }, [content, lastContentHash]);
+
+  // Add streaming cursor to the last block if streaming
+  const displayBlocks = useMemo(() => {
+    if (!isStreaming || !content || renderedBlocks.length === 0) {
+      return renderedBlocks;
+    }
+
+    // Add cursor as a separate element after the blocks
+    return [
+      ...renderedBlocks,
+      <span key="streaming-cursor" className="animate-pulse">
+        █
+      </span>,
+    ];
+  }, [renderedBlocks, isStreaming, content]);
 
   return (
     <div className={className}>
-      <MarkdownRenderer content={displayContent} />
+      {displayBlocks}
 
       {/* Streaming indicator */}
       {isStreaming && !content && (
