@@ -10,7 +10,7 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
   // OpenRouter models
   {
     id: "openrouter/cypher-alpha:free",
-    name: "cypher-alpha:free",
+    name: "openrouter/cypher-alpha:free",
     provider: "openrouter",
     displayName: "Cypher Alpha (Free)",
     description: "Free tier model from OpenRouter",
@@ -30,8 +30,8 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     description: "DeepSeek's V3 model via OpenRouter - free tier",
   },
   {
-    id: "openrouter/deepseek/deepseek-r1:free",
-    name: "deepseek/deepseek-r1:free",
+    id: "openrouter/deepseek/deepseek-r1-0528:free",
+    name: "deepseek/deepseek-r1-0528:free",
     provider: "openrouter",
     displayName: "DeepSeek R1 (Free)",
     description: "DeepSeek's R1 reasoning model via OpenRouter - free tier",

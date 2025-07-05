@@ -47,7 +47,7 @@ export class LlmService {
     }
 
     // Extract model name from full model ID
-    const modelName = this.extractModelName(model, provider);
+    const modelName = modelInfo.name;
 
     // Call appropriate service based on provider
     if (provider === "openrouter") {

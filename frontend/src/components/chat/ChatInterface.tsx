@@ -34,6 +34,12 @@ export function ChatInterface() {
   const messageIdCounter = useRef(0);
   const isUserScrolledUpRef = useRef(false);
   const scrollUpdatePendingRef = useRef(false);
+  const messagesRef = useRef<Message[]>(messages);
+
+  // Keep messagesRef in sync with messages state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Generate unique message ID
   const generateMessageId = useCallback(() => {
@@ -107,23 +113,34 @@ export function ChatInterface() {
       const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
 
       // Update the scroll position tracking
-      const isAtBottomNow = isAtBottom();
+      const isAtBottomNow = scrollTop + clientHeight >= scrollHeight - 50;
       isUserScrolledUpRef.current = !isAtBottomNow;
 
-      // Calculate scroll progress (0 to 1) - immediate update
+      // Calculate scroll progress (0 to 1)
       const progress =
         scrollHeight > clientHeight
           ? scrollTop / (scrollHeight - clientHeight)
           : 0;
 
-      // Update state for minimap dimensions
-      setScrollProgress(progress);
-      setViewportHeight(clientHeight);
-      setContentHeight(scrollHeight);
+      // Batch state updates to prevent excessive re-renders
+      setScrollProgress((prev) => {
+        if (Math.abs(prev - progress) < 0.01) return prev; // Avoid micro-updates
+        return progress;
+      });
+
+      setViewportHeight((prev) => {
+        if (prev === clientHeight) return prev;
+        return clientHeight;
+      });
+
+      setContentHeight((prev) => {
+        if (prev === scrollHeight) return prev;
+        return scrollHeight;
+      });
 
       scrollUpdatePendingRef.current = false;
     });
-  }, [getScrollContainer, isAtBottom]);
+  }, [getScrollContainer]);
 
   // Set up scroll event listener with more responsive options
   useEffect(() => {
@@ -142,10 +159,14 @@ export function ChatInterface() {
   // Auto-scroll to bottom when new messages arrive, but only if user is at bottom
   useEffect(() => {
     // Always scroll to bottom for the first message or if user is already at bottom
-    if (messages.length === 0 || !isUserScrolledUpRef.current) {
-      scrollToBottom();
+    if (messages.length > 0 && !isUserScrolledUpRef.current) {
+      // Use a small delay to ensure DOM is updated
+      const timer = setTimeout(() => {
+        scrollToBottom();
+      }, 10);
+      return () => clearTimeout(timer);
     }
-  }, [messages, scrollToBottom]);
+  }, [messages.length, scrollToBottom]); // Only depend on messages.length, not the entire messages array
 
   // Scroll to bottom on initial load
   useEffect(() => {
@@ -174,9 +195,6 @@ export function ChatInterface() {
         model: selectedModel,
       };
 
-      // Add user message to state
-      setMessages((prev) => [...prev, userMessage]);
-
       // Create assistant message placeholder
       const assistantMessage: Message = {
         id: generateMessageId(),
@@ -184,17 +202,18 @@ export function ChatInterface() {
         content: "",
         timestamp: new Date(),
         model: selectedModel,
+        isStreaming: true,
       };
 
-      // Add assistant message to state
-      setMessages((prev) => [...prev, assistantMessage]);
+      // Add both messages to state in a single update
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
       // Set up streaming
       setIsTyping(true);
       setStreamingMessageId(assistantMessage.id);
 
-      // Get all messages for context and convert to LlmMessage format
-      const allMessages = [...messages, userMessage];
+      // Get current messages for context using ref to avoid stale closure
+      const allMessages = [...messagesRef.current, userMessage];
       const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
         role: msg.role,
         content: msg.content,
@@ -214,6 +233,14 @@ export function ChatInterface() {
         onComplete: () => {
           setIsTyping(false);
           setStreamingMessageId(null);
+          // Clear streaming flag
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessage.id
+                ? { ...msg, isStreaming: false }
+                : msg
+            )
+          );
         },
         onError: (error: Error) => {
           setError(error.message);
@@ -226,7 +253,7 @@ export function ChatInterface() {
         },
       });
     },
-    [generateMessageId, messages, selectedModel]
+    [generateMessageId, selectedModel] // Removed 'messages' dependency
   );
 
   return (
