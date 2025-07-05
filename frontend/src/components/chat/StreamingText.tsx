@@ -299,7 +299,7 @@ function MarkdownRenderer({ content }: { content: string }) {
       const openCodeBlocks = (remainingContent.match(/```/g) || []).length;
       const isInCodeBlock = openCodeBlocks % 2 === 1;
 
-      // If we're in a code block, temporarily close it for processing
+      // If we're in a code block, completely hide it until it's finished
       let contentToProcess = remainingContent;
       let incompleteCodeBlock: { language: string; code: string } | null = null;
 
@@ -321,7 +321,8 @@ function MarkdownRenderer({ content }: { content: string }) {
             const code = languageMatch[2];
 
             incompleteCodeBlock = { language, code };
-            contentToProcess = beforeCodeBlock;
+            // Hide the entire incomplete code block - don't process it at all
+            contentToProcess = beforeCodeBlock.replace(/\n\s*$/, "");
           }
         }
       }
@@ -414,21 +415,8 @@ function MarkdownRenderer({ content }: { content: string }) {
         }
       }
 
-      // Add the incomplete code block if we have one
-      if (incompleteCodeBlock) {
-        elements.push(
-          <motion.div
-            key={`incomplete-code-${elementIndex++}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <CollapsibleCodeBlock language={incompleteCodeBlock.language}>
-              {incompleteCodeBlock.code}
-            </CollapsibleCodeBlock>
-          </motion.div>
-        );
-      }
+      // Don't render incomplete code blocks - they look bad while streaming
+      // Only show them once they're properly closed with ```
 
       return { elements };
     } catch (error) {
@@ -508,7 +496,7 @@ export function StreamingText({
       const openCodeBlocks = (remainingContent.match(/```/g) || []).length;
       const isInCodeBlock = openCodeBlocks % 2 === 1;
 
-      // If we're in a code block, temporarily close it for processing
+      // If we're in a code block, completely hide it until it's finished
       let contentToProcess = remainingContent;
       let incompleteCodeBlock: { language: string; code: string } | null = null;
 
@@ -530,7 +518,8 @@ export function StreamingText({
             const code = languageMatch[2];
 
             incompleteCodeBlock = { language, code };
-            contentToProcess = beforeCodeBlock;
+            // Hide the entire incomplete code block - don't process it at all
+            contentToProcess = beforeCodeBlock.replace(/\n\s*$/, "");
           }
         }
       }
@@ -623,21 +612,8 @@ export function StreamingText({
         }
       }
 
-      // Add the incomplete code block if we have one
-      if (incompleteCodeBlock) {
-        elements.push(
-          <motion.div
-            key={`incomplete-code-${elementIndex++}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <CollapsibleCodeBlock language={incompleteCodeBlock.language}>
-              {incompleteCodeBlock.code}
-            </CollapsibleCodeBlock>
-          </motion.div>
-        );
-      }
+      // Don't render incomplete code blocks - they look bad while streaming
+      // Only show them once they're properly closed with ```
 
       // Only update if we have different number of elements or content changed significantly
       setRenderedBlocks((prevBlocks) => {
