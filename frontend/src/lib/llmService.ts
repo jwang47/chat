@@ -91,22 +91,6 @@ export class LlmService {
   }
 
   /**
-   * Extract model name from full model ID
-   */
-  private static extractModelName(
-    fullModelId: string,
-    provider: "openrouter" | "gemini"
-  ): string {
-    if (provider === "openrouter" && fullModelId.startsWith("openrouter/")) {
-      return fullModelId.substring("openrouter/".length);
-    }
-    if (provider === "gemini" && fullModelId.startsWith("google/")) {
-      return fullModelId.substring("google/".length);
-    }
-    return fullModelId;
-  }
-
-  /**
    * Get available providers
    */
   static getAvailableProviders(): Array<"openrouter" | "gemini"> {

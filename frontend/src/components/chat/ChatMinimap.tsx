@@ -46,7 +46,7 @@ export function ChatMinimap({
     const baseMessageHeight = 150; // Base estimated height from virtualizer
     const paddingBetweenMessages = 32; // py-4 * 2 = 32px
 
-    messages.forEach((message, index) => {
+    messages.forEach((message) => {
       // Estimate height based on content length for better accuracy
       let estimatedHeight = baseMessageHeight;
 

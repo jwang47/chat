@@ -7,9 +7,9 @@ import {
   useMemo,
 } from "react";
 import { ChatMessage } from "./ChatMessage";
-import { motion, AnimatePresence } from "motion/react";
-import { useVirtualizer, elementScroll } from "@tanstack/react-virtual";
-import type { VirtualizerOptions } from "@tanstack/react-virtual";
+import { motion } from "motion/react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+
 import type { Message } from "@/types/chat";
 
 interface VirtualizedMessagesProps {
@@ -50,7 +50,6 @@ export const VirtualizedMessages = forwardRef<
   VirtualizedMessagesProps
 >(({ messages, isTyping, streamingMessageId, onScrollChange }, ref) => {
   const parentRef = useRef<HTMLDivElement>(null);
-  const scrollingRef = useRef<number>(0);
 
   // Create virtualized items including typing indicator
   const virtualizedItems = useMemo(() => {
@@ -392,9 +391,6 @@ export const VirtualizedMessages = forwardRef<
                 virtualRow.index === virtualizedItems.length - 1;
               const isTypingIndicator =
                 "type" in item && item.type === "typing";
-              const isStreaming =
-                !isTypingIndicator &&
-                (item.isStreaming || streamingMessageId === item.id);
 
               return (
                 <div
