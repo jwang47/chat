@@ -119,9 +119,9 @@ function CollapsibleMessage({
           {/* Actual visible line */}
           <div
             className={cn(
-              "absolute w-0.5 h-full bg-accent/30 transition-colors duration-200",
+              "absolute w-0.5 bg-accent/30 transition-colors duration-75 will-change-auto",
               "group-hover:bg-accent",
-              isCollapsed && "group-hover:bg-accent"
+              "inset-y-0"
             )}
           />
         </button>
