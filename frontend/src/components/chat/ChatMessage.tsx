@@ -31,12 +31,10 @@ function CollapsibleMessage({
   children,
   content,
   isUser,
-  onHeightChange,
 }: {
   children: React.ReactNode;
   content: string;
   isUser: boolean;
-  onHeightChange?: (heightDifference?: number) => void;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const messageRef = useRef<HTMLDivElement>(null);
@@ -113,40 +111,16 @@ function CollapsibleMessage({
       </div>
 
       {/* Message content */}
-      <div
-        ref={messageRef}
-        className={cn(
-          "overflow-hidden",
-          isCollapsed ? "max-h-24" : "max-h-none"
+      <div ref={messageRef}>
+        {isCollapsed ? (
+          <div className="text-sm text-muted-foreground italic py-1">
+            {isUser ? "User message" : "Assistant message"} • {content.length}{" "}
+            characters • Click to expand
+          </div>
+        ) : (
+          children
         )}
-      >
-        {children}
       </div>
-
-      {/* Collapsed State Indicator */}
-      {isCollapsed && (
-        <div
-          className={cn(
-            "mt-2 text-xs text-muted-foreground italic flex items-center gap-2",
-            isUser && "justify-end"
-          )}
-        >
-          <span>Message collapsed • Click line or arrow to expand</span>
-          <svg
-            className="w-3 h-3 opacity-60"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </div>
-      )}
     </div>
   );
 }
@@ -194,11 +168,7 @@ export const ChatMessage = memo(function ChatMessage({
           isUser && "bg-accent/20 text-foreground border border-accent/30"
         )}
       >
-        <CollapsibleMessage
-          content={message.content}
-          isUser={isUser}
-          onHeightChange={onHeightChange}
-        >
+        <CollapsibleMessage content={message.content} isUser={isUser}>
           {messageContent}
         </CollapsibleMessage>
       </div>
