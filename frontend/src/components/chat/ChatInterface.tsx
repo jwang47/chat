@@ -36,15 +36,6 @@ export function ChatInterface() {
     return `msg_${Date.now()}_${messageIdCounter.current}`;
   }, []);
 
-  // Check if user is at the bottom of the chat
-  const isAtBottom = useCallback(() => {
-    if (!messagesRef.current) return true;
-    const container = messagesRef.current.getScrollContainer();
-    if (!container) return true;
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    return scrollTop + clientHeight >= scrollHeight - 50; // 50px threshold
-  }, []);
-
   // Scroll to specific position (for minimap)
   const scrollTo = useCallback((position: number) => {
     messagesRef.current?.scrollTo(position);
@@ -241,10 +232,10 @@ export function ChatInterface() {
         }}
         layout
         layoutId="message-input"
-        className={`absolute ${
+        className={`${
           messages.length === 0
-            ? "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-4"
-            : "bottom-8 left-4 right-4 max-w-4xl mx-auto"
+            ? "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-4"
+            : "fixed bottom-8 left-4 right-4 max-w-4xl mx-auto z-30"
         }`}
       >
         <MessageInput
