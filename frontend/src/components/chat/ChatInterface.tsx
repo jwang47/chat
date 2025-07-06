@@ -136,9 +136,17 @@ export function ChatInterface() {
           } else if (isScrollingDown && isAtBottom()) {
             // Reset to auto-scroll when user scrolls down to bottom
             isUserScrolledUpRef.current = false;
+            // Restart continuous scroll if we're streaming
+            if (streamingMessageId) {
+              virtualizedMessagesRef.current?.startContinuousScroll();
+            }
           } else if (isAtBottom()) {
             // Also reset if user is at bottom (handles edge cases)
             isUserScrolledUpRef.current = false;
+            // Restart continuous scroll if we're streaming
+            if (streamingMessageId) {
+              virtualizedMessagesRef.current?.startContinuousScroll();
+            }
           }
         }
 
@@ -222,7 +230,7 @@ export function ChatInterface() {
         const hasAnyGrowth =
           contentLength > lastStreamingContentLengthRef.current;
 
-        if (hasAnyGrowth && isAtBottom()) {
+        if (hasAnyGrowth) {
           lastStreamingContentLengthRef.current = contentLength;
 
           // Clear any existing timeout to prevent multiple scrolls
@@ -232,11 +240,11 @@ export function ChatInterface() {
 
           // Immediate scroll for continuous following
           streamingScrollTimeoutRef.current = setTimeout(() => {
-            // Check user hasn't scrolled up while we were waiting
+            // Double-check user hasn't scrolled up while we were waiting
+            // This is the key fix - we check again right before scrolling
             if (
               !isUserScrolledUpRef.current &&
-              !isProgrammaticScrollRef.current &&
-              isAtBottom()
+              !isProgrammaticScrollRef.current
             ) {
               scrollToBottom(false, true); // Sticky scroll during streaming
             }
@@ -250,6 +258,14 @@ export function ChatInterface() {
             }
           };
         }
+      }
+    } else if (streamingMessageId && isUserScrolledUpRef.current) {
+      // If user has scrolled up during streaming, stop continuous scroll
+      virtualizedMessagesRef.current?.stopContinuousScroll();
+      // Clear any pending scroll timeout
+      if (streamingScrollTimeoutRef.current) {
+        clearTimeout(streamingScrollTimeoutRef.current);
+        streamingScrollTimeoutRef.current = null;
       }
     }
   }, [streamingMessageId, messages, scrollToBottom, isAtBottom]);
