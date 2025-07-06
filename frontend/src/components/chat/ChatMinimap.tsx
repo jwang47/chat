@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 import type { Message } from "@/types/chat";
 
 interface ChatMinimapProps {
@@ -33,8 +34,8 @@ export function ChatMinimap({
     }
   }, [messages]);
 
-  // Calculate virtual message positions based on estimated heights
-  const getVirtualMessagePositions = useCallback(() => {
+  // Calculate message positions based on estimated heights
+  const getMessagePositions = useCallback(() => {
     const positions: Array<{
       id: string;
       top: number;
@@ -43,11 +44,11 @@ export function ChatMinimap({
     }> = [];
 
     let currentTop = 0;
-    const baseMessageHeight = 150; // Base estimated height from virtualizer
-    const paddingBetweenMessages = 32; // py-4 * 2 = 32px
+    const baseMessageHeight = 80; // Base estimated height for messages
+    const paddingBetweenMessages = 32; // py-4 = 16px top + 16px bottom
 
     messages.forEach((message) => {
-      // Estimate height based on content length for better accuracy
+      // Estimate height based on content length
       let estimatedHeight = baseMessageHeight;
 
       if (message.content) {
@@ -58,7 +59,7 @@ export function ChatMinimap({
         );
         const contentHeight = estimatedLines * 24;
         // Add padding and margins (from ChatMessage component)
-        estimatedHeight = Math.max(baseMessageHeight, contentHeight + 96); // 96px for padding/margins
+        estimatedHeight = Math.max(baseMessageHeight, contentHeight + 64); // 64px for padding/margins
       }
 
       // For streaming messages, add extra height as they grow
@@ -79,7 +80,7 @@ export function ChatMinimap({
     return positions;
   }, [messages]);
 
-  const messagePositions = getVirtualMessagePositions();
+  const messagePositions = getMessagePositions();
 
   const handleMinimapInteraction = useCallback(
     (clientY: number) => {
@@ -105,7 +106,20 @@ export function ChatMinimap({
     [handleMinimapInteraction]
   );
 
-  // Handle drag-to-scroll on viewport indicator
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (isDragging) {
+        handleMinimapInteraction(e.clientY);
+      }
+    },
+    [isDragging, handleMinimapInteraction]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Handle viewport dragging
   const handleViewportMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
@@ -117,32 +131,23 @@ export function ChatMinimap({
     [scrollProgress]
   );
 
-  const handleMouseMove = useCallback(
+  const handleViewportMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (isDragging && !isDraggingViewport) {
-        handleMinimapInteraction(e.clientY);
-      } else if (isDraggingViewport && minimapRef.current) {
-        // Calculate drag distance
-        const deltaY = e.clientY - dragStartY;
-        const rect = minimapRef.current.getBoundingClientRect();
+      if (!isDraggingViewport || !minimapRef.current) return;
 
-        // Convert drag distance to scroll progress change
-        const dragProgress = deltaY / rect.height;
-        const newScrollProgress = Math.max(
-          0,
-          Math.min(1, dragStartScrollProgress + dragProgress)
-        );
+      const rect = minimapRef.current.getBoundingClientRect();
+      const deltaY = e.clientY - dragStartY;
+      const deltaProgress = deltaY / rect.height;
+      const newProgress = Math.max(
+        0,
+        Math.min(1, dragStartScrollProgress + deltaProgress)
+      );
 
-        // Convert to scroll position
-        const scrollPosition =
-          newScrollProgress * (contentHeight - viewportHeight);
-        onScrollTo(scrollPosition);
-      }
+      const scrollPosition = newProgress * (contentHeight - viewportHeight);
+      onScrollTo(scrollPosition);
     },
     [
-      isDragging,
       isDraggingViewport,
-      handleMinimapInteraction,
       dragStartY,
       dragStartScrollProgress,
       contentHeight,
@@ -151,42 +156,42 @@ export function ChatMinimap({
     ]
   );
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
+  const handleViewportMouseUp = useCallback(() => {
     setIsDraggingViewport(false);
   }, []);
 
-  // Add global mouse event listeners for dragging
+  // Global mouse event handlers
   useEffect(() => {
-    if (isDragging || isDraggingViewport) {
+    if (isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "grabbing";
-      document.body.style.userSelect = "none";
-
       return () => {
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
       };
     }
-  }, [isDragging, isDraggingViewport, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Calculate viewport indicator dimensions and position
-  const actualMinimapHeight = minimapHeight || 320;
+  useEffect(() => {
+    if (isDraggingViewport) {
+      document.addEventListener("mousemove", handleViewportMouseMove);
+      document.addEventListener("mouseup", handleViewportMouseUp);
+      return () => {
+        document.removeEventListener("mousemove", handleViewportMouseMove);
+        document.removeEventListener("mouseup", handleViewportMouseUp);
+      };
+    }
+  }, [isDraggingViewport, handleViewportMouseMove, handleViewportMouseUp]);
+
+  // Calculate dimensions
   const padding = 4;
-  const availableHeight = actualMinimapHeight - padding * 2;
-
-  // Calculate viewport indicator dimensions
-  const viewportRatio =
-    contentHeight > 0 ? Math.min(viewportHeight / contentHeight, 1) : 0.1;
-  const viewportIndicatorHeight = Math.max(availableHeight * viewportRatio, 8);
-
-  // Calculate the position - ensure it stays within bounds
-  const maxScrollTop = availableHeight - viewportIndicatorHeight;
+  const availableHeight = minimapHeight - padding * 2;
+  const viewportIndicatorHeight = Math.max(
+    20,
+    (viewportHeight / contentHeight) * availableHeight
+  );
   const viewportIndicatorTop =
-    padding + Math.min(scrollProgress * maxScrollTop, maxScrollTop);
+    scrollProgress * (availableHeight - viewportIndicatorHeight) + padding;
 
   return (
     <motion.div
@@ -200,10 +205,10 @@ export function ChatMinimap({
       onMouseDown={handleMouseDown}
       ref={minimapRef}
     >
-      {/* Message bars based on virtual positions */}
+      {/* Message bars */}
       <div className="relative h-full p-1">
         {messagePositions.map((position) => {
-          // Convert virtual position to minimap position
+          // Convert position to minimap position
           const minimapTop =
             contentHeight > 0
               ? (position.top / contentHeight) * availableHeight + padding
@@ -236,10 +241,12 @@ export function ChatMinimap({
 
         {/* Viewport indicator */}
         <div
-          className={`absolute left-0 right-0 bg-accent/30 border border-accent/70 rounded-sm cursor-grab active:cursor-grabbing hover:bg-accent/40 hover:border-accent/80 transition-none ${
+          className={`absolute left-0 right-0 bg-accent/80 rounded-sm border border-accent/40 ${
+            isDraggingViewport ? "cursor-grabbing" : "cursor-grab"
+          } ${
             isDragging || isDraggingViewport
-              ? "bg-accent/50 border-accent/90"
-              : ""
+              ? "transition-none"
+              : "transition-all duration-150 ease-out"
           }`}
           style={{
             top: `${viewportIndicatorTop}px`,

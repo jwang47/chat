@@ -1,51 +1,40 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  VirtualizedMessages,
-  type VirtualizedMessagesRef,
-} from "./VirtualizedMessages";
-import { ChatMinimap } from "./ChatMinimap";
 import { MessageInput } from "./MessageInput";
+import { Messages, type MessagesRef } from "./Messages";
+import { ChatMinimap } from "./ChatMinimap";
+import { motion, AnimatePresence } from "motion/react";
 import { LlmService, type LlmMessage } from "@/lib/llmService";
 import type { Message } from "@/types/chat";
-import { motion, AnimatePresence } from "motion/react";
-import { mockMessages } from "@/data/mockChat";
 import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
 
 export function ChatInterface() {
-  // const [messages, setMessages] = useState<Message[]>([]);
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>(
-    () => getDefaultModel().id
-  );
+  const [selectedModel, setSelectedModel] = useState(getDefaultModel().id);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [showMinimap, setShowMinimap] = useState(false);
+
+  const messagesRef = useRef<MessagesRef>(null);
+  const isUserScrolledUpRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+  const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isProgrammaticScrollRef = useRef(false);
+  const scrollUpdatePendingRef = useRef(false);
+  const messageIdCounter = useRef(0);
+
+  const scrollThreshold = 10; // Pixels threshold for scroll detection
 
   // Handle model selection
   const handleModelSelect = useCallback((model: ModelInfo) => {
     setSelectedModel(model.id);
   }, []);
-
-  const [contentHeight, setContentHeight] = useState(0);
-  const virtualizedMessagesRef = useRef<VirtualizedMessagesRef>(null);
-  const messageIdCounter = useRef(0);
-  const isUserScrolledUpRef = useRef(false);
-  const scrollUpdatePendingRef = useRef(false);
-  const isProgrammaticScrollRef = useRef(false);
-  const lastScrollTopRef = useRef(0);
-  const messagesRef = useRef<Message[]>(messages);
-  const scrollThreshold = 50;
-  const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Keep messagesRef in sync with messages state
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
 
   // Generate unique message ID
   const generateMessageId = useCallback(() => {
@@ -53,62 +42,26 @@ export function ChatInterface() {
     return `msg_${Date.now()}_${messageIdCounter.current}`;
   }, []);
 
-  // Get the scroll container from virtualized messages
-  const getScrollContainer = useCallback(() => {
-    return virtualizedMessagesRef.current?.getScrollContainer() || null;
-  }, []);
-
-  // Check if user is at or near the bottom of the chat
+  // Check if user is at the bottom of the chat
   const isAtBottom = useCallback(() => {
-    const scrollContainer = getScrollContainer();
-    if (!scrollContainer) return true;
-
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-    return scrollTop + clientHeight >= scrollHeight - scrollThreshold;
-  }, [getScrollContainer]);
-
-  // Optimized scroll to bottom function
-  const scrollToBottom = useCallback(
-    (smooth: boolean = false, sticky: boolean = false) => {
-      // Don't scroll if user is actively scrolling up
-      if (isUserScrolledUpRef.current) return;
-
-      isProgrammaticScrollRef.current = true;
-
-      if (sticky) {
-        // Use sticky scrolling for streaming (instant, always to bottom)
-        virtualizedMessagesRef.current?.scrollToBottomSticky();
-      } else if (smooth) {
-        // Use smooth scrolling
-        virtualizedMessagesRef.current?.scrollToBottomSmooth();
-      } else {
-        // Use instant scrolling to avoid virtualization issues
-        virtualizedMessagesRef.current?.scrollToBottomInstant();
-      }
-
-      isUserScrolledUpRef.current = false;
-      // Extend the flag duration to prevent conflicts with user scrolling
-      setTimeout(
-        () => {
-          isProgrammaticScrollRef.current = false;
-        },
-        smooth ? 500 : 300
-      );
-    },
-    []
-  );
+    if (!messagesRef.current) return true;
+    const container = messagesRef.current.getScrollContainer();
+    if (!container) return true;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    return scrollTop + clientHeight >= scrollHeight - 50; // 50px threshold
+  }, []);
 
   // Scroll to specific position (for minimap)
   const scrollTo = useCallback((position: number) => {
     isProgrammaticScrollRef.current = true;
-    virtualizedMessagesRef.current?.scrollTo(position);
+    messagesRef.current?.scrollTo(position);
     // Short flag duration for responsive minimap dragging
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
     }, 100);
   }, []);
 
-  // Handle scroll events from virtualized messages
+  // Handle scroll events from messages
   const handleScrollChange = useCallback(
     (scrollTop: number, scrollHeight: number, clientHeight: number) => {
       if (scrollUpdatePendingRef.current) return;
@@ -127,7 +80,7 @@ export function ChatInterface() {
             // Immediately mark user as scrolled up
             isUserScrolledUpRef.current = true;
             // Stop continuous scroll tracking when user scrolls up
-            virtualizedMessagesRef.current?.stopContinuousScroll();
+            messagesRef.current?.stopContinuousScroll();
             // Clear any pending timeout
             if (userScrollTimeoutRef.current) {
               clearTimeout(userScrollTimeoutRef.current);
@@ -138,14 +91,14 @@ export function ChatInterface() {
             isUserScrolledUpRef.current = false;
             // Restart continuous scroll if we're streaming
             if (streamingMessageId) {
-              virtualizedMessagesRef.current?.startContinuousScroll();
+              messagesRef.current?.startContinuousScroll();
             }
           } else if (isAtBottom()) {
             // Also reset if user is at bottom (handles edge cases)
             isUserScrolledUpRef.current = false;
             // Restart continuous scroll if we're streaming
             if (streamingMessageId) {
-              virtualizedMessagesRef.current?.startContinuousScroll();
+              messagesRef.current?.startContinuousScroll();
             }
           }
         }
@@ -158,9 +111,9 @@ export function ChatInterface() {
             ? scrollTop / (scrollHeight - clientHeight)
             : 0;
 
-        // Get virtual total size for more accurate minimap calculations
-        const virtualTotalSize =
-          virtualizedMessagesRef.current?.getVirtualTotalSize() || scrollHeight;
+        // Get content height for minimap calculations
+        const totalContentHeight =
+          messagesRef.current?.getContentHeight() || scrollHeight;
 
         // Batch state updates to prevent excessive re-renders
         setScrollProgress((prev) => {
@@ -174,16 +127,19 @@ export function ChatInterface() {
         });
 
         setContentHeight((prev) => {
-          // Use virtual total size for more accurate minimap representation
-          const newContentHeight = Math.max(virtualTotalSize, scrollHeight);
-          if (prev === newContentHeight) return prev;
-          return newContentHeight;
+          if (prev === totalContentHeight) return prev;
+          return totalContentHeight;
         });
+
+        // Show minimap if content is scrollable and user has scrolled
+        const shouldShowMinimap =
+          totalContentHeight > clientHeight * 1.5 && scrollTop > 100;
+        setShowMinimap(shouldShowMinimap);
 
         scrollUpdatePendingRef.current = false;
       });
     },
-    [isAtBottom]
+    [isAtBottom, streamingMessageId]
   );
 
   // Auto-scroll to bottom when new messages arrive
@@ -198,12 +154,12 @@ export function ChatInterface() {
       const timer = setTimeout(() => {
         // Double-check user hasn't scrolled up while we were waiting
         if (!isUserScrolledUpRef.current) {
-          scrollToBottom(false); // Instant scroll for new messages (no delay)
+          messagesRef.current?.scrollToBottomInstant(); // Instant scroll for new messages
         }
       }, 10); // Reduced from 50ms to 10ms
       return () => clearTimeout(timer);
     }
-  }, [messages.length, scrollToBottom]);
+  }, [messages.length]);
 
   // Handle streaming content updates - continuous scroll as content comes in
   const lastStreamingContentLengthRef = useRef(0);
@@ -246,7 +202,7 @@ export function ChatInterface() {
               !isUserScrolledUpRef.current &&
               !isProgrammaticScrollRef.current
             ) {
-              scrollToBottom(false, true); // Sticky scroll during streaming
+              messagesRef.current?.scrollToBottomSticky(); // Sticky scroll during streaming
             }
             streamingScrollTimeoutRef.current = null;
           }, 5); // Even faster response for streaming
@@ -261,14 +217,14 @@ export function ChatInterface() {
       }
     } else if (streamingMessageId && isUserScrolledUpRef.current) {
       // If user has scrolled up during streaming, stop continuous scroll
-      virtualizedMessagesRef.current?.stopContinuousScroll();
+      messagesRef.current?.stopContinuousScroll();
       // Clear any pending scroll timeout
       if (streamingScrollTimeoutRef.current) {
         clearTimeout(streamingScrollTimeoutRef.current);
         streamingScrollTimeoutRef.current = null;
       }
     }
-  }, [streamingMessageId, messages, scrollToBottom, isAtBottom]);
+  }, [streamingMessageId, messages]);
 
   // Handle end of streaming - ensure we're at the very bottom
   useEffect(() => {
@@ -281,25 +237,25 @@ export function ChatInterface() {
       const timer = setTimeout(() => {
         // Check user hasn't scrolled up while we were waiting
         if (!isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
-          scrollToBottom(false); // Instant scroll when streaming ends
+          messagesRef.current?.scrollToBottomInstant(); // Instant scroll when streaming ends
         }
       }, 20); // Reduced from 100ms to 20ms
       return () => clearTimeout(timer);
     }
-  }, [streamingMessageId, scrollToBottom]);
+  }, [streamingMessageId]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
     // Small delay to ensure DOM is fully rendered
     const timer = setTimeout(() => {
-      scrollToBottom(); // Instant scroll for initial load
+      messagesRef.current?.scrollToBottomInstant(); // Instant scroll for initial load
       // Initialize scroll tracking
       isUserScrolledUpRef.current = false;
       setScrollProgress(0);
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [scrollToBottom]);
+  }, []);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -351,12 +307,12 @@ export function ChatInterface() {
       isUserScrolledUpRef.current = false;
 
       // Start continuous scroll tracking for streaming
-      virtualizedMessagesRef.current?.startContinuousScroll();
+      messagesRef.current?.startContinuousScroll();
 
       // Defer heavy work to next tick to allow UI to update first
       setTimeout(() => {
         // Get current messages for context using ref to avoid stale closure
-        const allMessages = [...messagesRef.current, userMessage];
+        const allMessages = [...messages, userMessage];
         const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
           role: msg.role,
           content: msg.content,
@@ -377,7 +333,7 @@ export function ChatInterface() {
             setIsTyping(false);
             setStreamingMessageId(null);
             // Stop continuous scroll tracking
-            virtualizedMessagesRef.current?.stopContinuousScroll();
+            messagesRef.current?.stopContinuousScroll();
             // Clear streaming flag
             setMessages((prev) =>
               prev.map((msg) =>
@@ -392,7 +348,7 @@ export function ChatInterface() {
             setIsTyping(false);
             setStreamingMessageId(null);
             // Stop continuous scroll tracking
-            virtualizedMessagesRef.current?.stopContinuousScroll();
+            messagesRef.current?.stopContinuousScroll();
             // Remove the failed assistant message
             setMessages((prev) =>
               prev.filter((msg) => msg.id !== assistantMessage.id)
@@ -437,8 +393,8 @@ export function ChatInterface() {
       </AnimatePresence>
 
       {/* Messages Area */}
-      <VirtualizedMessages
-        ref={virtualizedMessagesRef}
+      <Messages
+        ref={messagesRef}
         messages={messages}
         isTyping={isTyping}
         streamingMessageId={streamingMessageId}
@@ -446,13 +402,15 @@ export function ChatInterface() {
       />
 
       {/* Chat Minimap */}
-      <ChatMinimap
-        messages={messages}
-        scrollProgress={scrollProgress}
-        viewportHeight={viewportHeight}
-        contentHeight={contentHeight}
-        onScrollTo={scrollTo}
-      />
+      {showMinimap && (
+        <ChatMinimap
+          messages={messages}
+          scrollProgress={scrollProgress}
+          viewportHeight={viewportHeight}
+          contentHeight={contentHeight}
+          onScrollTo={scrollTo}
+        />
+      )}
 
       {/* Floating Message Input */}
       <motion.div
