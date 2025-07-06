@@ -8,6 +8,7 @@ import { renderMarkdown } from "@/lib/markdown.tsx";
 interface ChatMessageProps {
   message: Message;
   disableAnimations?: boolean;
+  onHeightChange?: () => void;
 }
 
 // Static markdown renderer for completed messages with full code block support
@@ -30,10 +31,12 @@ function CollapsibleMessage({
   children,
   content,
   isUser,
+  onHeightChange,
 }: {
   children: React.ReactNode;
   content: string;
   isUser: boolean;
+  onHeightChange?: () => void;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -46,6 +49,13 @@ function CollapsibleMessage({
 
   const toggleCollapsed = () => {
     setIsCollapsed(!isCollapsed);
+    // Notify parent that height will change
+    if (onHeightChange) {
+      // Use setTimeout to ensure the DOM update happens first
+      setTimeout(() => {
+        onHeightChange();
+      }, 0);
+    }
   };
 
   return (
@@ -137,6 +147,7 @@ function CollapsibleMessage({
 export const ChatMessage = memo(function ChatMessage({
   message,
   disableAnimations = false,
+  onHeightChange,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
   const isActivelyStreaming = message.isStreaming === true;
@@ -175,7 +186,11 @@ export const ChatMessage = memo(function ChatMessage({
             isUser && "bg-accent/20 text-foreground border border-accent/30"
           )}
         >
-          <CollapsibleMessage content={message.content} isUser={isUser}>
+          <CollapsibleMessage
+            content={message.content}
+            isUser={isUser}
+            onHeightChange={onHeightChange}
+          >
             {messageContent}
           </CollapsibleMessage>
         </div>
@@ -200,7 +215,11 @@ export const ChatMessage = memo(function ChatMessage({
           isUser && "bg-accent/20 text-foreground border border-accent/30"
         )}
       >
-        <CollapsibleMessage content={message.content} isUser={isUser}>
+        <CollapsibleMessage
+          content={message.content}
+          isUser={isUser}
+          onHeightChange={onHeightChange}
+        >
           {messageContent}
         </CollapsibleMessage>
       </motion.div>

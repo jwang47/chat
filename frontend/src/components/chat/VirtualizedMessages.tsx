@@ -419,6 +419,17 @@ export const VirtualizedMessages = forwardRef<
                       <ChatMessage
                         message={item as Message}
                         disableAnimations={true}
+                        onHeightChange={() => {
+                          // Trigger remeasurement when message height changes
+                          const element = messageElementsRef.current.get(
+                            virtualRow.index
+                          );
+                          if (element?.isConnected) {
+                            requestAnimationFrame(() => {
+                              virtualizer.measureElement(element);
+                            });
+                          }
+                        }}
                       />
                     )}
                   </div>
