@@ -337,10 +337,10 @@ export function ChatInterface() {
         isStreaming: true,
       };
 
-      // Add both messages to state in a single update
+      // Add both messages to state in a single update - UI updates immediately
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
-      // Set up streaming
+      // Set up streaming state immediately
       setIsTyping(true);
       setStreamingMessageId(assistantMessage.id);
 
@@ -353,50 +353,53 @@ export function ChatInterface() {
       // Start continuous scroll tracking for streaming
       virtualizedMessagesRef.current?.startContinuousScroll();
 
-      // Get current messages for context using ref to avoid stale closure
-      const allMessages = [...messagesRef.current, userMessage];
-      const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // Defer heavy work to next tick to allow UI to update first
+      setTimeout(() => {
+        // Get current messages for context using ref to avoid stale closure
+        const allMessages = [...messagesRef.current, userMessage];
+        const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
-      // Stream chat completion using the unified LlmService
-      LlmService.streamChatCompletion(selectedModel, llmMessages, {
-        onChunk: (chunk: string) => {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessage.id
-                ? { ...msg, content: msg.content + chunk }
-                : msg
-            )
-          );
-        },
-        onComplete: () => {
-          setIsTyping(false);
-          setStreamingMessageId(null);
-          // Stop continuous scroll tracking
-          virtualizedMessagesRef.current?.stopContinuousScroll();
-          // Clear streaming flag
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessage.id
-                ? { ...msg, isStreaming: false }
-                : msg
-            )
-          );
-        },
-        onError: (error: Error) => {
-          setError(error.message);
-          setIsTyping(false);
-          setStreamingMessageId(null);
-          // Stop continuous scroll tracking
-          virtualizedMessagesRef.current?.stopContinuousScroll();
-          // Remove the failed assistant message
-          setMessages((prev) =>
-            prev.filter((msg) => msg.id !== assistantMessage.id)
-          );
-        },
-      });
+        // Stream chat completion using the unified LlmService
+        LlmService.streamChatCompletion(selectedModel, llmMessages, {
+          onChunk: (chunk: string) => {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, content: msg.content + chunk }
+                  : msg
+              )
+            );
+          },
+          onComplete: () => {
+            setIsTyping(false);
+            setStreamingMessageId(null);
+            // Stop continuous scroll tracking
+            virtualizedMessagesRef.current?.stopContinuousScroll();
+            // Clear streaming flag
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, isStreaming: false }
+                  : msg
+              )
+            );
+          },
+          onError: (error: Error) => {
+            setError(error.message);
+            setIsTyping(false);
+            setStreamingMessageId(null);
+            // Stop continuous scroll tracking
+            virtualizedMessagesRef.current?.stopContinuousScroll();
+            // Remove the failed assistant message
+            setMessages((prev) =>
+              prev.filter((msg) => msg.id !== assistantMessage.id)
+            );
+          },
+        });
+      }, 0); // Defer to next tick
     },
     [generateMessageId, selectedModel] // Removed 'messages' dependency
   );
