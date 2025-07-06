@@ -8,7 +8,7 @@ import {
 } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { motion } from "motion/react";
-import ScrollableFeed from "react-scrollable-feed";
+import { useAutoScroll } from "@/hooks/useAutoScroll";
 
 import type { Message } from "@/types/chat";
 
@@ -42,8 +42,15 @@ interface TypingIndicatorMessage extends Message {
 
 export const Messages = forwardRef<MessagesRef, MessagesProps>(
   ({ messages, isTyping, streamingMessageId, onScrollChange }, ref) => {
-    const scrollableFeedRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // Use auto-scroll hook that depends on messages length and streaming state
+    // We'll use the ScrollableFeed container as the scroll target
+    const { wrapperRef, handleScroll: handleAutoScroll } = useAutoScroll([
+      messages.length,
+      streamingMessageId,
+      isTyping,
+    ]);
 
     // Create items including typing indicator
     const items = useMemo(() => {
@@ -66,81 +73,49 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
 
     // Scroll methods for compatibility with existing interface
     const scrollToBottom = useCallback(() => {
-      if (containerRef.current) {
-        const scrollContainer = containerRef.current.querySelector(
-          "[data-scrollable-feed]"
-        );
-        if (scrollContainer) {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        }
+      if (wrapperRef.current) {
+        wrapperRef.current.scrollTop = wrapperRef.current.scrollHeight;
       }
     }, []);
 
     const scrollToBottomSmooth = useCallback(() => {
-      if (containerRef.current) {
-        const scrollContainer = containerRef.current.querySelector(
-          "[data-scrollable-feed]"
-        );
-        if (scrollContainer) {
-          scrollContainer.scrollTo({
-            top: scrollContainer.scrollHeight,
-            behavior: "smooth",
-          });
-        }
+      if (wrapperRef.current) {
+        wrapperRef.current.scrollTo({
+          top: wrapperRef.current.scrollHeight,
+          behavior: "smooth",
+        });
       }
     }, []);
 
     const scrollTo = useCallback((position: number) => {
-      if (containerRef.current) {
-        const scrollContainer = containerRef.current.querySelector(
-          "[data-scrollable-feed]"
-        );
-        if (scrollContainer) {
-          scrollContainer.scrollTop = position;
-        }
+      if (wrapperRef.current) {
+        wrapperRef.current.scrollTop = position;
       }
     }, []);
 
     const getScrollContainer = useCallback(() => {
-      if (containerRef.current) {
-        return containerRef.current.querySelector(
-          "[data-scrollable-feed]"
-        ) as HTMLElement;
-      }
-      return null;
+      return wrapperRef.current;
     }, []);
 
     const getContentHeight = useCallback(() => {
-      const scrollContainer = getScrollContainer();
-      return scrollContainer?.scrollHeight || 0;
-    }, [getScrollContainer]);
+      return wrapperRef.current?.scrollHeight || 0;
+    }, []);
 
     // Handle scroll events
-    const handleScroll = useCallback(
-      (e: Event) => {
+    const handleScrollEvent = useCallback(
+      (e: React.UIEvent<HTMLDivElement>) => {
         const target = e.target as HTMLElement;
         const { scrollTop, scrollHeight, clientHeight } = target;
+
+        // Call auto-scroll handler to check if we should freeze auto-scrolling
+        handleAutoScroll();
 
         if (onScrollChange) {
           onScrollChange(scrollTop, scrollHeight, clientHeight);
         }
       },
-      [onScrollChange]
+      [onScrollChange, handleAutoScroll]
     );
-
-    // Set up scroll listener
-    useEffect(() => {
-      const scrollContainer = getScrollContainer();
-      if (scrollContainer) {
-        scrollContainer.addEventListener("scroll", handleScroll, {
-          passive: true,
-        });
-
-        return () => {
-          scrollContainer.removeEventListener("scroll", handleScroll);
-        };
-      }
-    }, [handleScroll, getScrollContainer]);
 
     // Expose scroll methods to parent
     useImperativeHandle(
@@ -212,10 +187,10 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
 
     return (
       <div ref={containerRef} className="flex-1 overflow-hidden">
-        <ScrollableFeed
-          ref={scrollableFeedRef}
-          className="h-full"
-          data-scrollable-feed
+        <div
+          ref={wrapperRef}
+          className="h-full overflow-auto"
+          onScroll={handleScrollEvent}
         >
           <div className="flex flex-col gap-4 p-4 pb-32">
             {items.map((message) => {
@@ -226,7 +201,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
               return <ChatMessage key={message.id} message={message} />;
             })}
           </div>
-        </ScrollableFeed>
+        </div>
       </div>
     );
   }

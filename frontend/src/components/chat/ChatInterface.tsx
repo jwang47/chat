@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { MessageInput } from "./MessageInput";
 import { Messages, type MessagesRef } from "./Messages";
 import { ChatMinimap } from "./ChatMinimap";
