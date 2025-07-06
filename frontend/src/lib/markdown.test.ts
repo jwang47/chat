@@ -29,8 +29,32 @@ describe("Markdown rendering", () => {
     expect(container.innerHTML).toContain("1");
     expect(container.innerHTML).toContain("console");
     expect(container.innerHTML).toContain("log");
-    // Check for the language being detected and passed to SyntaxHighlighter
-    expect(container.innerHTML).toContain('data-language="javascript"');
+    // Check for syntax highlighting - should have language class and colored tokens
+    expect(container.innerHTML).toContain('class="language-javascript"');
+    expect(container.innerHTML).toContain('class="token"');
+  });
+
+  it("should preserve newlines in code blocks", () => {
+    const markdown =
+      "```python\ndef hello():\n    print('hello')\n\ndef world():\n    print('world')\n```";
+    const result = renderMarkdown(markdown);
+
+    const { container } = render(result);
+
+    // Should contain the code content (broken into syntax-highlighted tokens)
+    expect(container.innerHTML).toContain("def");
+    expect(container.innerHTML).toContain("hello");
+    expect(container.innerHTML).toContain("print");
+    expect(container.innerHTML).toContain("'hello'");
+    expect(container.innerHTML).toContain("world");
+    expect(container.innerHTML).toContain("'world'");
+
+    // Should NOT convert newlines to <br /> tags within code blocks
+    expect(container.innerHTML).not.toContain("<br />");
+
+    // Should have syntax highlighting for Python
+    expect(container.innerHTML).toContain('class="language-python"');
+    expect(container.innerHTML).toContain('class="token"');
   });
 
   it("should render inline code", () => {

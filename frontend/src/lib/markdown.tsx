@@ -33,9 +33,23 @@ function preprocessContent(content: string): string {
   // Split content into lines
   const lines = content.split("\n");
   const processedLines: string[] = [];
+  let inCodeBlock = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    // Check if we're entering or leaving a code block
+    if (line.trim().startsWith("```")) {
+      inCodeBlock = !inCodeBlock;
+      processedLines.push(line);
+      continue;
+    }
+
+    // If we're in a code block, don't process the line
+    if (inCodeBlock) {
+      processedLines.push(line);
+      continue;
+    }
 
     // If line is empty and not the last line, convert to <br />
     if (line.trim() === "" && i < lines.length - 1) {
@@ -161,7 +175,7 @@ export function renderMarkdown(
             const codeContent = String(children).replace(/\n$/, "");
 
             return (
-              <div className="mb-4" data-language={language}>
+              <div className="mb-4">
                 <SyntaxHighlighter
                   style={oneDark as any}
                   language={language}
@@ -244,7 +258,7 @@ export function renderMarkdown(
           textContent = textContent.replace(/\n$/, "");
 
           return (
-            <div className="mb-4" data-language={language} data-source="pre">
+            <div className="mb-4">
               <SyntaxHighlighter
                 style={oneDark as any}
                 language={language}
