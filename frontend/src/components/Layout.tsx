@@ -1,5 +1,5 @@
 import { ThemeProvider } from "./theme-provider";
-import { SidebarProvider } from "./ui/sidebar";
+import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { AppSidebar } from "./app-sidebar";
 import { CommandPalette } from "./CommandPalette";
 import { Outlet } from "react-router-dom";
@@ -9,11 +9,9 @@ export function Layout() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SidebarProvider>
         <AppSidebar />
-        <main className="w-full h-screen flex flex-col">
-          <div className="flex-1">
-            <Outlet />
-          </div>
-        </main>
+        <SidebarInset className="h-screen">
+          <Outlet />
+        </SidebarInset>
         <CommandPalette />
       </SidebarProvider>
     </ThemeProvider>

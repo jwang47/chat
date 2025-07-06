@@ -1,44 +1,46 @@
-import { useState, useRef, useCallback, useMemo } from "react";
-import { MessageInput } from "./MessageInput";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Messages, type MessagesRef } from "./Messages";
 import { ChatMinimap } from "./ChatMinimap";
-import { motion, AnimatePresence } from "motion/react";
+import { MessageInput } from "./MessageInput";
 import { LlmService, type LlmMessage } from "@/lib/llmService";
 import type { Message } from "@/types/chat";
+import { motion, AnimatePresence } from "motion/react";
+import { mockMessages } from "@/data/mockChat";
 import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
-import { mockMessages } from "@/data/mockChat";
-import { useSidebar } from "@/components/ui/sidebar";
 
 export function ChatInterface() {
+  // const [messages, setMessages] = useState<Message[]>([]);
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState(getDefaultModel().id);
+  const [selectedModel, setSelectedModel] = useState<string>(
+    () => getDefaultModel().id
+  );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
-  const [contentHeight, setContentHeight] = useState(0);
-  const [showMinimap, setShowMinimap] = useState(false);
-
-  const messagesRef = useRef<MessagesRef>(null);
-  const messageIdCounter = useRef(0);
-
-  // Get sidebar state for positioning
-  const { state: sidebarState, isMobile } = useSidebar();
-
-  // Calculate left position based on sidebar state
-  const messageInputLeftClass = useMemo(() => {
-    if (isMobile) return "left-0";
-    return sidebarState === "collapsed" ? "left-12" : "left-40";
-  }, [isMobile, sidebarState]);
 
   // Handle model selection
   const handleModelSelect = useCallback((model: ModelInfo) => {
     setSelectedModel(model.id);
   }, []);
+
+  const [contentHeight, setContentHeight] = useState(0);
+  const messagesComponentRef = useRef<MessagesRef>(null);
+  const messageIdCounter = useRef(0);
+  const isUserScrolledUpRef = useRef(false);
+  const scrollUpdatePendingRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
+  const messagesStateRef = useRef<Message[]>(messages);
+
+  // Keep messagesStateRef in sync with messages state
+  useEffect(() => {
+    messagesStateRef.current = messages;
+  }, [messages]);
 
   // Generate unique message ID
   const generateMessageId = useCallback(() => {
@@ -46,38 +48,161 @@ export function ChatInterface() {
     return `msg_${Date.now()}_${messageIdCounter.current}`;
   }, []);
 
-  // Scroll to specific position (for minimap)
-  const scrollTo = useCallback((position: number) => {
-    messagesRef.current?.scrollTo(position);
+  // Get the scroll container from messages component
+  const getScrollContainer = useCallback(() => {
+    return messagesComponentRef.current?.getScrollContainer() || null;
   }, []);
 
-  // Simplified scroll handling for minimap only
+  // Check if user is at or near the bottom of the chat
+  const isAtBottom = useCallback(() => {
+    const scrollContainer = getScrollContainer();
+    if (!scrollContainer) return true;
+
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+    const threshold = 50; // pixels from bottom
+    return scrollTop + clientHeight >= scrollHeight - threshold;
+  }, [getScrollContainer]);
+
+  // Optimized scroll to bottom function
+  const scrollToBottom = useCallback((smooth: boolean = false) => {
+    isProgrammaticScrollRef.current = true;
+    if (smooth) {
+      messagesComponentRef.current?.scrollToBottomSmooth();
+    } else {
+      messagesComponentRef.current?.scrollToBottomInstant();
+    }
+    isUserScrolledUpRef.current = false;
+    // Reset the flag after a moderate delay to balance responsiveness and accuracy
+    setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 150);
+  }, []);
+
+  // Scroll to specific position (for minimap)
+  const scrollTo = useCallback((position: number) => {
+    isProgrammaticScrollRef.current = true;
+    messagesComponentRef.current?.scrollTo(position);
+    // Reset the flag after a moderate delay to balance responsiveness and accuracy
+    setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 150);
+  }, []);
+
+  // Handle scroll events from virtualized messages
   const handleScrollChange = useCallback(
     (scrollTop: number, scrollHeight: number, clientHeight: number) => {
-      // Calculate scroll progress (0 to 1)
-      const progress =
-        scrollHeight > clientHeight
-          ? scrollTop / (scrollHeight - clientHeight)
-          : 0;
+      if (scrollUpdatePendingRef.current) return;
 
-      // Get content height for minimap calculations
-      const totalContentHeight =
-        messagesRef.current?.getContentHeight() || scrollHeight;
+      scrollUpdatePendingRef.current = true;
+      requestAnimationFrame(() => {
+        // Update the scroll position tracking
+        const threshold = 50;
+        const isAtBottomWithThreshold =
+          scrollTop + clientHeight >= scrollHeight - threshold;
 
-      // Update states for minimap
-      setScrollProgress(progress);
-      setViewportHeight(clientHeight);
-      setContentHeight(totalContentHeight);
+        // Only update scroll tracking if this isn't a programmatic scroll
+        // This prevents auto-scroll from interfering with user scroll detection
+        if (!isProgrammaticScrollRef.current) {
+          // Detect if user is actively scrolling up (more sensitive threshold)
+          const isScrollingUp = scrollTop < lastScrollTopRef.current - 5; // 5px threshold for better responsiveness
+          if (isScrollingUp) {
+            isUserScrolledUpRef.current = true;
+          } else if (isAtBottomWithThreshold) {
+            // Only reset to false if we're actually at the bottom
+            isUserScrolledUpRef.current = false;
+          }
+          // If we're not scrolling up and not at bottom, maintain current state
+        }
 
-      // Show minimap if content is scrollable and user has scrolled
-      const shouldShowMinimap =
-        totalContentHeight > clientHeight * 1.5 && scrollTop > 100;
-      setShowMinimap(shouldShowMinimap);
+        lastScrollTopRef.current = scrollTop;
+
+        // Calculate scroll progress (0 to 1)
+        const progress =
+          scrollHeight > clientHeight
+            ? scrollTop / (scrollHeight - clientHeight)
+            : 0;
+
+        // Batch state updates to prevent excessive re-renders
+        setScrollProgress((prev) => {
+          if (Math.abs(prev - progress) < 0.01) return prev; // Avoid micro-updates
+          return progress;
+        });
+
+        setViewportHeight((prev) => {
+          if (prev === clientHeight) return prev;
+          return clientHeight;
+        });
+
+        setContentHeight((prev) => {
+          if (prev === scrollHeight) return prev;
+          return scrollHeight;
+        });
+
+        scrollUpdatePendingRef.current = false;
+      });
     },
-    []
+    [streamingMessageId]
   );
 
-  // ScrollableFeed handles all auto-scroll behavior automatically
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    // Only auto-scroll when message count changes (new messages added)
+    if (messages.length > 0 && !isUserScrolledUpRef.current) {
+      // Use a small delay to ensure DOM is updated
+      const timer = setTimeout(() => {
+        scrollToBottom(true); // Use smooth scroll for new messages
+      }, 10);
+      return () => clearTimeout(timer);
+    }
+  }, [messages.length, scrollToBottom]); // Only depend on message count, not content
+
+  // Handle streaming content updates
+  useEffect(() => {
+    // Only auto-scroll during streaming if user is at bottom and content is actually changing
+    if (streamingMessageId && !isUserScrolledUpRef.current) {
+      const streamingMessage = messages.find(
+        (msg) => msg.id === streamingMessageId
+      );
+      // Only scroll if there's actual content and we're still streaming
+      if (
+        streamingMessage &&
+        streamingMessage.content &&
+        streamingMessage.isStreaming
+      ) {
+        const timer = setTimeout(() => {
+          // Double-check user hasn't scrolled up while we were waiting
+          if (!isUserScrolledUpRef.current) {
+            scrollToBottom(true); // Use smooth scroll during streaming too
+          }
+        }, 10);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [streamingMessageId, messages, scrollToBottom]);
+
+  // Handle end of streaming - ensure we're at the very bottom
+  useEffect(() => {
+    // When streaming ends, if user was at bottom, ensure we're at the very bottom with smooth scroll
+    if (!streamingMessageId && !isUserScrolledUpRef.current) {
+      const timer = setTimeout(() => {
+        scrollToBottom(true); // Use smooth scroll when streaming ends
+      }, 50); // Slightly longer delay to ensure DOM is fully updated
+      return () => clearTimeout(timer);
+    }
+  }, [streamingMessageId, scrollToBottom]);
+
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    // Small delay to ensure DOM is fully rendered
+    const timer = setTimeout(() => {
+      scrollToBottom(true); // Use smooth scroll for initial load
+      // Initialize scroll tracking
+      isUserScrolledUpRef.current = false;
+      setScrollProgress(0);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [scrollToBottom]);
 
   const handleSendMessage = useCallback(
     (content: string) => {
@@ -103,70 +228,58 @@ export function ChatInterface() {
         isStreaming: true,
       };
 
-      // Set up streaming state immediately
+      // Add both messages to state in a single update
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+
+      // Set up streaming
       setIsTyping(true);
       setStreamingMessageId(assistantMessage.id);
 
-      // ScrollableFeed will handle auto-scroll automatically
+      // Ensure we're considered at bottom for streaming
+      isUserScrolledUpRef.current = false;
 
-      // Add both messages to state and get fresh context in a single update
-      setMessages((prevMessages) => {
-        const updatedMessages = [
-          ...prevMessages,
-          userMessage,
-          assistantMessage,
-        ];
-        const llmMessages: LlmMessage[] = [...prevMessages, userMessage].map(
-          (msg) => ({
-            role: msg.role,
-            content: msg.content,
-          })
-        );
+      // Get current messages for context using ref to avoid stale closure
+      const allMessages = [...messagesStateRef.current, userMessage];
+      const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
 
-        // Defer the heavy work, but use the fresh state
-        setTimeout(() => {
-          LlmService.streamChatCompletion(selectedModel, llmMessages, {
-            onChunk: (chunk: string) => {
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessage.id
-                    ? { ...msg, content: msg.content + chunk }
-                    : msg
-                )
-              );
-            },
-            onComplete: () => {
-              setIsTyping(false);
-              setStreamingMessageId(null);
-              // Stop continuous scroll tracking
-              messagesRef.current?.stopContinuousScroll();
-              // Clear streaming flag
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMessage.id
-                    ? { ...msg, isStreaming: false }
-                    : msg
-                )
-              );
-            },
-            onError: (error: Error) => {
-              setError(error.message);
-              setIsTyping(false);
-              setStreamingMessageId(null);
-              // Stop continuous scroll tracking
-              messagesRef.current?.stopContinuousScroll();
-              // Remove the failed assistant message
-              setMessages((prev) =>
-                prev.filter((msg) => msg.id !== assistantMessage.id)
-              );
-            },
-          });
-        }, 0);
-
-        return updatedMessages;
+      // Stream chat completion using the unified LlmService
+      LlmService.streamChatCompletion(selectedModel, llmMessages, {
+        onChunk: (chunk: string) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessage.id
+                ? { ...msg, content: msg.content + chunk }
+                : msg
+            )
+          );
+        },
+        onComplete: () => {
+          setIsTyping(false);
+          setStreamingMessageId(null);
+          // Clear streaming flag
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessage.id
+                ? { ...msg, isStreaming: false }
+                : msg
+            )
+          );
+        },
+        onError: (error: Error) => {
+          setError(error.message);
+          setIsTyping(false);
+          setStreamingMessageId(null);
+          // Remove the failed assistant message
+          setMessages((prev) =>
+            prev.filter((msg) => msg.id !== assistantMessage.id)
+          );
+        },
       });
     },
-    [generateMessageId, selectedModel]
+    [generateMessageId, selectedModel] // Removed 'messages' dependency
   );
 
   return (
@@ -203,7 +316,7 @@ export function ChatInterface() {
 
       {/* Messages Area */}
       <Messages
-        ref={messagesRef}
+        ref={messagesComponentRef}
         messages={messages}
         isTyping={isTyping}
         streamingMessageId={streamingMessageId}
@@ -211,15 +324,13 @@ export function ChatInterface() {
       />
 
       {/* Chat Minimap */}
-      {showMinimap && (
-        <ChatMinimap
-          messages={messages}
-          scrollProgress={scrollProgress}
-          viewportHeight={viewportHeight}
-          contentHeight={contentHeight}
-          onScrollTo={scrollTo}
-        />
-      )}
+      <ChatMinimap
+        messages={messages}
+        scrollProgress={scrollProgress}
+        viewportHeight={viewportHeight}
+        contentHeight={contentHeight}
+        onScrollTo={scrollTo}
+      />
 
       {/* Floating Message Input */}
       <motion.div
@@ -242,10 +353,10 @@ export function ChatInterface() {
         }}
         layout
         layoutId="message-input"
-        className={`${
+        className={`absolute ${
           messages.length === 0
-            ? "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[960px] px-4"
-            : `fixed bottom-8 ${messageInputLeftClass} right-0 max-w-[960px] mx-auto px-4 z-30`
+            ? "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-4"
+            : "bottom-8 left-4 right-4 max-w-4xl mx-auto"
         }`}
       >
         <MessageInput
