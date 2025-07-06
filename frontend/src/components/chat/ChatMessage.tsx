@@ -71,22 +71,27 @@ function CollapsibleMessage({
 
   return (
     <div className="relative">
-      {/* Reddit-style collapsible line on the left */}
-      <div className="absolute -left-6 top-0 bottom-0 w-4 flex flex-col items-center">
+      {/* Reddit-style collapsible line - positioned based on message type */}
+      <div
+        className={cn(
+          "absolute bottom-0 w-4 flex flex-col items-center",
+          isUser ? "-right-8 -top-3" : "-left-6 top-0"
+        )}
+      >
         {/* Collapse button */}
         <button
           onClick={toggleCollapsed}
           className={cn(
             "w-4 h-4 rounded-sm bg-surface border border-accent/30 flex items-center justify-center transition-all duration-200 hover:bg-accent/10 mb-1 shadow-sm",
-            "opacity-70 hover:opacity-100",
+            "opacity-70 hover:opacity-100 cursor-pointer",
             isCollapsed && "opacity-100"
           )}
           title={isCollapsed ? "Expand message" : "Collapse message"}
         >
           <svg
             className={cn(
-              "w-2.5 h-2.5 transition-transform duration-200",
-              isCollapsed ? "-rotate-90" : "rotate-0"
+              "w-2.5 h-2.5 transition-transform duration-0",
+              isCollapsed ? (isUser ? "rotate-90" : "-rotate-90") : "rotate-0"
             )}
             fill="none"
             stroke="currentColor"
@@ -104,7 +109,7 @@ function CollapsibleMessage({
         {/* Vertical line - clickable for collapse/expand */}
         <button
           onClick={toggleCollapsed}
-          className="flex-1 w-3 bg-transparent min-h-4 flex items-center justify-center relative group"
+          className="flex-1 w-3 bg-transparent min-h-4 flex items-center justify-center relative group cursor-pointer"
           title={
             isCollapsed
               ? "Click to expand message"
@@ -135,7 +140,12 @@ function CollapsibleMessage({
 
       {/* Collapsed State Indicator */}
       {isCollapsed && (
-        <div className="mt-2 text-xs text-muted-foreground italic flex items-center gap-2">
+        <div
+          className={cn(
+            "mt-2 text-xs text-muted-foreground italic flex items-center gap-2",
+            isUser && "justify-end"
+          )}
+        >
           <span>Message collapsed • Click line or arrow to expand</span>
           <svg
             className="w-3 h-3 opacity-60"
