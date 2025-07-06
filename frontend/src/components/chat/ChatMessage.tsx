@@ -190,6 +190,9 @@ export const ChatMessage = memo(function ChatMessage({
           isStreaming={true}
           isUserMessage={isUser}
         />
+      ) : isUser ? (
+        // Render user messages as plain text without markdown formatting
+        <div className="whitespace-pre-wrap">{message.content}</div>
       ) : (
         <StaticMarkdown content={message.content} isUserMessage={isUser} />
       )}
