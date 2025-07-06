@@ -111,4 +111,54 @@ describe("Markdown rendering", () => {
     expect(container.innerHTML).toContain("This is a blockquote");
     expect(container.innerHTML).toContain("with multiple lines");
   });
+
+  it("should render center tags with flex justify-center", () => {
+    const markdown = "<center>This text should be centered</center>";
+    const result = renderMarkdown(markdown);
+
+    const { container } = render(result);
+
+    // Should contain centered content with flex justify-center class
+    expect(container.innerHTML).toContain("This text should be centered");
+    expect(container.innerHTML).toContain("justify-center");
+  });
+
+  it("should sanitize dangerous HTML while preserving center tags", () => {
+    const markdown = `
+<center>Safe centered content</center>
+<script>alert('XSS')</script>
+<img src=x onerror=alert('XSS')>
+<iframe src="javascript:alert('XSS')"></iframe>
+`;
+    const result = renderMarkdown(markdown);
+
+    const { container } = render(result);
+
+    // Should contain safe centered content
+    expect(container.innerHTML).toContain("Safe centered content");
+    expect(container.innerHTML).toContain("justify-center");
+
+    // Should NOT contain dangerous elements
+    expect(container.innerHTML).not.toContain("<script>");
+    expect(container.innerHTML).not.toContain("alert");
+    expect(container.innerHTML).not.toContain("onerror");
+    expect(container.innerHTML).not.toContain("<iframe>");
+    expect(container.innerHTML).not.toContain("javascript:");
+  });
+
+  it("should sanitize HTML attributes that could be dangerous", () => {
+    const markdown = `<center onclick="alert('XSS')" style="background: red;">Centered text</center>`;
+    const result = renderMarkdown(markdown);
+
+    const { container } = render(result);
+
+    // Should contain the text content
+    expect(container.innerHTML).toContain("Centered text");
+    expect(container.innerHTML).toContain("justify-center");
+
+    // Should NOT contain dangerous attributes
+    expect(container.innerHTML).not.toContain("onclick");
+    expect(container.innerHTML).not.toContain("alert");
+    // Note: style attribute might be allowed by default schema, but onclick should be blocked
+  });
 });

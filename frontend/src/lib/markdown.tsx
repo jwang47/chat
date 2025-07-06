@@ -1,8 +1,24 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import { defaultSchema } from "rehype-sanitize";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+
+// Custom sanitization schema that allows center tag while keeping security
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [
+    ...(defaultSchema.tagNames || []),
+    "center", // Allow center tag
+  ],
+  attributes: {
+    ...defaultSchema.attributes,
+    // No additional attributes needed for center tag
+  },
+};
 
 // Simple markdown renderer using react-markdown
 export function renderMarkdown(
@@ -12,6 +28,7 @@ export function renderMarkdown(
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
       components={{
         // Center
         center: ({ children }) => (
