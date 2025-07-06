@@ -8,6 +8,23 @@ export interface ModelInfo {
 }
 
 export const AVAILABLE_MODELS: ModelInfo[] = [
+  // Gemini models
+  {
+    id: "google/gemini-2.5-flash",
+    name: "gemini-2.5-flash",
+    provider: "gemini",
+    displayName: "Gemini 2.5 Flash",
+    description: "",
+    maxTokens: 1000000,
+  },
+  {
+    id: "google/gemini-2.5-pro",
+    name: "gemini-2.5-pro",
+    provider: "gemini",
+    displayName: "Gemini 2.5 Pro",
+    description: "",
+    maxTokens: 1000000,
+  },
   // OpenRouter models
   {
     id: "openrouter/cypher-alpha:free",
@@ -40,24 +57,6 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     displayName: "Deepseek R1 0528 Qwen3 8B (free)",
     description: "",
     maxTokens: 131072,
-  },
-
-  // Gemini models
-  {
-    id: "google/gemini-2.5-flash",
-    name: "gemini-2.5-flash",
-    provider: "gemini",
-    displayName: "Gemini 2.5 Flash",
-    description: "",
-    maxTokens: 1000000,
-  },
-  {
-    id: "google/gemini-2.5-pro",
-    name: "gemini-2.5-pro",
-    provider: "gemini",
-    displayName: "Gemini 2.5 Pro",
-    description: "",
-    maxTokens: 1000000,
   },
 ];
 
