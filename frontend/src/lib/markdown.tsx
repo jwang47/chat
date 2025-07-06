@@ -19,19 +19,43 @@ const sanitizeSchema = {
   tagNames: [
     ...(defaultSchema.tagNames || []),
     "center", // Allow center tag for centering content
+    "br", // Allow br tag for line breaks
   ],
   attributes: {
     ...defaultSchema.attributes,
-    // No additional attributes needed for center tag
+    // No additional attributes needed for center or br tags
     // Event handlers like onclick, onload, etc. are blocked by default schema
   },
 };
+
+// Function to convert standalone newlines to <br /> tags
+function preprocessContent(content: string): string {
+  // Split content into lines
+  const lines = content.split("\n");
+  const processedLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // If line is empty and not the last line, convert to <br />
+    if (line.trim() === "" && i < lines.length - 1) {
+      processedLines.push("<br />");
+    } else {
+      processedLines.push(line);
+    }
+  }
+
+  return processedLines.join("\n");
+}
 
 // Simple markdown renderer using react-markdown
 export function renderMarkdown(
   content: string,
   isUserMessage: boolean = false
 ) {
+  // Preprocess content to convert standalone newlines to <br /> tags
+  const processedContent = preprocessContent(content);
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -219,7 +243,7 @@ export function renderMarkdown(
         },
       }}
     >
-      {content}
+      {processedContent}
     </ReactMarkdown>
   );
 }

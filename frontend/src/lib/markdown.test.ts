@@ -162,3 +162,34 @@ describe("Markdown rendering", () => {
     // Note: style attribute might be allowed by default schema, but onclick should be blocked
   });
 });
+
+describe("Standalone newline conversion", () => {
+  it("should convert standalone newlines to <br /> tags", () => {
+    const content = `Line 1
+
+Line 3
+
+Line 5`;
+
+    const result = renderMarkdown(content);
+
+    // The result should contain <br /> tags for standalone newlines
+    expect(result.props.children).toContain(
+      "Line 1\n<br />\nLine 3\n<br />\nLine 5"
+    );
+  });
+
+  it("should not convert newlines within paragraphs", () => {
+    const content = `This is a paragraph
+with a regular line break.
+
+This is another paragraph.`;
+
+    const result = renderMarkdown(content);
+
+    // Should only convert the empty line between paragraphs
+    expect(result.props.children).toContain(
+      "This is a paragraph\nwith a regular line break.\n<br />\nThis is another paragraph."
+    );
+  });
+});
