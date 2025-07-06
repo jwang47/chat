@@ -194,13 +194,13 @@ export function ChatInterface() {
       !isUserScrolledUpRef.current &&
       !isProgrammaticScrollRef.current
     ) {
-      // Use a small delay to ensure DOM is updated
+      // Use minimal delay with instant scroll for immediate feedback
       const timer = setTimeout(() => {
         // Double-check user hasn't scrolled up while we were waiting
         if (!isUserScrolledUpRef.current) {
-          scrollToBottom(true); // Smooth scroll for new messages
+          scrollToBottom(false); // Instant scroll for new messages (no delay)
         }
-      }, 50);
+      }, 10); // Reduced from 50ms to 10ms
       return () => clearTimeout(timer);
     }
   }, [messages.length, scrollToBottom]);
@@ -249,7 +249,7 @@ export function ChatInterface() {
               scrollToBottom(false, true); // Sticky scroll during streaming
             }
             streamingScrollTimeoutRef.current = null;
-          }, 10); // Very fast response
+          }, 5); // Even faster response for streaming
 
           return () => {
             if (streamingScrollTimeoutRef.current) {
@@ -272,7 +272,7 @@ export function ChatInterface() {
 
   // Handle end of streaming - ensure we're at the very bottom
   useEffect(() => {
-    // When streaming ends, ensure we're at the bottom with smooth scroll
+    // When streaming ends, ensure we're at the bottom with instant scroll
     if (
       !streamingMessageId &&
       !isUserScrolledUpRef.current &&
@@ -281,9 +281,9 @@ export function ChatInterface() {
       const timer = setTimeout(() => {
         // Check user hasn't scrolled up while we were waiting
         if (!isUserScrolledUpRef.current && !isProgrammaticScrollRef.current) {
-          scrollToBottom(true); // Smooth scroll when streaming ends
+          scrollToBottom(false); // Instant scroll when streaming ends
         }
-      }, 100);
+      }, 20); // Reduced from 100ms to 20ms
       return () => clearTimeout(timer);
     }
   }, [streamingMessageId, scrollToBottom]);
