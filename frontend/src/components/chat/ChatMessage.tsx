@@ -74,15 +74,17 @@ function CollapsibleMessage({
       {/* Reddit-style collapsible line - positioned based on message type */}
       <div
         className={cn(
-          "absolute bottom-0 w-4 flex flex-col items-center",
-          isUser ? "-right-8 -top-3" : "-left-6 top-0"
+          "absolute w-4 flex flex-col items-center",
+          isUser
+            ? "-right-8 top-[-12px] bottom-[-12px]"
+            : "-left-6 top-0 bottom-0"
         )}
       >
         {/* Collapse button */}
         <button
           onClick={toggleCollapsed}
           className={cn(
-            "w-4 h-4 rounded-sm bg-surface border border-accent/30 flex items-center justify-center transition-all duration-200 hover:bg-accent/10 mb-1 shadow-sm",
+            "w-4 h-4 rounded-sm flex items-center justify-center transition-all duration-200 mb-1 shadow-sm text-accent hover:text-accent-foreground",
             "opacity-70 hover:opacity-100 cursor-pointer",
             isCollapsed && "opacity-100"
           )}
@@ -120,7 +122,7 @@ function CollapsibleMessage({
           <div
             className={cn(
               "absolute w-0.5 bg-accent/30 transition-colors duration-75 will-change-auto",
-              "group-hover:bg-accent",
+              "group-hover:bg-accent-foreground",
               "inset-y-0"
             )}
           />
@@ -168,7 +170,6 @@ function CollapsibleMessage({
 
 export const ChatMessage = memo(function ChatMessage({
   message,
-  disableAnimations = false,
   onHeightChange,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
@@ -199,42 +200,12 @@ export const ChatMessage = memo(function ChatMessage({
     </div>
   );
 
-  if (disableAnimations) {
-    return (
-      <div
-        className={cn("flex p-4", isUser && "justify-end")}
-        data-message-id={message.id}
-      >
-        <div
-          className={cn(
-            "p-3 rounded-lg max-w-[90%] relative",
-            isUser && "bg-accent/20 text-foreground border border-accent/30"
-          )}
-        >
-          <CollapsibleMessage
-            content={message.content}
-            isUser={isUser}
-            onHeightChange={onHeightChange}
-          >
-            {messageContent}
-          </CollapsibleMessage>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 1.5, ease: "easeOut" }}
+    <div
       className={cn("flex p-4", isUser && "justify-end")}
       data-message-id={message.id}
     >
-      <motion.div
-        initial={{ scale: 0.95 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.2, ease: "easeOut", delay: 0.1 }}
+      <div
         className={cn(
           "p-3 rounded-lg max-w-[90%] relative",
           isUser && "bg-accent/20 text-foreground border border-accent/30"
@@ -247,7 +218,7 @@ export const ChatMessage = memo(function ChatMessage({
         >
           {messageContent}
         </CollapsibleMessage>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 });
