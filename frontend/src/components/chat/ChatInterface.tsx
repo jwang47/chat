@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { MessageInput } from "./MessageInput";
 import { Messages, type MessagesRef } from "./Messages";
 import { ChatMinimap } from "./ChatMinimap";
@@ -8,6 +8,7 @@ import type { Message } from "@/types/chat";
 import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
 import { mockMessages } from "@/data/mockChat";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
@@ -24,6 +25,15 @@ export function ChatInterface() {
 
   const messagesRef = useRef<MessagesRef>(null);
   const messageIdCounter = useRef(0);
+
+  // Get sidebar state for positioning
+  const { state: sidebarState, isMobile } = useSidebar();
+
+  // Calculate left position based on sidebar state
+  const messageInputLeftClass = useMemo(() => {
+    if (isMobile) return "left-0";
+    return sidebarState === "collapsed" ? "left-12" : "left-40";
+  }, [isMobile, sidebarState]);
 
   // Handle model selection
   const handleModelSelect = useCallback((model: ModelInfo) => {
@@ -235,7 +245,7 @@ export function ChatInterface() {
         className={`${
           messages.length === 0
             ? "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[960px] px-4"
-            : "fixed bottom-8 left-0 right-0 max-w-[960px] mx-auto px-4 z-30"
+            : `fixed bottom-8 ${messageInputLeftClass} right-0 max-w-[960px] mx-auto px-4 z-30`
         }`}
       >
         <MessageInput
