@@ -161,7 +161,7 @@ export function renderMarkdown(
             const codeContent = String(children).replace(/\n$/, "");
 
             return (
-              <div className="mb-4">
+              <div className="mb-4" data-language={language}>
                 <SyntaxHighlighter
                   style={oneDark as any}
                   language={language}
@@ -189,45 +189,65 @@ export function renderMarkdown(
 
         // Pre blocks (fallback for code blocks)
         pre: ({ children }) => {
-          // Extract code content from pre > code structure
-          const codeElement = React.Children.only(
-            children
-          ) as React.ReactElement<any>;
-          if (codeElement.props?.className) {
-            const language = codeElement.props.className.replace(
-              "language-",
-              ""
-            );
-            const codeContent = String(codeElement.props.children).replace(
-              /\n$/,
-              ""
-            );
+          // Extract language and content from children
+          let language = "";
+          let textContent = "";
 
-            return (
-              <div className="mb-4">
-                <SyntaxHighlighter
-                  style={oneDark as any}
-                  language={language}
-                  PreTag="div"
-                  className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
-                  customStyle={{
-                    margin: 0,
-                    padding: "12px",
-                    borderRadius: "0.5rem",
-                  }}
-                >
-                  {codeContent}
-                </SyntaxHighlighter>
-              </div>
-            );
+          if (typeof children === "string") {
+            textContent = children;
+          } else if (
+            React.isValidElement(children) &&
+            (children.type === "code" ||
+              (typeof children.type === "function" &&
+                children.type.name === "code"))
+          ) {
+            // Direct code child
+            const props = children.props as any;
+            if (props?.className && typeof props.className === "string") {
+              const match = props.className.match(/language-(\w+)/);
+              if (match) {
+                language = match[1];
+              }
+            }
+            textContent = String(props?.children || "");
+          } else {
+            // Multiple children - look for code element
+            React.Children.forEach(children, (child) => {
+              if (React.isValidElement(child) && child.type === "code") {
+                const props = child.props as any;
+                if (props?.className && typeof props.className === "string") {
+                  const match = props.className.match(/language-(\w+)/);
+                  if (match) {
+                    language = match[1];
+                  }
+                }
+                textContent = String(props?.children || "");
+              }
+            });
+
+            // If no code element found, extract text from all children
+            if (!textContent) {
+              textContent = React.Children.toArray(children)
+                .map((child) => {
+                  if (typeof child === "string") return child;
+                  if (React.isValidElement(child)) {
+                    const props = child.props as any;
+                    return String(props?.children || "");
+                  }
+                  return "";
+                })
+                .join("");
+            }
           }
 
-          // Fallback for pre without language
+          // Clean up trailing newlines
+          textContent = textContent.replace(/\n$/, "");
+
           return (
-            <div className="mb-4">
+            <div className="mb-4" data-language={language} data-source="pre">
               <SyntaxHighlighter
                 style={oneDark as any}
-                language=""
+                language={language}
                 PreTag="div"
                 className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
                 customStyle={{
@@ -236,7 +256,7 @@ export function renderMarkdown(
                   borderRadius: "0.5rem",
                 }}
               >
-                {String(codeElement.props?.children || "")}
+                {textContent}
               </SyntaxHighlighter>
             </div>
           );

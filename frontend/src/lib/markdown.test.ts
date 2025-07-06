@@ -29,7 +29,8 @@ describe("Markdown rendering", () => {
     expect(container.innerHTML).toContain("1");
     expect(container.innerHTML).toContain("console");
     expect(container.innerHTML).toContain("log");
-    expect(container.innerHTML).toContain("language-javascript");
+    // Check for the language being detected and passed to SyntaxHighlighter
+    expect(container.innerHTML).toContain('data-language="javascript"');
   });
 
   it("should render inline code", () => {

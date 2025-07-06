@@ -7,9 +7,10 @@ import { LlmService, type LlmMessage } from "@/lib/llmService";
 import type { Message } from "@/types/chat";
 import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
+import { mockMessages } from "@/data/mockChat";
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
