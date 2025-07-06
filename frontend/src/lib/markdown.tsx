@@ -13,6 +13,10 @@ export function renderMarkdown(
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
+        // Center
+        center: ({ children }) => (
+          <div className="flex justify-center">{children}</div>
+        ),
         // Paragraphs
         p: ({ children }) => (
           <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>

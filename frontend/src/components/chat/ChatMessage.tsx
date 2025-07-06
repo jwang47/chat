@@ -1,6 +1,6 @@
 import type { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import { motion } from "motion/react";
 import { StreamingText } from "./StreamingText";
 import { renderMarkdown } from "@/lib/markdown.tsx";
@@ -8,7 +8,7 @@ import { renderMarkdown } from "@/lib/markdown.tsx";
 interface ChatMessageProps {
   message: Message;
   disableAnimations?: boolean;
-  onHeightChange?: () => void;
+  onHeightChange?: (heightDifference?: number) => void;
 }
 
 // Static markdown renderer for completed messages with full code block support
@@ -36,9 +36,10 @@ function CollapsibleMessage({
   children: React.ReactNode;
   content: string;
   isUser: boolean;
-  onHeightChange?: () => void;
+  onHeightChange?: (heightDifference?: number) => void;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const messageRef = useRef<HTMLDivElement>(null);
 
   // Determine if message is long enough to warrant collapsing
   const isLongMessage = content.length > 500 || content.split("\n").length > 10;
@@ -48,14 +49,24 @@ function CollapsibleMessage({
   }
 
   const toggleCollapsed = () => {
+    if (!messageRef.current) return;
+
+    // Get current height before toggling
+    const currentHeight = messageRef.current.scrollHeight;
+
     setIsCollapsed(!isCollapsed);
-    // Notify parent that height will change
-    if (onHeightChange) {
-      // Use setTimeout to ensure the DOM update happens first
-      setTimeout(() => {
-        onHeightChange();
-      }, 0);
-    }
+
+    // Calculate height difference and notify parent after DOM update
+    requestAnimationFrame(() => {
+      if (messageRef.current && onHeightChange) {
+        const newHeight = messageRef.current.scrollHeight;
+        const heightDifference = newHeight - currentHeight;
+
+        // Call onHeightChange with the height difference
+        // Positive means expanded, negative means collapsed
+        onHeightChange(heightDifference);
+      }
+    });
   };
 
   return (
@@ -113,6 +124,7 @@ function CollapsibleMessage({
 
       {/* Message content */}
       <div
+        ref={messageRef}
         className={cn(
           "transition-all duration-300 ease-in-out overflow-hidden",
           isCollapsed ? "max-h-24" : "max-h-none"
