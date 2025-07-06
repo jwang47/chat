@@ -76,7 +76,7 @@ function CollapsibleMessage({
         className={cn(
           "absolute w-4 flex flex-col items-center group",
           isUser
-            ? "-right-8 top-[-12px] bottom-[-12px]"
+            ? "-right-8 top-[-16px] bottom-[-12px]"
             : "-left-6 top-0 bottom-0"
         )}
       >
