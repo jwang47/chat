@@ -308,6 +308,17 @@
     }
   }
 
+  /* Text selection styling for all messages */
+  ::selection {
+    background-color: rgba(211, 211, 211, 0.3) !important;
+    color: inherit !important;
+  }
+  
+  ::-moz-selection {
+    background-color: rgba(211, 211, 211, 0.3) !important;
+    color: inherit !important;
+  }
+
   /* Syntax highlighting overrides for grayscale theme */
   .dark pre[class*="language-"] {
     background-color: var(--surface) !important;

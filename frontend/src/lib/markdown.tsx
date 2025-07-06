@@ -36,18 +36,7 @@ function CollapsibleCodeBlock({
     setIsExpanded(!isExpanded);
   };
 
-  // Adjust background colors based on whether it's a user message
-  const codeBlockBg = isUserMessage
-    ? "rgba(25, 24, 21, 0.8)" // Darker for user messages
-    : "rgba(45, 44, 40, 0.6)"; // Original for assistant messages
-
-  const expandButtonBg = isUserMessage
-    ? "rgba(25, 24, 21, 0.9)" // Darker for user messages
-    : "rgba(45, 44, 40, 0.4)"; // Original for assistant messages
-
-  const expandButtonBorder = isUserMessage
-    ? "rgba(25, 24, 21, 0.9)" // Darker for user messages
-    : "rgba(45, 44, 40, 0.8)"; // Original for assistant messages
+  // Let container background take over - no custom backgrounds needed
 
   return (
     <div className="relative mb-4">
@@ -61,7 +50,7 @@ function CollapsibleCodeBlock({
           PreTag="div"
           className="!m-0 !p-3 !text-xs !font-mono"
           customStyle={{
-            backgroundColor: codeBlockBg,
+            backgroundColor: "var(--surface)",
             margin: 0,
             padding: "12px",
             borderRadius:
@@ -75,7 +64,7 @@ function CollapsibleCodeBlock({
         <button
           onClick={handleToggle}
           className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1"
-          style={{ backgroundColor: expandButtonBg }}
+          style={{ backgroundColor: "var(--surface)" }}
         >
           Show more ({lineCount} lines)
           <svg
@@ -97,20 +86,15 @@ function CollapsibleCodeBlock({
         <div
           className="border-t rounded-b-lg"
           style={{
-            borderColor: expandButtonBorder,
-            backgroundColor: expandButtonBg,
+            borderColor: "var(--accent)",
+            backgroundColor: "var(--surface)",
           }}
         >
           <button
             onClick={handleToggle}
             className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1 rounded-b-lg"
-            style={{
-              backgroundColor: "transparent",
-            }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = isUserMessage
-                ? "rgba(25, 24, 21, 0.6)"
-                : "rgba(45, 44, 40, 0.6)";
+              e.currentTarget.style.backgroundColor = "var(--accent)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = "transparent";
@@ -142,9 +126,7 @@ export function renderMarkdown(
   content: string,
   isUserMessage: boolean = false
 ) {
-  const inlineCodeBg = isUserMessage
-    ? "rgba(25, 24, 21, 0.6)" // Darker for user messages
-    : "rgba(45, 44, 40, 0.4)"; // Original for assistant messages
+  // Let container background take over for inline code too
 
   return (
     <ReactMarkdown
@@ -256,7 +238,10 @@ export function renderMarkdown(
           return (
             <code
               className="px-1 py-0.5 rounded text-xs font-mono"
-              style={{ backgroundColor: inlineCodeBg }}
+              style={{
+                backgroundColor: "var(--surface)",
+                color: "var(--foreground)",
+              }}
             >
               {children}
             </code>
