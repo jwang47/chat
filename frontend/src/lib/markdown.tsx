@@ -1,119 +1,14 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useState, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-
-// Collapsible code block component for long code blocks
-interface CollapsibleCodeBlockProps {
-  children: string;
-  language: string;
-  isUserMessage?: boolean;
-}
-
-function CollapsibleCodeBlock({
-  children,
-  language,
-  isUserMessage = false,
-}: CollapsibleCodeBlockProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [shouldShowToggle, setShouldShowToggle] = useState(false);
-
-  const lineCount = children.split("\n").length;
-
-  useEffect(() => {
-    const viewportHeight = window.innerHeight;
-    const maxHeight = viewportHeight * 0.25;
-    const estimatedHeight = lineCount * 20; // Rough estimate
-    setShouldShowToggle(estimatedHeight > maxHeight);
-  }, [lineCount]);
-
-  const maxHeight = shouldShowToggle && !isExpanded ? "25vh" : "none";
-
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsExpanded(!isExpanded);
-  };
-
-  // Let container background take over - no custom backgrounds needed
-
-  return (
-    <div className="relative mb-4">
-      <div
-        className="overflow-hidden transition-all duration-300"
-        style={{ maxHeight }}
-      >
-        <SyntaxHighlighter
-          style={oneDark as any}
-          language={language}
-          PreTag="div"
-          className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
-          customStyle={{
-            margin: 0,
-            padding: "12px",
-            borderRadius:
-              shouldShowToggle && isExpanded ? "0.5rem 0.5rem 0 0" : "0.5rem",
-          }}
-        >
-          {children}
-        </SyntaxHighlighter>
-      </div>
-      {shouldShowToggle && !isExpanded && (
-        <button
-          onClick={handleToggle}
-          className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1 bg-surface"
-        >
-          Show more ({lineCount} lines)
-          <svg
-            className="w-3 h-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
-      )}
-      {shouldShowToggle && isExpanded && (
-        <div className="border-t border-accent rounded-b-lg bg-surface">
-          <button
-            onClick={handleToggle}
-            className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 hover:bg-accent transition-colors flex items-center justify-center gap-1 rounded-b-lg"
-          >
-            Show less
-            <svg
-              className="w-3 h-3 rotate-180"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Simple markdown renderer using react-markdown
 export function renderMarkdown(
   content: string,
   isUserMessage: boolean = false
 ) {
-  // Let container background take over for inline code too
-
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -211,12 +106,21 @@ export function renderMarkdown(
             const codeContent = String(children).replace(/\n$/, "");
 
             return (
-              <CollapsibleCodeBlock
-                language={language}
-                isUserMessage={isUserMessage}
-              >
-                {codeContent}
-              </CollapsibleCodeBlock>
+              <div className="mb-4">
+                <SyntaxHighlighter
+                  style={oneDark as any}
+                  language={language}
+                  PreTag="div"
+                  className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
+                  customStyle={{
+                    margin: 0,
+                    padding: "12px",
+                    borderRadius: "0.5rem",
+                  }}
+                >
+                  {codeContent}
+                </SyntaxHighlighter>
+              </div>
             );
           }
 
@@ -245,20 +149,41 @@ export function renderMarkdown(
             );
 
             return (
-              <CollapsibleCodeBlock
-                language={language}
-                isUserMessage={isUserMessage}
-              >
-                {codeContent}
-              </CollapsibleCodeBlock>
+              <div className="mb-4">
+                <SyntaxHighlighter
+                  style={oneDark as any}
+                  language={language}
+                  PreTag="div"
+                  className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
+                  customStyle={{
+                    margin: 0,
+                    padding: "12px",
+                    borderRadius: "0.5rem",
+                  }}
+                >
+                  {codeContent}
+                </SyntaxHighlighter>
+              </div>
             );
           }
 
           // Fallback for pre without language
           return (
-            <CollapsibleCodeBlock language="" isUserMessage={isUserMessage}>
-              {String(codeElement.props?.children || "")}
-            </CollapsibleCodeBlock>
+            <div className="mb-4">
+              <SyntaxHighlighter
+                style={oneDark as any}
+                language=""
+                PreTag="div"
+                className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
+                customStyle={{
+                  margin: 0,
+                  padding: "12px",
+                  borderRadius: "0.5rem",
+                }}
+              >
+                {String(codeElement.props?.children || "")}
+              </SyntaxHighlighter>
+            </div>
           );
         },
       }}
