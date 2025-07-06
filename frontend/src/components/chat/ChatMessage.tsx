@@ -8,7 +8,6 @@ import { renderMarkdown } from "@/lib/markdown.tsx";
 interface ChatMessageProps {
   message: Message;
   disableAnimations?: boolean;
-  onHeightChange?: (heightDifference?: number) => void;
 }
 
 // Static markdown renderer for completed messages with full code block support
@@ -127,7 +126,6 @@ function CollapsibleMessage({
 
 export const ChatMessage = memo(function ChatMessage({
   message,
-  onHeightChange,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
   const isActivelyStreaming = message.isStreaming === true;

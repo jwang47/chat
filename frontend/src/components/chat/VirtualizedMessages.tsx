@@ -419,55 +419,6 @@ export const VirtualizedMessages = forwardRef<
                       <ChatMessage
                         message={item as Message}
                         disableAnimations={true}
-                        onHeightChange={(heightDifference) => {
-                          // Trigger remeasurement when message height changes
-                          const element = messageElementsRef.current.get(
-                            virtualRow.index
-                          );
-                          if (element?.isConnected) {
-                            requestAnimationFrame(() => {
-                              virtualizer.measureElement(element);
-
-                              // If this is a collapse/expand with height change, adjust scroll
-                              if (
-                                heightDifference !== undefined &&
-                                heightDifference !== 0 &&
-                                parentRef.current
-                              ) {
-                                const scrollContainer = parentRef.current;
-                                const {
-                                  scrollTop,
-                                  scrollHeight,
-                                  clientHeight,
-                                } = scrollContainer;
-
-                                // Check if the message is near the bottom of the viewport
-                                const messageElement = element;
-                                const messageRect =
-                                  messageElement.getBoundingClientRect();
-                                const containerRect =
-                                  scrollContainer.getBoundingClientRect();
-
-                                // If the message is in the bottom half of the viewport
-                                const messageBottomInViewport =
-                                  messageRect.bottom - containerRect.top;
-                                const isInBottomHalf =
-                                  messageBottomInViewport > clientHeight / 2;
-
-                                if (isInBottomHalf) {
-                                  // Adjust scroll position to keep the collapsed message visible
-                                  // When collapsing (negative heightDifference), scroll up to compensate
-                                  const scrollAdjustment = -heightDifference;
-                                  const newScrollTop = Math.max(
-                                    0,
-                                    scrollTop + scrollAdjustment
-                                  );
-                                  scrollContainer.scrollTop = newScrollTop;
-                                }
-                              }
-                            });
-                          }
-                        }}
                       />
                     )}
                   </div>
