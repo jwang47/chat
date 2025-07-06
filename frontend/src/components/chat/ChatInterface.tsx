@@ -234,8 +234,8 @@ export function ChatInterface() {
         layoutId="message-input"
         className={`${
           messages.length === 0
-            ? "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-4"
-            : "fixed bottom-8 left-4 right-4 max-w-4xl mx-auto z-30"
+            ? "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-[960px] px-4"
+            : "fixed bottom-8 left-0 right-0 max-w-[960px] mx-auto px-4 z-30"
         }`}
       >
         <MessageInput

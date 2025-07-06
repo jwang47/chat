@@ -181,7 +181,7 @@ export const ChatMessage = memo(function ChatMessage({
     >
       <div
         className={cn(
-          "p-3 rounded-lg max-w-[90%] relative",
+          "p-3 rounded-lg max-w-full relative",
           isUser && "bg-accent/20 text-foreground border border-accent/30"
         )}
       >
