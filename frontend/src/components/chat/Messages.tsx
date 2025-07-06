@@ -8,6 +8,7 @@ import {
 } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { motion } from "motion/react";
+import ScrollableFeed from "react-scrollable-feed";
 
 import type { Message } from "@/types/chat";
 
@@ -34,11 +35,6 @@ export interface MessagesRef {
   getContentHeight: () => number;
 }
 
-// Smooth scroll easing function
-function easeInOutQuint(t: number) {
-  return t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t;
-}
-
 // Typing indicator message type
 interface TypingIndicatorMessage extends Message {
   type: "typing";
@@ -46,7 +42,8 @@ interface TypingIndicatorMessage extends Message {
 
 export const Messages = forwardRef<MessagesRef, MessagesProps>(
   ({ messages, isTyping, streamingMessageId, onScrollChange }, ref) => {
-    const parentRef = useRef<HTMLDivElement>(null);
+    const scrollableFeedRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // Create items including typing indicator
     const items = useMemo(() => {
@@ -67,172 +64,58 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
       return allItems;
     }, [messages, isTyping, streamingMessageId]);
 
-    // Custom smooth scroll to bottom
-    const smoothScrollToBottom = useCallback(() => {
-      if (!parentRef.current) return;
-
-      const scrollContainer = parentRef.current;
-      const duration = 300;
-      const start = scrollContainer.scrollTop;
-      const startTime = Date.now();
-
-      const animate = () => {
-        const now = Date.now();
-        const elapsed = now - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // Use easing function
-        const eased = easeInOutQuint(progress);
-
-        // Always scroll to the very bottom (current scrollHeight)
-        const target =
-          scrollContainer.scrollHeight - scrollContainer.clientHeight;
-        const current = start + (target - start) * eased;
-
-        scrollContainer.scrollTop = current;
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          // Ensure we're at the very bottom
+    // Scroll methods for compatibility with existing interface
+    const scrollToBottom = useCallback(() => {
+      if (containerRef.current) {
+        const scrollContainer = containerRef.current.querySelector(
+          "[data-scrollable-feed]"
+        );
+        if (scrollContainer) {
           scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
-      };
-
-      requestAnimationFrame(animate);
-    }, []);
-
-    // Instant scroll to bottom
-    const stickToBottom = useCallback(() => {
-      if (!parentRef.current) return;
-      const scrollContainer = parentRef.current;
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
-    }, []);
-
-    // Continuous scroll tracking for streaming
-    const continuousScrollRef = useRef<number | null>(null);
-    const startContinuousScroll = useCallback(() => {
-      if (continuousScrollRef.current) return; // Already running
-
-      const scroll = () => {
-        if (!parentRef.current) {
-          continuousScrollRef.current = null;
-          return;
-        }
-
-        const scrollContainer = parentRef.current;
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        continuousScrollRef.current = requestAnimationFrame(scroll);
-      };
-
-      continuousScrollRef.current = requestAnimationFrame(scroll);
-    }, []);
-
-    const stopContinuousScroll = useCallback(() => {
-      if (continuousScrollRef.current) {
-        cancelAnimationFrame(continuousScrollRef.current);
-        continuousScrollRef.current = null;
       }
     }, []);
 
-    // Handle message collapse/expand with scroll position preservation
-    const handleCollapseToggle = useCallback(
-      (isCollapsed: boolean, element: HTMLElement | null) => {
-        if (!element || !parentRef.current) return;
+    const scrollToBottomSmooth = useCallback(() => {
+      if (containerRef.current) {
+        const scrollContainer = containerRef.current.querySelector(
+          "[data-scrollable-feed]"
+        );
+        if (scrollContainer) {
+          scrollContainer.scrollTo({
+            top: scrollContainer.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      }
+    }, []);
 
-        const scrollContainer = parentRef.current;
-        const scrollTopBefore = scrollContainer.scrollTop;
-        const elementRect = element.getBoundingClientRect();
-        const containerRect = scrollContainer.getBoundingClientRect();
+    const scrollTo = useCallback((position: number) => {
+      if (containerRef.current) {
+        const scrollContainer = containerRef.current.querySelector(
+          "[data-scrollable-feed]"
+        );
+        if (scrollContainer) {
+          scrollContainer.scrollTop = position;
+        }
+      }
+    }, []);
 
-        // Calculate the element's position relative to the container
-        const elementTopRelativeToContainer =
-          elementRect.top - containerRect.top + scrollTopBefore;
+    const getScrollContainer = useCallback(() => {
+      if (containerRef.current) {
+        return containerRef.current.querySelector(
+          "[data-scrollable-feed]"
+        ) as HTMLElement;
+      }
+      return null;
+    }, []);
 
-        // Use requestAnimationFrame to ensure DOM has updated after collapse/expand
-        requestAnimationFrame(() => {
-          // Calculate new scroll position to keep the collapsed/expanded message in view
-          const newElementRect = element.getBoundingClientRect();
-          const newContainerRect = scrollContainer.getBoundingClientRect();
+    const getContentHeight = useCallback(() => {
+      const scrollContainer = getScrollContainer();
+      return scrollContainer?.scrollHeight || 0;
+    }, [getScrollContainer]);
 
-          // If the element is above the viewport, adjust scroll to keep it visible
-          if (elementTopRelativeToContainer < scrollTopBefore) {
-            const adjustment = elementTopRelativeToContainer - scrollTopBefore;
-            scrollContainer.scrollTop = Math.max(
-              0,
-              scrollTopBefore + adjustment
-            );
-          }
-          // If collapsing made the element much smaller and it's now far from view,
-          // scroll to keep it reasonably positioned
-          else if (
-            isCollapsed &&
-            elementTopRelativeToContainer >
-              scrollTopBefore + containerRect.height
-          ) {
-            // Scroll to position the collapsed message near the top of the viewport
-            scrollContainer.scrollTop = Math.max(
-              0,
-              elementTopRelativeToContainer - 100
-            );
-          }
-        });
-      },
-      []
-    );
-
-    // Expose scroll methods to parent
-    useImperativeHandle(
-      ref,
-      () => ({
-        scrollToBottom: () => {
-          if (parentRef.current) {
-            const scrollContainer = parentRef.current;
-            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-          }
-        },
-        scrollToBottomSmooth: () => {
-          smoothScrollToBottom();
-        },
-        scrollToBottomInstant: () => {
-          if (parentRef.current) {
-            const scrollContainer = parentRef.current;
-            scrollContainer.scrollTop = scrollContainer.scrollHeight;
-          }
-        },
-        scrollToBottomSticky: () => {
-          stickToBottom();
-        },
-        startContinuousScroll: () => {
-          startContinuousScroll();
-        },
-        stopContinuousScroll: () => {
-          stopContinuousScroll();
-        },
-        scrollTo: (position: number) => {
-          if (parentRef.current) {
-            const clampedPosition = Math.max(
-              0,
-              Math.min(
-                position,
-                parentRef.current.scrollHeight - parentRef.current.clientHeight
-              )
-            );
-            parentRef.current.scrollTop = clampedPosition;
-          }
-        },
-        getScrollContainer: () => parentRef.current,
-        getContentHeight: () => parentRef.current?.scrollHeight || 0,
-      }),
-      [
-        smoothScrollToBottom,
-        stickToBottom,
-        startContinuousScroll,
-        stopContinuousScroll,
-      ]
-    );
-
-    // Handle scroll events with throttling for better performance
+    // Handle scroll events
     const handleScroll = useCallback(
       (e: Event) => {
         const target = e.target as HTMLElement;
@@ -247,24 +130,40 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
 
     // Set up scroll listener
     useEffect(() => {
-      const scrollElement = parentRef.current;
-      if (scrollElement) {
-        scrollElement.addEventListener("scroll", handleScroll, {
+      const scrollContainer = getScrollContainer();
+      if (scrollContainer) {
+        scrollContainer.addEventListener("scroll", handleScroll, {
           passive: true,
         });
 
         return () => {
-          scrollElement.removeEventListener("scroll", handleScroll);
+          scrollContainer.removeEventListener("scroll", handleScroll);
         };
       }
-    }, [handleScroll]);
+    }, [handleScroll, getScrollContainer]);
 
-    // Cleanup on unmount
-    useEffect(() => {
-      return () => {
-        stopContinuousScroll();
-      };
-    }, [stopContinuousScroll]);
+    // Expose scroll methods to parent
+    useImperativeHandle(
+      ref,
+      () => ({
+        scrollToBottom,
+        scrollToBottomSmooth,
+        scrollToBottomInstant: scrollToBottom,
+        scrollToBottomSticky: scrollToBottom,
+        startContinuousScroll: () => {}, // No-op - ScrollableFeed handles this
+        stopContinuousScroll: () => {}, // No-op - ScrollableFeed handles this
+        scrollTo,
+        getScrollContainer,
+        getContentHeight,
+      }),
+      [
+        scrollToBottom,
+        scrollToBottomSmooth,
+        scrollTo,
+        getScrollContainer,
+        getContentHeight,
+      ]
+    );
 
     // Typing indicator component
     const TypingIndicator = () => (
@@ -312,33 +211,22 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
     );
 
     return (
-      <div className="h-full">
-        <div
-          ref={parentRef}
-          className="h-full overflow-auto px-2"
-          style={{
-            paddingBottom: "80px", // Reserve space for message input
-          }}
+      <div ref={containerRef} className="flex-1 overflow-hidden">
+        <ScrollableFeed
+          ref={scrollableFeedRef}
+          className="h-full"
+          data-scrollable-feed
         >
-          {items.map((item, index) => {
-            const isLastMessage = index === items.length - 1;
-            const isTypingIndicator = "type" in item && item.type === "typing";
+          <div className="flex flex-col gap-4 p-4 pb-32">
+            {items.map((message) => {
+              if ((message as TypingIndicatorMessage).type === "typing") {
+                return <TypingIndicator key={message.id} />;
+              }
 
-            return (
-              <div key={item.id} className="max-w-4xl mx-auto py-4">
-                {isTypingIndicator ? (
-                  <TypingIndicator />
-                ) : (
-                  <ChatMessage
-                    message={item as Message}
-                    disableAnimations={true}
-                    onCollapseToggle={handleCollapseToggle}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
+              return <ChatMessage key={message.id} message={message} />;
+            })}
+          </div>
+        </ScrollableFeed>
       </div>
     );
   }
