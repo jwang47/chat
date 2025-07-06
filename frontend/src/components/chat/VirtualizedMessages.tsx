@@ -225,6 +225,51 @@ export const VirtualizedMessages = forwardRef<
     startContinuousScroll,
   ]);
 
+  // Handle message collapse/expand with scroll position preservation
+  const handleCollapseToggle = useCallback(
+    (isCollapsed: boolean, element: HTMLElement | null) => {
+      if (!element || !parentRef.current) return;
+
+      const scrollContainer = parentRef.current;
+      const scrollTopBefore = scrollContainer.scrollTop;
+      const elementRect = element.getBoundingClientRect();
+      const containerRect = scrollContainer.getBoundingClientRect();
+
+      // Calculate the element's position relative to the container
+      const elementTopRelativeToContainer =
+        elementRect.top - containerRect.top + scrollTopBefore;
+
+      // Use requestAnimationFrame to ensure DOM has updated after collapse/expand
+      requestAnimationFrame(() => {
+        // Force remeasurement of the virtualizer
+        virtualizer.measure();
+
+        // Calculate new scroll position to keep the collapsed/expanded message in view
+        const newElementRect = element.getBoundingClientRect();
+        const newContainerRect = scrollContainer.getBoundingClientRect();
+
+        // If the element is above the viewport, adjust scroll to keep it visible
+        if (elementTopRelativeToContainer < scrollTopBefore) {
+          const adjustment = elementTopRelativeToContainer - scrollTopBefore;
+          scrollContainer.scrollTop = Math.max(0, scrollTopBefore + adjustment);
+        }
+        // If collapsing made the element much smaller and it's now far from view,
+        // scroll to keep it reasonably positioned
+        else if (
+          isCollapsed &&
+          elementTopRelativeToContainer > scrollTopBefore + containerRect.height
+        ) {
+          // Scroll to position the collapsed message near the top of the viewport
+          scrollContainer.scrollTop = Math.max(
+            0,
+            elementTopRelativeToContainer - 100
+          );
+        }
+      });
+    },
+    [virtualizer]
+  );
+
   // Expose scroll methods to parent
   useImperativeHandle(
     ref,
@@ -419,6 +464,7 @@ export const VirtualizedMessages = forwardRef<
                       <ChatMessage
                         message={item as Message}
                         disableAnimations={true}
+                        onCollapseToggle={handleCollapseToggle}
                       />
                     )}
                   </div>

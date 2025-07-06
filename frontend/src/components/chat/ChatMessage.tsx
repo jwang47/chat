@@ -8,6 +8,10 @@ import { renderMarkdown } from "@/lib/markdown.tsx";
 interface ChatMessageProps {
   message: Message;
   disableAnimations?: boolean;
+  onCollapseToggle?: (
+    isCollapsed: boolean,
+    element: HTMLElement | null
+  ) => void;
 }
 
 // Static markdown renderer for completed messages with full code block support
@@ -30,10 +34,15 @@ function CollapsibleMessage({
   children,
   content,
   isUser,
+  onCollapseToggle,
 }: {
   children: React.ReactNode;
   content: string;
   isUser: boolean;
+  onCollapseToggle?: (
+    isCollapsed: boolean,
+    element: HTMLElement | null
+  ) => void;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const messageRef = useRef<HTMLDivElement>(null);
@@ -46,7 +55,16 @@ function CollapsibleMessage({
   }
 
   const toggleCollapsed = () => {
-    setIsCollapsed(!isCollapsed);
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
+
+    // Notify parent about the collapse state change
+    if (onCollapseToggle) {
+      // Use setTimeout to ensure the DOM has updated
+      setTimeout(() => {
+        onCollapseToggle(newCollapsedState, messageRef.current);
+      }, 0);
+    }
   };
 
   return (
@@ -126,6 +144,7 @@ function CollapsibleMessage({
 
 export const ChatMessage = memo(function ChatMessage({
   message,
+  onCollapseToggle,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
   const isActivelyStreaming = message.isStreaming === true;
@@ -166,7 +185,11 @@ export const ChatMessage = memo(function ChatMessage({
           isUser && "bg-accent/20 text-foreground border border-accent/30"
         )}
       >
-        <CollapsibleMessage content={message.content} isUser={isUser}>
+        <CollapsibleMessage
+          content={message.content}
+          isUser={isUser}
+          onCollapseToggle={onCollapseToggle}
+        >
           {messageContent}
         </CollapsibleMessage>
       </div>
