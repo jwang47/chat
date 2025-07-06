@@ -48,9 +48,8 @@ function CollapsibleCodeBlock({
           style={oneDark as any}
           language={language}
           PreTag="div"
-          className="!m-0 !p-3 !text-xs !font-mono"
+          className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
           customStyle={{
-            backgroundColor: "var(--surface)",
             margin: 0,
             padding: "12px",
             borderRadius:
@@ -63,8 +62,7 @@ function CollapsibleCodeBlock({
       {shouldShowToggle && !isExpanded && (
         <button
           onClick={handleToggle}
-          className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1"
-          style={{ backgroundColor: "var(--surface)" }}
+          className="absolute bottom-0 left-0 right-0 px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1 bg-surface"
         >
           Show more ({lineCount} lines)
           <svg
@@ -83,22 +81,10 @@ function CollapsibleCodeBlock({
         </button>
       )}
       {shouldShowToggle && isExpanded && (
-        <div
-          className="border-t rounded-b-lg"
-          style={{
-            borderColor: "var(--accent)",
-            backgroundColor: "var(--surface)",
-          }}
-        >
+        <div className="border-t border-accent rounded-b-lg bg-surface">
           <button
             onClick={handleToggle}
-            className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 transition-colors flex items-center justify-center gap-1 rounded-b-lg"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--accent)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-            }}
+            className="w-full px-3 py-2 text-xs text-accent hover:text-accent/80 hover:bg-accent transition-colors flex items-center justify-center gap-1 rounded-b-lg"
           >
             Show less
             <svg
@@ -236,13 +222,7 @@ export function renderMarkdown(
 
           // This is inline code
           return (
-            <code
-              className="px-1 py-0.5 rounded text-xs font-mono"
-              style={{
-                backgroundColor: "var(--surface)",
-                color: "var(--foreground)",
-              }}
-            >
+            <code className="px-1 py-0.5 rounded text-xs font-mono bg-surface text-foreground">
               {children}
             </code>
           );
