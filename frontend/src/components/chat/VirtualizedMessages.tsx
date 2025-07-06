@@ -144,7 +144,9 @@ export const VirtualizedMessages = forwardRef<
     count: virtualizedItems.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 150, // Estimated message height
-    overscan: 5, // Render 5 extra items above/below visible area
+    overscan: 10, // Render 10 extra items above/below visible area for smoother scrolling
+    scrollMargin: parentRef.current?.clientHeight ?? 0, // Add scroll margin for better preloading
+    initialRect: { width: 0, height: parentRef.current?.clientHeight ?? 800 }, // Better initial sizing
   });
 
   const items = virtualizer.getVirtualItems();
@@ -270,7 +272,7 @@ export const VirtualizedMessages = forwardRef<
     [virtualizer, virtualizedItems.length]
   );
 
-  // Handle scroll events
+  // Handle scroll events with throttling for better performance
   const handleScroll = useCallback(
     (e: Event) => {
       const target = e.target as HTMLElement;
@@ -283,17 +285,22 @@ export const VirtualizedMessages = forwardRef<
     [onScrollChange]
   );
 
-  // Set up scroll listener
+  // Set up scroll listener and ensure proper initialization
   useEffect(() => {
     const scrollElement = parentRef.current;
     if (scrollElement) {
       scrollElement.addEventListener("scroll", handleScroll, { passive: true });
 
+      // Force initial measurement to prevent delays
+      requestAnimationFrame(() => {
+        virtualizer.measure();
+      });
+
       return () => {
         scrollElement.removeEventListener("scroll", handleScroll);
       };
     }
-  }, [handleScroll]);
+  }, [handleScroll, virtualizer]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -360,6 +367,7 @@ export const VirtualizedMessages = forwardRef<
         style={{
           contain: "strict",
           paddingBottom: "100px", // Reserve 100px for message input
+          scrollBehavior: "auto", // Ensure smooth scrolling doesn't interfere with virtualization
         }}
       >
         <div
