@@ -49,24 +49,7 @@ function CollapsibleMessage({
   }
 
   const toggleCollapsed = () => {
-    if (!messageRef.current) return;
-
-    // Get current height before toggling
-    const currentHeight = messageRef.current.scrollHeight;
-
     setIsCollapsed(!isCollapsed);
-
-    // Calculate height difference and notify parent after DOM update
-    requestAnimationFrame(() => {
-      if (messageRef.current && onHeightChange) {
-        const newHeight = messageRef.current.scrollHeight;
-        const heightDifference = newHeight - currentHeight;
-
-        // Call onHeightChange with the height difference
-        // Positive means expanded, negative means collapsed
-        onHeightChange(heightDifference);
-      }
-    });
   };
 
   return (
@@ -84,7 +67,7 @@ function CollapsibleMessage({
         <button
           onClick={toggleCollapsed}
           className={cn(
-            "w-4 h-4 rounded-sm flex items-center justify-center transition-all duration-200 mb-1 shadow-sm text-accent group-hover:text-accent-foreground",
+            "w-4 h-4 rounded-sm flex items-center justify-center mb-1 shadow-sm text-accent group-hover:text-accent-foreground",
             "opacity-70 group-hover:opacity-100 cursor-pointer",
             isCollapsed && "opacity-100"
           )}
@@ -92,7 +75,7 @@ function CollapsibleMessage({
         >
           <svg
             className={cn(
-              "w-2.5 h-2.5 transition-transform duration-0",
+              "w-2.5 h-2.5",
               isCollapsed ? (isUser ? "rotate-90" : "-rotate-90") : "rotate-0"
             )}
             fill="none"
@@ -121,7 +104,7 @@ function CollapsibleMessage({
           {/* Actual visible line */}
           <div
             className={cn(
-              "absolute w-0.5 bg-accent/30 transition-colors duration-75 will-change-auto",
+              "absolute w-0.5 bg-accent/30",
               "group-hover:bg-accent-foreground",
               "inset-y-0"
             )}
