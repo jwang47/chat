@@ -133,7 +133,7 @@ function CollapsibleMessage({
       <div
         ref={messageRef}
         className={cn(
-          "transition-all duration-300 ease-in-out overflow-hidden",
+          "overflow-hidden",
           isCollapsed ? "max-h-24" : "max-h-none"
         )}
       >
