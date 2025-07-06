@@ -74,7 +74,7 @@ function CollapsibleMessage({
       {/* Reddit-style collapsible line - positioned based on message type */}
       <div
         className={cn(
-          "absolute w-4 flex flex-col items-center",
+          "absolute w-4 flex flex-col items-center group",
           isUser
             ? "-right-8 top-[-12px] bottom-[-12px]"
             : "-left-6 top-0 bottom-0"
@@ -84,8 +84,8 @@ function CollapsibleMessage({
         <button
           onClick={toggleCollapsed}
           className={cn(
-            "w-4 h-4 rounded-sm flex items-center justify-center transition-all duration-200 mb-1 shadow-sm text-accent hover:text-accent-foreground",
-            "opacity-70 hover:opacity-100 cursor-pointer",
+            "w-4 h-4 rounded-sm flex items-center justify-center transition-all duration-200 mb-1 shadow-sm text-accent group-hover:text-accent-foreground",
+            "opacity-70 group-hover:opacity-100 cursor-pointer",
             isCollapsed && "opacity-100"
           )}
           title={isCollapsed ? "Expand message" : "Collapse message"}
@@ -111,7 +111,7 @@ function CollapsibleMessage({
         {/* Vertical line - clickable for collapse/expand */}
         <button
           onClick={toggleCollapsed}
-          className="flex-1 w-3 bg-transparent min-h-4 flex items-center justify-center relative group cursor-pointer"
+          className="flex-1 w-3 bg-transparent min-h-4 flex items-center justify-center relative cursor-pointer"
           title={
             isCollapsed
               ? "Click to expand message"
