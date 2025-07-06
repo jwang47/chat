@@ -1,12 +1,11 @@
 import React from "react";
-import { micromark } from "micromark";
-import { gfm, gfmHtml } from "micromark-extension-gfm";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useState, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import DOMPurify from "dompurify";
 
-// Shared collapsible code block component
+// Collapsible code block component for long code blocks
 interface CollapsibleCodeBlockProps {
   children: string;
   language: string;
@@ -28,7 +27,7 @@ function CollapsibleCodeBlock({
     const maxHeight = viewportHeight * 0.25;
     const estimatedHeight = lineCount * 20; // Rough estimate
     setShouldShowToggle(estimatedHeight > maxHeight);
-  }, [lineCount]); // Only depend on lineCount, not children
+  }, [lineCount]);
 
   const maxHeight = shouldShowToggle && !isExpanded ? "25vh" : "none";
 
@@ -69,7 +68,6 @@ function CollapsibleCodeBlock({
               shouldShowToggle && isExpanded ? "0.5rem 0.5rem 0 0" : "0.5rem",
           }}
         >
-          {/* Code content is safely rendered by SyntaxHighlighter - no need for additional sanitization */}
           {children}
         </SyntaxHighlighter>
       </div>
@@ -139,198 +137,165 @@ function CollapsibleCodeBlock({
   );
 }
 
-// Shared markdown styling function
-export function addCustomStyling(
-  html: string,
+// Simple markdown renderer using react-markdown
+export function renderMarkdown(
+  content: string,
   isUserMessage: boolean = false
-): string {
+) {
   const inlineCodeBg = isUserMessage
     ? "rgba(25, 24, 21, 0.6)" // Darker for user messages
     : "rgba(45, 44, 40, 0.4)"; // Original for assistant messages
 
-  const styledHtml = html
-    .replace(/<p>/g, '<p class="mb-4 last:mb-0 whitespace-pre-line">')
-    .replace(/<h1>/g, '<h1 class="text-xl font-semibold mb-3 mt-6 first:mt-0">')
-    .replace(/<h2>/g, '<h2 class="text-lg font-semibold mb-3 mt-5 first:mt-0">')
-    .replace(
-      /<h3>/g,
-      '<h3 class="text-base font-semibold mb-2 mt-4 first:mt-0">'
-    )
-    .replace(/<h4>/g, '<h4 class="text-sm font-semibold mb-2 mt-3 first:mt-0">')
-    .replace(/<h5>/g, '<h5 class="text-sm font-semibold mb-2 mt-3 first:mt-0">')
-    .replace(/<h6>/g, '<h6 class="text-sm font-semibold mb-2 mt-3 first:mt-0">')
-    .replace(/<ul>/g, '<ul class="list-disc list-inside mb-4 space-y-1">')
-    .replace(
-      /<ol>/g,
-      '<ol class="list-decimal list-outside mb-4 space-y-1 pl-6">'
-    )
-    .replace(/<li>/g, '<li class="">')
-    .replace(
-      /<li class="">\s*<p class="mb-4 last:mb-0([^"]*)">/g,
-      '<li class=""><p class="mb-0$1">'
-    )
-    .replace(
-      /<blockquote>/g,
-      '<blockquote class="border-l-2 border-accent/30 pl-4 italic mb-4 mt-2 whitespace-pre-line">'
-    )
-    .replace(
-      /<hr\s*\/?>/g,
-      '<hr class="border-0 h-px bg-muted-foreground/20 my-6" />'
-    )
-    .replace(/<strong>/g, '<strong class="font-semibold">')
-    .replace(/<em>/g, '<em class="italic">')
-    .replace(
-      /<a href="([^"]*)">/g,
-      '<a href="$1" class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">'
-    )
-    .replace(
-      /<code>/g,
-      `<code class="px-1 py-0.5 rounded text-xs font-mono" style="background-color: ${inlineCodeBg};">`
-    );
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        // Paragraphs
+        p: ({ children }) => (
+          <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>
+        ),
 
-  // Sanitize the HTML to prevent XSS attacks
-  return DOMPurify.sanitize(styledHtml, {
-    ALLOWED_TAGS: [
-      "p",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "ul",
-      "ol",
-      "li",
-      "blockquote",
-      "hr",
-      "strong",
-      "em",
-      "a",
-      "code",
-      "pre",
-      "br",
-      "center",
-    ],
-    ALLOWED_ATTR: ["class", "href", "target", "rel", "style"],
-    ALLOW_DATA_ATTR: false,
-    ALLOWED_URI_REGEXP:
-      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-  });
-}
+        // Headings
+        h1: ({ children }) => (
+          <h1 className="text-xl font-semibold mb-3 mt-6 first:mt-0">
+            {children}
+          </h1>
+        ),
+        h2: ({ children }) => (
+          <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0">
+            {children}
+          </h2>
+        ),
+        h3: ({ children }) => (
+          <h3 className="text-base font-semibold mb-2 mt-4 first:mt-0">
+            {children}
+          </h3>
+        ),
+        h4: ({ children }) => (
+          <h4 className="text-sm font-semibold mb-2 mt-3 first:mt-0">
+            {children}
+          </h4>
+        ),
+        h5: ({ children }) => (
+          <h5 className="text-sm font-semibold mb-2 mt-3 first:mt-0">
+            {children}
+          </h5>
+        ),
+        h6: ({ children }) => (
+          <h6 className="text-sm font-semibold mb-2 mt-3 first:mt-0">
+            {children}
+          </h6>
+        ),
 
-// Shared complex content renderer with code block support
-export function renderComplexContent(
-  text: string,
-  isUserMessage: boolean = false
-) {
-  const parts: React.JSX.Element[] = [];
-  let currentIndex = 0;
-  let inCodeBlock = false;
-  let codeBlockLanguage = "";
-  let codeBlockContent = "";
+        // Lists
+        ul: ({ children }) => (
+          <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="list-decimal list-outside mb-4 space-y-1 pl-6">
+            {children}
+          </ol>
+        ),
+        li: ({ children }) => <li className="">{children}</li>,
 
-  const lines = text.split("\n");
+        // Blockquotes
+        blockquote: ({ children }) => (
+          <blockquote className="border-l-2 border-accent/30 pl-4 italic mb-4 mt-2 whitespace-pre-line">
+            {children}
+          </blockquote>
+        ),
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+        // Horizontal rules
+        hr: () => <hr className="border-0 h-px bg-muted-foreground/20 my-6" />,
 
-    if (line.startsWith("```")) {
-      if (!inCodeBlock) {
-        // Starting code block
-        if (currentIndex < i) {
-          // Add any preceding content
-          const precedingContent = lines.slice(currentIndex, i).join("\n");
-          if (precedingContent.trim()) {
-            const html = micromark(precedingContent, {
-              extensions: [gfm()],
-              htmlExtensions: [gfmHtml()],
-            });
-            const styledHtml = addCustomStyling(html, isUserMessage);
-            parts.push(
-              <div
-                key={`text-${parts.length}`}
-                dangerouslySetInnerHTML={{ __html: styledHtml }}
-              />
+        // Text formatting
+        strong: ({ children }) => (
+          <strong className="font-semibold">{children}</strong>
+        ),
+        em: ({ children }) => <em className="italic">{children}</em>,
+
+        // Links
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            className="text-accent hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {children}
+          </a>
+        ),
+
+        // Inline code
+        code: ({ children, className }) => {
+          // Check if this is a code block (has language class) or inline code
+          const isCodeBlock = className && className.startsWith("language-");
+
+          if (isCodeBlock) {
+            // This is a code block, extract language and content
+            const language = className.replace("language-", "");
+            const codeContent = String(children).replace(/\n$/, "");
+
+            return (
+              <CollapsibleCodeBlock
+                language={language}
+                isUserMessage={isUserMessage}
+              >
+                {codeContent}
+              </CollapsibleCodeBlock>
             );
           }
-        }
 
-        inCodeBlock = true;
-        codeBlockLanguage = line.substring(3).trim();
-        codeBlockContent = "";
-        currentIndex = i + 1;
-      } else {
-        // Ending code block
-        inCodeBlock = false;
-        parts.push(
-          <CollapsibleCodeBlock
-            key={`code-${parts.length}`}
-            language={codeBlockLanguage}
-            isUserMessage={isUserMessage}
-          >
-            {codeBlockContent}
-          </CollapsibleCodeBlock>
-        );
-        currentIndex = i + 1;
-        codeBlockContent = "";
-      }
-    } else if (inCodeBlock) {
-      codeBlockContent += (codeBlockContent ? "\n" : "") + line;
-    }
-  }
+          // This is inline code
+          return (
+            <code
+              className="px-1 py-0.5 rounded text-xs font-mono"
+              style={{ backgroundColor: inlineCodeBg }}
+            >
+              {children}
+            </code>
+          );
+        },
 
-  // Handle incomplete code block or remaining content
-  if (currentIndex < lines.length) {
-    const remainingContent = lines.slice(currentIndex).join("\n");
+        // Pre blocks (fallback for code blocks)
+        pre: ({ children }) => {
+          // Extract code content from pre > code structure
+          const codeElement = React.Children.only(
+            children
+          ) as React.ReactElement<any>;
+          if (codeElement.props?.className) {
+            const language = codeElement.props.className.replace(
+              "language-",
+              ""
+            );
+            const codeContent = String(codeElement.props.children).replace(
+              /\n$/,
+              ""
+            );
 
-    if (inCodeBlock && codeBlockContent.trim()) {
-      // We're in an incomplete code block - render it as a code block
-      parts.push(
-        <CollapsibleCodeBlock
-          key={`code-${parts.length}`}
-          language={codeBlockLanguage}
-          isUserMessage={isUserMessage}
-        >
-          {codeBlockContent}
-        </CollapsibleCodeBlock>
-      );
-    } else if (remainingContent.trim()) {
-      // Regular content - render as markdown
-      const html = micromark(remainingContent, {
-        extensions: [gfm()],
-        htmlExtensions: [gfmHtml()],
-      });
-      const styledHtml = addCustomStyling(html, isUserMessage);
-      parts.push(
-        <div
-          key={`text-${parts.length}`}
-          dangerouslySetInnerHTML={{ __html: styledHtml }}
-        />
-      );
-    }
-  }
+            return (
+              <CollapsibleCodeBlock
+                language={language}
+                isUserMessage={isUserMessage}
+              >
+                {codeContent}
+              </CollapsibleCodeBlock>
+            );
+          }
 
-  // If no parts were created, render the entire content as markdown
-  if (parts.length === 0 && text.trim()) {
-    const html = micromark(text, {
-      extensions: [gfm()],
-      htmlExtensions: [gfmHtml()],
-    });
-    const styledHtml = addCustomStyling(html, isUserMessage);
-    return <div dangerouslySetInnerHTML={{ __html: styledHtml }} />;
-  }
-
-  return <div>{parts}</div>;
+          // Fallback for pre without language
+          return (
+            <CollapsibleCodeBlock language="" isUserMessage={isUserMessage}>
+              {String(codeElement.props?.children || "")}
+            </CollapsibleCodeBlock>
+          );
+        },
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 }
 
-// Simple markdown renderer (for basic content without code blocks)
-export function renderMarkdown(
-  content: string,
-  isUserMessage: boolean = false
-): string {
-  const html = micromark(content, {
-    extensions: [gfm()],
-    htmlExtensions: [gfmHtml()],
-  });
-  return addCustomStyling(html, isUserMessage);
-}
+// For backward compatibility, export the same function name
+export const renderComplexContent = renderMarkdown;

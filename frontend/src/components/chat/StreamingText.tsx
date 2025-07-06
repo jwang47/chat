@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { renderComplexContent } from "@/lib/markdown.tsx";
+import { renderMarkdown } from "@/lib/markdown.tsx";
 
 interface StreamingTextProps {
   content: string;
@@ -113,8 +113,9 @@ export function StreamingText({
       return null;
     }
 
-    // Use the shared complex content renderer
-    return renderComplexContent(displayedContent, isUserMessage);
+    // Use the new react-markdown renderer - it re-parses and re-renders on each update
+    // This is efficient thanks to React's diffing algorithm
+    return renderMarkdown(displayedContent, isUserMessage);
   };
 
   return (

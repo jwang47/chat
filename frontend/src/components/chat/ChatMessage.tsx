@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { memo, useEffect } from "react";
 import { motion } from "motion/react";
 import { StreamingText } from "./StreamingText";
-import { renderComplexContent } from "@/lib/markdown.tsx";
+import { renderMarkdown } from "@/lib/markdown.tsx";
 
 interface ChatMessageProps {
   message: Message;
@@ -20,7 +20,7 @@ function StaticMarkdown({
 }) {
   return (
     <div className="[&>*:last-child]:mb-0">
-      {renderComplexContent(content, isUserMessage)}
+      {renderMarkdown(content, isUserMessage)}
     </div>
   );
 }
