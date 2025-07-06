@@ -8,15 +8,22 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // Custom sanitization schema that allows center tag while keeping security
+// SECURITY NOTE: We use rehype-raw to parse HTML tags like <center>, but this
+// introduces XSS risks. To mitigate this, we use rehype-sanitize with a custom
+// schema that:
+// 1. Inherits the default safe schema (blocks <script>, dangerous attributes, etc.)
+// 2. Explicitly allows only the <center> tag for centering content
+// 3. Blocks all dangerous HTML elements and event handlers
 const sanitizeSchema = {
   ...defaultSchema,
   tagNames: [
     ...(defaultSchema.tagNames || []),
-    "center", // Allow center tag
+    "center", // Allow center tag for centering content
   ],
   attributes: {
     ...defaultSchema.attributes,
     // No additional attributes needed for center tag
+    // Event handlers like onclick, onload, etc. are blocked by default schema
   },
 };
 
@@ -28,7 +35,10 @@ export function renderMarkdown(
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+      rehypePlugins={[
+        rehypeRaw, // Parse raw HTML (needed for <center> tags)
+        [rehypeSanitize, sanitizeSchema], // Sanitize HTML to prevent XSS
+      ]}
       components={{
         // Center
         center: ({ children }) => (
