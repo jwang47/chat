@@ -317,7 +317,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
           ref={parentRef}
           className="h-full overflow-auto px-2"
           style={{
-            paddingBottom: "120px", // Reserve space for message input
+            paddingBottom: "80px", // Reserve space for message input
           }}
         >
           {items.map((item, index) => {
