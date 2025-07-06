@@ -317,7 +317,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
           ref={parentRef}
           className="h-full overflow-auto px-2"
           style={{
-            paddingBottom: "100px", // Reserve 100px for message input
+            paddingBottom: "120px", // Reserve space for message input
           }}
         >
           {items.map((item, index) => {
@@ -325,12 +325,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
             const isTypingIndicator = "type" in item && item.type === "typing";
 
             return (
-              <div
-                key={item.id}
-                className={`max-w-4xl mx-auto py-4 ${
-                  isLastMessage ? "mb-[100px]" : ""
-                }`}
-              >
+              <div key={item.id} className="max-w-4xl mx-auto py-4">
                 {isTypingIndicator ? (
                   <TypingIndicator />
                 ) : (

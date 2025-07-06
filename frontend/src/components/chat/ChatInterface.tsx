@@ -156,7 +156,7 @@ export function ChatInterface() {
         if (!isUserScrolledUpRef.current) {
           messagesRef.current?.scrollToBottomInstant(); // Instant scroll for new messages
         }
-      }, 10); // Reduced from 50ms to 10ms
+      }, 500); // Reduced from 50ms to 10ms
       return () => clearTimeout(timer);
     }
   }, [messages.length]);
