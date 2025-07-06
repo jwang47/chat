@@ -189,14 +189,20 @@ export function renderMarkdown(
 
         // Lists
         ul: ({ children }) => (
-          <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>
+          <ul className="list-disc list-outside mb-4 ml-6 space-y-1 [&_ul]:mt-1 [&_ul]:mb-1 [&_ul]:ml-6">
+            {children}
+          </ul>
         ),
         ol: ({ children }) => (
-          <ol className="list-decimal list-outside mb-4 space-y-1 pl-6">
+          <ol className="list-decimal list-outside mb-4 ml-6 space-y-1 [&_ol]:mt-1 [&_ol]:mb-1 [&_ol]:ml-6">
             {children}
           </ol>
         ),
-        li: ({ children }) => <li className="">{children}</li>,
+        li: ({ children }) => (
+          <li className="[&>ul]:mt-1 [&>ol]:mt-1 [&>ul]:mb-1 [&>ol]:mb-1">
+            {children}
+          </li>
+        ),
 
         // Blockquotes
         blockquote: ({ children }) => (

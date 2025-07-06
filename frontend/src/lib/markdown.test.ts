@@ -54,6 +54,28 @@ describe("Markdown rendering", () => {
     expect(container.innerHTML).toContain("Item 3");
   });
 
+  it("should render nested lists", () => {
+    const markdown = `- Item 1
+  - Nested item 1
+  - Nested item 2
+- Item 2
+  1. Nested ordered item 1
+  2. Nested ordered item 2
+- Item 3`;
+    const result = renderMarkdown(markdown);
+
+    const { container } = render(result);
+
+    // Should contain all list items
+    expect(container.innerHTML).toContain("Item 1");
+    expect(container.innerHTML).toContain("Nested item 1");
+    expect(container.innerHTML).toContain("Nested item 2");
+    expect(container.innerHTML).toContain("Item 2");
+    expect(container.innerHTML).toContain("Nested ordered item 1");
+    expect(container.innerHTML).toContain("Nested ordered item 2");
+    expect(container.innerHTML).toContain("Item 3");
+  });
+
   it("should render links", () => {
     const markdown = "[Example Link](https://example.com)";
     const result = renderMarkdown(markdown);
