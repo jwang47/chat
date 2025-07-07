@@ -97,26 +97,34 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
     <>
       <div className="mb-4">
         {!isExpanded ? (
-          // Collapsed view
-          <Button variant="ghost" onClick={handleToggleExpanded}>
-            <div className="flex items-center gap-3">
-              <ChevronRight className="h-4 w-4" />
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm">Code</span>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {language}
-                </span>
-                {filename && (
-                  <span className="text-xs text-muted-foreground">
-                    {filename}
+          // Collapsed view - clickable code block preview
+          <div
+            onClick={handleToggleExpanded}
+            className="group relative cursor-pointer bg-surface/30 hover:bg-surface/50 border border-border/50 hover:border-border rounded-lg p-4 transition-all duration-150 ease-in-out"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm">Code</span>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {language}
                   </span>
-                )}
+                  {filename && (
+                    <span className="text-xs text-muted-foreground">
+                      {filename}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {lineCount} lines • {charCount} chars
               </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              {lineCount} lines • {charCount} chars
+            <div className="text-xs text-muted-foreground mt-2 opacity-60 group-hover:opacity-80 transition-opacity">
+              Click to expand code block
             </div>
-          </Button>
+          </div>
         ) : (
           // Expanded view
           <div className="group relative">
