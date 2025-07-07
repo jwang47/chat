@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Layout } from "./components/Layout";
-import { ChatInterface } from "./components/chat/ChatInterface";
-import { Settings } from "./components/Settings";
+import { Layout } from "@/components/Layout";
+import { ChatInterface } from "@/components/chat/ChatInterface";
+import { StreamingCodeTest } from "@/components/test/StreamingCodeTest";
+import "./App.css";
 
 function App() {
   return (
@@ -9,7 +10,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<ChatInterface />} />
-          <Route path="settings" element={<Settings />} />
+          <Route path="test/streaming-code" element={<StreamingCodeTest />} />
         </Route>
       </Routes>
     </Router>

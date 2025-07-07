@@ -3,6 +3,8 @@ import {
   PanelLeftOpen,
   PanelLeftClose,
   SquarePen,
+  Code,
+  TestTube,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -31,6 +33,16 @@ const items = [
     title: "Settings",
     url: "/settings",
     icon: Settings,
+    highlightIfActive: true,
+  },
+];
+
+// Test items
+const testItems = [
+  {
+    title: "Streaming Code Test",
+    url: "/test/streaming-code",
+    icon: Code,
     highlightIfActive: true,
   },
 ];
@@ -69,6 +81,33 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={
+                      item.highlightIfActive && location.pathname === item.url
+                    }
+                  >
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <TestTube className="w-4 h-4 mr-2" />
+            Testing
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {testItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
