@@ -95,7 +95,7 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
   // Collapsible code block
   return (
     <>
-      <div className="">
+      <div className="pb-2">
         <AnimatePresence mode="wait">
           {!isExpanded ? (
             // Collapsed view - clickable code block preview
