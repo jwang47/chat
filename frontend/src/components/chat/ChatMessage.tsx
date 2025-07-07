@@ -118,13 +118,13 @@ export const ChatMessage = memo(function ChatMessage({
 
   return (
     <div
-      className={cn("flex p-4", isUser && "justify-end")}
+      className={cn("flex p-2", isUser && "justify-end")}
       data-message-id={message.id}
     >
       <div
         className={cn(
-          "p-3 rounded-lg max-w-full relative",
-          isUser && "bg-accent/20 text-foreground border border-accent/30"
+          "pb-3 pt-3 rounded-lg max-w-full relative",
+          isUser && "pl-3 pr-3 bg-highlight-soft text-highlight-soft-foreground"
         )}
       >
         <CollapsibleMessage

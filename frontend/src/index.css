@@ -53,6 +53,8 @@
   --muted-foreground: rgb(138, 138, 138);
   --accent: rgb(60, 60, 60);
   --accent-foreground: rgb(247, 247, 247);
+  --highlight-soft: rgb(36, 45, 60);
+  --highlight-soft-foreground: rgb(247, 247, 247);
   --destructive: #888888;
   --destructive-foreground: #F5F5F5;
   --border: rgb(33, 33, 33);
@@ -358,4 +360,12 @@
   .dark .language-js .token.comment {
     color: #777777 !important;
   }
+}
+
+.bg-highlight-soft {
+  background-color: var(--highlight-soft);
+}
+
+.text-highlight-soft-foreground {
+  color: var(--highlight-soft-foreground);
 }
