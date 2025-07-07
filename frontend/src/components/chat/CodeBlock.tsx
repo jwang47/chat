@@ -63,10 +63,20 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
         !code.endsWith("'") &&
         !code.endsWith("`"));
 
+    console.log("Streaming detection:", {
+      codeLength: code.length,
+      endsWithIncomplete,
+      isStreaming,
+      shouldCollapse,
+      hasUserInteracted,
+      showSidePanel,
+    });
+
     if (endsWithIncomplete) {
       setIsStreaming(true);
       // Set a timer to check if streaming has stopped
       const timer = setTimeout(() => {
+        console.log("Streaming timeout - setting isStreaming to false");
         setIsStreaming(false);
       }, 2000); // If no changes for 2 seconds, assume streaming stopped
 
@@ -74,6 +84,9 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
     } else {
       // Give it a moment to ensure streaming is really done
       const timer = setTimeout(() => {
+        console.log(
+          "Streaming appears complete - setting isStreaming to false"
+        );
         setIsStreaming(false);
       }, 500);
 
@@ -83,12 +96,14 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
 
   // Reset interaction state when starting a new code block
   useEffect(() => {
-    if (code.length < 10) {
-      setHasUserInteracted(false);
+    // Only reset if we're starting a completely new code block (very short content)
+    // and user hasn't interacted yet. This prevents resetting during streaming
+    // when user has already opened the side panel.
+    if (code.length < 10 && !hasUserInteracted) {
       setIsExpanded(false);
       setShowSidePanel(false);
     }
-  }, [code.length]);
+  }, [code.length, hasUserInteracted]);
 
   const handleCopy = async () => {
     try {
@@ -101,28 +116,47 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
   };
 
   const handleToggleExpanded = () => {
+    console.log("handleToggleExpanded called:", {
+      shouldCollapse,
+      isExpanded,
+      isStreaming,
+      showSidePanel,
+    });
     setHasUserInteracted(true);
 
     if (shouldCollapse && !isExpanded) {
+      console.log("Opening side panel");
       setShowSidePanel(true);
     } else {
+      console.log("Toggling expanded inline");
       setIsExpanded(!isExpanded);
     }
   };
 
   const handleCloseSidePanel = () => {
+    console.log("Closing side panel");
     setShowSidePanel(false);
     setHasUserInteracted(true);
   };
 
   const handleExpandInline = () => {
+    console.log("Expanding inline");
     setIsExpanded(true);
     setHasUserInteracted(true);
   };
 
   const handleCollapseInline = () => {
+    console.log("Collapsing inline");
     setIsExpanded(false);
     setHasUserInteracted(true);
+  };
+
+  // Add a specific handler for the side panel button
+  const handleOpenSidePanel = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling
+    console.log("Opening side panel via button");
+    setHasUserInteracted(true);
+    setShowSidePanel(true);
   };
 
   // Always show collapsed view first if it should collapse, even for short code during streaming
@@ -181,7 +215,7 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={handleToggleExpanded}
+                  onClick={handleOpenSidePanel}
                   className="h-7 px-3 text-xs"
                 >
                   Open in side panel
