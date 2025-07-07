@@ -113,8 +113,7 @@ export function StreamingText({
       return null;
     }
 
-    // Use the new react-markdown renderer - it re-parses and re-renders on each update
-    // This is efficient thanks to React's diffing algorithm
+    // Always render the displayed content with markdown
     return renderMarkdown(displayedContent, isUserMessage);
   };
 
