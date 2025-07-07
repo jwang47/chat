@@ -658,17 +658,17 @@ export function StreamingCodeTest() {
             <CardContent>
               <div className="border rounded-lg p-4 bg-muted/30">
                 <div className="text-sm">
-                  {stream.content ? (
-                    <StreamingText
-                      content={`\`\`\`${stream.language}\n${stream.content}\n\`\`\``}
-                      isStreaming={stream.isStreaming}
-                      isUserMessage={false}
-                    />
-                  ) : (
-                    <div className="text-muted-foreground italic">
-                      Waiting for content...
-                    </div>
-                  )}
+                  <StreamingText
+                    key={`stream-${index}`}
+                    content={
+                      stream.content
+                        ? `\`\`\`${stream.language}\n${stream.content}\n\`\`\``
+                        : ""
+                    }
+                    isStreaming={stream.isStreaming}
+                    isUserMessage={false}
+                    className="foobar"
+                  />
                 </div>
               </div>
             </CardContent>

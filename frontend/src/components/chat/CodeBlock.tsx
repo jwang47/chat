@@ -20,10 +20,14 @@ function generateCodeKey(
   language: string,
   filename?: string
 ): string {
-  // Use a combination of language, filename, and a hash of the first part of the code
+  // Use a combination of language, filename, and a hash of the first meaningful line of code
   // This ensures the component maintains identity even during streaming
-  const codeStart = code.substring(0, Math.min(50, code.length));
-  const keyBase = `${language}-${filename || "no-file"}-${codeStart}`;
+  const lines = code.split("\n");
+  const firstMeaningfulLine =
+    lines.find((line) => line.trim().length > 0) || "";
+  const keyBase = `${language}-${
+    filename || "no-file"
+  }-${firstMeaningfulLine.substring(0, 20)}`;
   return btoa(keyBase)
     .replace(/[^a-zA-Z0-9]/g, "")
     .substring(0, 16);
@@ -33,7 +37,14 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
   // Generate a stable key for this code block
   const codeKey = useMemo(
     () => generateCodeKey(code, language, filename),
-    [language, filename, code.substring(0, 50)]
+    [
+      language,
+      filename,
+      code
+        .split("\n")
+        .find((line) => line.trim().length > 0)
+        ?.substring(0, 20),
+    ]
   );
 
   // Start collapsed by default for any code that could potentially be long
