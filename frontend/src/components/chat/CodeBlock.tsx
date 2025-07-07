@@ -98,11 +98,7 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
       <div className="mb-4">
         {!isExpanded ? (
           // Collapsed view
-          <Button
-            variant="outline"
-            onClick={handleToggleExpanded}
-            className="w-full justify-between p-4 h-auto bg-surface/30 hover:bg-surface/50 border-border/50"
-          >
+          <Button variant="ghost" onClick={handleToggleExpanded}>
             <div className="flex items-center gap-3">
               <ChevronRight className="h-4 w-4" />
               <div className="flex items-center gap-2">
