@@ -95,18 +95,62 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
   // Collapsible code block
   return (
     <>
-      <div className="mb-4">
-        {!isExpanded ? (
-          // Collapsed view - clickable code block preview
-          <div
-            onClick={handleToggleExpanded}
-            className="group relative cursor-pointer bg-surface/30 hover:bg-surface/50 border border-border/50 hover:border-border rounded-lg p-4 transition-all duration-150 ease-in-out"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      <div className="">
+        <AnimatePresence mode="wait">
+          {!isExpanded ? (
+            // Collapsed view - clickable code block preview
+            <motion.div
+              key="collapsed"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              onClick={handleToggleExpanded}
+              className="group relative cursor-pointer bg-surface/30 hover:bg-surface/50 border border-border/50 hover:border-border rounded-lg p-4 transition-colors duration-150 ease-in-out overflow-hidden"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm">Code</span>
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {language}
+                    </span>
+                    {filename && (
+                      <span className="text-xs text-muted-foreground">
+                        {filename}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {lineCount} lines • {charCount} chars
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground mt-2 opacity-60 group-hover:opacity-80 transition-opacity">
+                Click to expand code block
+              </div>
+            </motion.div>
+          ) : (
+            // Expanded view
+            <motion.div
+              key="expanded"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="group relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between bg-surface/50 px-3 py-2 rounded-t-lg border-b border-border/50">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm">Code</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsExpanded(false)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
                   <span className="text-xs font-mono text-muted-foreground">
                     {language}
                   </span>
@@ -116,68 +160,38 @@ export function CodeBlock({ language, code, filename }: CodeBlockProps) {
                     </span>
                   )}
                 </div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {lineCount} lines • {charCount} chars
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground mt-2 opacity-60 group-hover:opacity-80 transition-opacity">
-              Click to expand code block
-            </div>
-          </div>
-        ) : (
-          // Expanded view
-          <div className="group relative">
-            <div className="flex items-center justify-between bg-surface/50 px-3 py-2 rounded-t-lg border-b border-border/50">
-              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsExpanded(false)}
-                  className="h-6 w-6 p-0"
+                  onClick={handleCopy}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
                 >
-                  <ChevronDown className="h-3 w-3" />
+                  {isCopied ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
                 </Button>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {language}
-                </span>
-                {filename && (
-                  <span className="text-xs text-muted-foreground">
-                    {filename}
-                  </span>
-                )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopy}
-                className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+              <SyntaxHighlighter
+                style={oneDark as any}
+                language={language}
+                PreTag="div"
+                className="!m-0 !text-xs !font-mono !bg-surface rounded-b-lg"
+                customStyle={{
+                  margin: 0,
+                  padding: "12px",
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                  borderBottomLeftRadius: "0.5rem",
+                  borderBottomRightRadius: "0.5rem",
+                }}
               >
-                {isCopied ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-              </Button>
-            </div>
-            <SyntaxHighlighter
-              style={oneDark as any}
-              language={language}
-              PreTag="div"
-              className="!m-0 !text-xs !font-mono !bg-surface rounded-b-lg"
-              customStyle={{
-                margin: 0,
-                padding: "12px",
-                borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
-                borderBottomLeftRadius: "0.5rem",
-                borderBottomRightRadius: "0.5rem",
-              }}
-            >
-              {code}
-            </SyntaxHighlighter>
-          </div>
-        )}
+                {code}
+              </SyntaxHighlighter>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Side Panel */}
