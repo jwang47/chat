@@ -18,12 +18,11 @@ const sanitizeSchema = {
   tagNames: [
     ...(defaultSchema.tagNames || []),
     "center", // Allow center tag for centering content
-    "br", // Allow br tag for line breaks
-    "p", // Allow p tag for paragraphs
+    // "br", // Allow br tag for line breaks
   ],
   attributes: {
     ...defaultSchema.attributes,
-    // No additional attributes needed for center, br, or p tags
+    // No additional attributes needed for center or br tags
     // Event handlers like onclick, onload, etc. are blocked by default schema
   },
 };
