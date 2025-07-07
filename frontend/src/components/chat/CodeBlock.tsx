@@ -12,7 +12,7 @@ interface CodeBlockProps {
 }
 
 // Threshold for when to show collapsed view (characters)
-const COLLAPSE_THRESHOLD = 500;
+const COLLAPSE_THRESHOLD = 700;
 
 export function CodeBlock({ language, code, filename }: CodeBlockProps) {
   const [isExpanded, setIsExpanded] = useState(false);
