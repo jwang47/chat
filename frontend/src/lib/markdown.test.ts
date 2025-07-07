@@ -49,8 +49,8 @@ describe("Markdown rendering", () => {
     expect(container.innerHTML).toContain("world");
     expect(container.innerHTML).toContain("'world'");
 
-    // Should NOT convert newlines to <br /> tags within code blocks
-    expect(container.innerHTML).not.toContain("<br />");
+    // Should NOT convert newlines to extra spacing within code blocks
+    expect(container.innerHTML).not.toContain("Line 1\n\n\nLine 3");
 
     // Should have syntax highlighting for Python
     expect(container.innerHTML).toContain('class="language-python"');
@@ -189,7 +189,7 @@ describe("Markdown rendering", () => {
 });
 
 describe("Standalone newline conversion", () => {
-  it("should convert standalone newlines to <br /> tags", () => {
+  it("should convert standalone newlines to double newlines for paragraph breaks", () => {
     const content = `Line 1
 
 Line 3
@@ -198,10 +198,8 @@ Line 5`;
 
     const result = renderMarkdown(content);
 
-    // The result should contain <br /> tags for standalone newlines
-    expect(result.props.children).toContain(
-      "Line 1\n<br />\nLine 3\n<br />\nLine 5"
-    );
+    // The result should contain double newlines for paragraph breaks
+    expect(result.props.children).toContain("Line 1\n\n\nLine 3\n\n\nLine 5");
   });
 
   it("should not convert newlines within paragraphs", () => {
@@ -214,7 +212,7 @@ This is another paragraph.`;
 
     // Should only convert the empty line between paragraphs
     expect(result.props.children).toContain(
-      "This is a paragraph\nwith a regular line break.\n<br />\nThis is another paragraph."
+      "This is a paragraph\nwith a regular line break.\n\n\nThis is another paragraph."
     );
   });
 });

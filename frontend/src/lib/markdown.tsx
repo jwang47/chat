@@ -19,15 +19,16 @@ const sanitizeSchema = {
     ...(defaultSchema.tagNames || []),
     "center", // Allow center tag for centering content
     "br", // Allow br tag for line breaks
+    "p", // Allow p tag for paragraphs
   ],
   attributes: {
     ...defaultSchema.attributes,
-    // No additional attributes needed for center or br tags
+    // No additional attributes needed for center, br, or p tags
     // Event handlers like onclick, onload, etc. are blocked by default schema
   },
 };
 
-// Function to convert standalone newlines to <br /> tags
+// Function to convert standalone newlines to double newlines (markdown paragraph breaks)
 function preprocessContent(content: string): string {
   // Split content into lines
   const lines = content.split("\n");
@@ -50,9 +51,10 @@ function preprocessContent(content: string): string {
       continue;
     }
 
-    // If line is empty and not the last line, convert to <br />
+    // If line is empty and not the last line, add extra newline for paragraph break
     if (line.trim() === "" && i < lines.length - 1) {
-      processedLines.push("<br />");
+      processedLines.push(""); // First empty line
+      processedLines.push(""); // Second empty line for paragraph break
     } else {
       processedLines.push(line);
     }
@@ -66,7 +68,7 @@ export function renderMarkdown(
   content: string,
   isUserMessage: boolean = false
 ) {
-  // Preprocess content to convert standalone newlines to <br /> tags
+  // Preprocess content to convert standalone newlines to double newlines for paragraph breaks
   const processedContent = preprocessContent(content);
 
   return (
