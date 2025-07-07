@@ -27,15 +27,52 @@ const sanitizeSchema = {
   },
 };
 
-// Function to convert standalone newlines to double newlines (markdown paragraph breaks)
+// Detect and handle incomplete code blocks during streaming
+function handleIncompleteCodeBlocks(content: string): string {
+  // Find all code block markers
+  const codeBlockMarkers = [];
+  const regex = /```(\w+)?/g;
+  let match;
+
+  while ((match = regex.exec(content)) !== null) {
+    codeBlockMarkers.push({
+      index: match.index,
+      language: match[1] || "text",
+      fullMatch: match[0],
+    });
+  }
+
+  // If odd number of markers, we have an incomplete code block
+  if (codeBlockMarkers.length % 2 === 1) {
+    const lastMarker = codeBlockMarkers[codeBlockMarkers.length - 1];
+
+    // Check if there's content after the last marker
+    const afterMarker = content.substring(
+      lastMarker.index + lastMarker.fullMatch.length
+    );
+
+    // If there's content after the marker (even just whitespace), it's likely a code block
+    if (afterMarker.trim().length > 0 || afterMarker.includes("\n")) {
+      // Temporarily close the code block for rendering
+      return content + "\n```";
+    }
+  }
+
+  return content;
+}
+
 function preprocessContent(content: string): string {
-  // Split content into lines
-  const lines = content.split("\n");
+  // First handle incomplete code blocks
+  let processedContent = handleIncompleteCodeBlocks(content);
+
+  // Then handle paragraph breaks
+  const lines = processedContent.split("\n");
   const processedLines: string[] = [];
   let inCodeBlock = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    const nextLine = lines[i + 1];
 
     // Check if we're entering or leaving a code block
     if (line.trim().startsWith("```")) {
@@ -50,12 +87,33 @@ function preprocessContent(content: string): string {
       continue;
     }
 
-    // If line is empty and not the last line, add extra newline for paragraph break
-    if (line.trim() === "" && i < lines.length - 1) {
-      processedLines.push(""); // First empty line
+    // Add the current line
+    processedLines.push(line);
+
+    // Check if we need to add a paragraph break
+    // Add double newline after non-empty lines that are followed by non-empty lines
+    // but not if they're already separated by empty lines or special markdown elements
+    if (
+      line.trim() !== "" && // Current line is not empty
+      nextLine !== undefined && // There is a next line
+      nextLine.trim() !== "" && // Next line is not empty
+      !line.startsWith("#") && // Not a heading
+      !line.startsWith("- ") && // Not a list item
+      !line.startsWith("* ") && // Not a list item
+      !line.startsWith("+ ") && // Not a list item
+      !line.match(/^\d+\./) && // Not a numbered list
+      !line.startsWith(">") && // Not a blockquote
+      !line.startsWith("```") && // Not a code block
+      !nextLine.startsWith("#") && // Next line is not a heading
+      !nextLine.startsWith("- ") && // Next line is not a list item
+      !nextLine.startsWith("* ") && // Next line is not a list item
+      !nextLine.startsWith("+ ") && // Next line is not a list item
+      !nextLine.match(/^\d+\./) && // Next line is not a numbered list
+      !nextLine.startsWith(">") && // Next line is not a blockquote
+      !nextLine.startsWith("```") // Next line is not a code block
+    ) {
+      processedLines.push(""); // First empty line for paragraph break
       processedLines.push(""); // Second empty line for paragraph break
-    } else {
-      processedLines.push(line);
     }
   }
 
@@ -114,7 +172,7 @@ export function renderMarkdown(
           </h5>
         ),
         h6: ({ children }) => (
-          <h6 className="text-sm font-semibold mb-2 mt-3 first:mt-0">
+          <h6 className="text-xs font-semibold mb-2 mt-3 first:mt-0">
             {children}
           </h6>
         ),
