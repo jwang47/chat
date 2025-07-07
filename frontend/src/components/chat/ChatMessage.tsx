@@ -69,64 +69,6 @@ function CollapsibleMessage({
 
   return (
     <div className="relative">
-      {/* Reddit-style collapsible line - positioned based on message type */}
-      <div
-        className={cn(
-          "absolute w-4 flex flex-col items-center group",
-          isUser
-            ? "-right-8 top-[-16px] bottom-[-12px]"
-            : "-left-6 top-0 bottom-0"
-        )}
-      >
-        {/* Collapse button */}
-        <button
-          onClick={toggleCollapsed}
-          className={cn(
-            "w-4 h-4 rounded-sm flex items-center justify-center mb-1 shadow-sm text-accent group-hover:text-accent-foreground",
-            "opacity-70 group-hover:opacity-100 cursor-pointer",
-            isCollapsed && "opacity-100"
-          )}
-          title={isCollapsed ? "Expand message" : "Collapse message"}
-        >
-          <svg
-            className={cn(
-              "w-2.5 h-2.5",
-              isCollapsed ? (isUser ? "rotate-90" : "-rotate-90") : "rotate-0"
-            )}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </button>
-
-        {/* Vertical line - clickable for collapse/expand */}
-        <button
-          onClick={toggleCollapsed}
-          className="flex-1 w-3 bg-transparent min-h-4 flex items-center justify-center relative cursor-pointer"
-          title={
-            isCollapsed
-              ? "Click to expand message"
-              : "Click to collapse message"
-          }
-        >
-          {/* Actual visible line */}
-          <div
-            className={cn(
-              "absolute w-0.5 bg-accent/30",
-              "group-hover:bg-accent-foreground",
-              "inset-y-0"
-            )}
-          />
-        </button>
-      </div>
-
       {/* Message content */}
       <div ref={messageRef}>
         {isCollapsed ? (
