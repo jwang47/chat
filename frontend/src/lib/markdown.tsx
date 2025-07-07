@@ -4,8 +4,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import { defaultSchema } from "rehype-sanitize";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { CodeBlock } from "@/components/chat/CodeBlock";
 
 // Custom sanitization schema that allows center tag while keeping security
 // SECURITY NOTE: We use rehype-raw to parse HTML tags like <center>, but this
@@ -174,23 +173,7 @@ export function renderMarkdown(
             const language = className.replace("language-", "");
             const codeContent = String(children).replace(/\n$/, "");
 
-            return (
-              <div className="mb-4">
-                <SyntaxHighlighter
-                  style={oneDark as any}
-                  language={language}
-                  PreTag="div"
-                  className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
-                  customStyle={{
-                    margin: 0,
-                    padding: "12px",
-                    borderRadius: "0.5rem",
-                  }}
-                >
-                  {codeContent}
-                </SyntaxHighlighter>
-              </div>
-            );
+            return <CodeBlock language={language} code={codeContent} />;
           }
 
           // This is inline code
@@ -257,23 +240,7 @@ export function renderMarkdown(
           // Clean up trailing newlines
           textContent = textContent.replace(/\n$/, "");
 
-          return (
-            <div className="mb-4">
-              <SyntaxHighlighter
-                style={oneDark as any}
-                language={language}
-                PreTag="div"
-                className="!m-0 !p-3 !text-xs !font-mono !bg-surface"
-                customStyle={{
-                  margin: 0,
-                  padding: "12px",
-                  borderRadius: "0.5rem",
-                }}
-              >
-                {textContent}
-              </SyntaxHighlighter>
-            </div>
-          );
+          return <CodeBlock language={language || "text"} code={textContent} />;
         },
       }}
     >
