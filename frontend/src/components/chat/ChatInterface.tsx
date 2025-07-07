@@ -283,19 +283,14 @@ export function ChatInterface() {
   );
 
   return (
-    <div className="relative h-screen bg-background">
-      {/* Model Selector */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-        className="absolute top-4 left-4 z-20"
-      >
+    <div className="relative flex flex-col h-screen bg-background">
+      {/* Header Area */}
+      <header className="relative z-20 flex items-center justify-between p-4">
         <ModelSelector
           selectedModel={selectedModel}
           onModelSelect={handleModelSelect}
         />
-      </motion.div>
+      </header>
 
       {/* Error Display */}
       <AnimatePresence>
@@ -305,7 +300,7 @@ export function ChatInterface() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="absolute top-4 left-4 right-4 mx-auto z-10"
+            className="absolute top-16 left-4 right-4 mx-auto z-10"
           >
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
               <p className="text-red-400 text-sm">{error}</p>
@@ -314,58 +309,45 @@ export function ChatInterface() {
         )}
       </AnimatePresence>
 
-      {/* Messages Area */}
-      <Messages
-        ref={messagesComponentRef}
-        messages={messages}
-        isTyping={isTyping}
-        streamingMessageId={streamingMessageId}
-        onScrollChange={handleScrollChange}
-      />
+      {/* Main Content Area */}
+      <div className="relative flex-1 flex overflow-hidden">
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto">
+          <Messages
+            ref={messagesComponentRef}
+            messages={messages}
+            isTyping={isTyping}
+            streamingMessageId={streamingMessageId}
+            onScrollChange={handleScrollChange}
+          />
+        </div>
 
-      {/* Chat Minimap */}
-      <ChatMinimap
-        messages={messages}
-        scrollProgress={scrollProgress}
-        viewportHeight={viewportHeight}
-        contentHeight={contentHeight}
-        onScrollTo={scrollTo}
-      />
+        {/* Chat Minimap */}
+        <ChatMinimap
+          messages={messages}
+          scrollProgress={scrollProgress}
+          viewportHeight={viewportHeight}
+          contentHeight={contentHeight}
+          onScrollTo={scrollTo}
+        />
+      </div>
 
-      {/* Floating Message Input */}
+      {/* Message Input Area */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{
-          opacity: 1,
-          y: 0,
-        }}
-        transition={{
-          opacity: {
-            duration: 0.6,
-            ease: "easeInOut",
-            delay: messages.length === 0 ? 0.2 : 0,
-          },
-          y: {
-            duration: 0.6,
-            ease: "easeInOut",
-            delay: messages.length === 0 ? 0.2 : 0,
-          },
-        }}
-        layout
-        layoutId="message-input"
-        className={`absolute ${
-          messages.length === 0
-            ? "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl px-4"
-            : "bottom-8 left-4 right-4 max-w-4xl mx-auto"
-        }`}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
+        className="relative z-10 p-4"
       >
-        <MessageInput
-          onSendMessage={handleSendMessage}
-          placeholder={`Ask ${
-            getModelById(selectedModel)?.displayName || "AI"
-          } anything...`}
-          disabled={isTyping}
-        />
+        <div className="max-w-4xl mx-auto">
+          <MessageInput
+            onSendMessage={handleSendMessage}
+            placeholder={`Ask ${
+              getModelById(selectedModel)?.displayName || "AI"
+            } anything...`}
+            disabled={isTyping}
+          />
+        </div>
       </motion.div>
     </div>
   );

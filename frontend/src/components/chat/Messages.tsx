@@ -192,7 +192,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
           className="h-full overflow-auto"
           onScroll={handleScrollEvent}
         >
-          <div className="flex flex-col gap-4 p-4 pb-32 max-w-[960px] mx-auto">
+          <div className="flex flex-col gap-4 p-4 max-w-[960px] mx-auto">
             {items.map((message) => {
               if ((message as TypingIndicatorMessage).type === "typing") {
                 return <TypingIndicator key={message.id} />;
