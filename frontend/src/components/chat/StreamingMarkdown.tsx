@@ -2,9 +2,11 @@ import { useEffect, useRef } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import hljs from "highlight.js";
+import { DiffDOM } from "diff-dom";
+import debounce from "lodash/debounce";
 
 interface StreamingMarkdownProps {
-  content: string; // streaming text
+  content: string;
   className?: string;
 }
 
@@ -13,8 +15,8 @@ export function StreamingMarkdown({
   className,
 }: StreamingMarkdownProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const bufferRef = useRef(""); // buffer full markdown
-  const frameRef = useRef<number | null>(null);
+  const bufferRef = useRef("");
+  const diffDom = useRef(new DiffDOM());
 
   // Configure marked renderer for syntax highlighting
   const renderer = new marked.Renderer();
@@ -27,31 +29,53 @@ export function StreamingMarkdown({
     return `<pre><code class="hljs">${highlighted}</code></pre>`;
   };
 
+  // Save selection
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      return sel.getRangeAt(0).cloneRange();
+    }
+    return null;
+  };
+
+  // Restore selection
+  const restoreSelection = (range: Range | null) => {
+    if (range) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
+  };
+
+  // Debounced DOM update
+  const updateDOM = debounce(() => {
+    if (!containerRef.current) return;
+
+    const selection = saveSelection();
+    const rawHtml = marked.parse(content, { renderer }) as string;
+    const safeHtml = DOMPurify.sanitize(rawHtml, {
+      ADD_TAGS: ["center"],
+      ADD_ATTR: ["class"],
+    });
+
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = safeHtml;
+    diffDom.current.diff(containerRef.current, tempDiv);
+    diffDom.current.apply(
+      containerRef.current,
+      diffDom.current.diff(containerRef.current, tempDiv)
+    );
+    restoreSelection(selection);
+  }, 150);
+
   useEffect(() => {
     if (content.length <= bufferRef.current.length) return;
-
     bufferRef.current = content;
-
-    if (frameRef.current !== null) return; // avoid multiple renders per frame
-
-    frameRef.current = requestAnimationFrame(() => {
-      const rawHtml = marked.parse(bufferRef.current, { renderer }) as string;
-      const safeHtml = DOMPurify.sanitize(rawHtml, {
-        ADD_TAGS: ["center"],
-        ADD_ATTR: ["class"],
-      });
-
-      if (containerRef.current) {
-        containerRef.current.innerHTML = safeHtml;
-      }
-
-      frameRef.current = null;
-    });
+    updateDOM();
   }, [content]);
 
   useEffect(() => {
     return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current);
       bufferRef.current = "";
       if (containerRef.current) containerRef.current.innerHTML = "";
     };
