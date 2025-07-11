@@ -44,31 +44,34 @@ export function ChatInterface() {
     messagesStateRef.current = messages;
   }, [messages]);
 
+  // Define a type for the code block payload for clarity
+  interface CodeBlockPayload {
+    code: string;
+    language: string;
+    filename?: string;
+  }
+
   const handleModelSelect = useCallback((model: ModelInfo) => {
     setSelectedModel(model.id);
   }, []);
 
-  const handleCodeBlockExpansionChange = useCallback((hasExpanded: boolean) => {
-    setHasExpandedCodeBlock(hasExpanded);
-  }, []);
-
-  const handleExpandedCodeBlocksChange = useCallback(
-    (expandedBlocks: ExpandedCodeBlock[]) => {
-      setExpandedCodeBlock(
-        expandedBlocks.length > 0 ? expandedBlocks[0] : null
-      );
-    },
-    []
-  );
-
   const handleGlobalCodeBlockToggle = useCallback(
-    (messageId: string, blockIndex: number) => {
+    (messageId: string, blockIndex: number, payload: CodeBlockPayload) => {
       setGlobalExpandedState((prev) => {
         // If clicking the same block, collapse it
         if (prev.messageId === messageId && prev.blockIndex === blockIndex) {
+          setHasExpandedCodeBlock(false);
+          setExpandedCodeBlock(null);
           return { messageId: null, blockIndex: null };
         }
         // Otherwise, expand the new block (replacing any currently expanded one)
+        const newExpandedBlock: ExpandedCodeBlock = {
+          messageId,
+          blockIndex,
+          ...payload,
+        };
+        setHasExpandedCodeBlock(true);
+        setExpandedCodeBlock(newExpandedBlock);
         return { messageId, blockIndex };
       });
     },
@@ -218,7 +221,7 @@ export function ChatInterface() {
             width: hasExpandedCodeBlock ? "50%" : "100%",
           }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className={`overflow-y-auto`}
+          className={`overflow-y-auto max-w-2xl mx-auto`}
         >
           <Messages
             ref={messagesComponentRef}
@@ -226,11 +229,8 @@ export function ChatInterface() {
             isTyping={isTyping}
             streamingMessageId={streamingMessageId}
             onScrollChange={handleScrollChange}
-            onCodeBlockExpansionChange={handleCodeBlockExpansionChange}
-            onExpandedCodeBlocksChange={handleExpandedCodeBlocksChange}
             globalExpandedState={globalExpandedState}
             onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
-            className="max-w-3xl mx-auto"
           />
         </motion.div>
         <AnimatePresence>
@@ -241,7 +241,7 @@ export function ChatInterface() {
               animate={{ x: "0%", opacity: 1 }}
               exit={{ x: "100%", opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="flex-1 flex flex-col p-4 space-y-4"
+              className="flex-1 flex flex-col p-4 space-y-4 max-w-2xl mx-auto"
             >
               <div
                 key={`${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`}

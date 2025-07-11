@@ -15,19 +15,19 @@ interface ChatMessageProps {
     isCollapsed: boolean,
     element: HTMLElement | null
   ) => void;
-  onCodeBlockExpansionChange?: (hasExpanded: boolean) => void;
-  onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void;
   globalExpandedState?: {
     messageId: string | null;
     blockIndex: number | null;
   };
-  onGlobalCodeBlockToggle?: (messageId: string, blockIndex: number) => void;
+  onGlobalCodeBlockToggle?: (
+    messageId: string,
+    blockIndex: number,
+    payload: any
+  ) => void;
 }
 
 export const ChatMessage = memo(function ChatMessage({
   message,
-  onCodeBlockExpansionChange,
-  onExpandedCodeBlocksChange,
   globalExpandedState,
   onGlobalCodeBlockToggle,
 }: ChatMessageProps) {
@@ -95,8 +95,6 @@ export const ChatMessage = memo(function ChatMessage({
         <MarkedRenderer
           content={message.content}
           messageId={message.id}
-          onCodeBlockExpansionChange={onCodeBlockExpansionChange}
-          onExpandedCodeBlocksChange={onExpandedCodeBlocksChange}
           globalExpandedState={globalExpandedState}
           onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
         />

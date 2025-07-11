@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef, type JSX } from "react";
+import React, { useMemo, useRef, type JSX } from "react";
 import { marked, type Token } from "marked";
 import DOMPurify from "dompurify";
 import { useCodeBlockManager } from "../../hooks/useCodeBlockManager";
@@ -9,8 +9,7 @@ const renderToken = (
   token: Token,
   manager: ReturnType<typeof useCodeBlockManager>,
   codeBlockCounter: { current: number },
-  messageId: string,
-  onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void
+  messageId: string
 ): React.ReactNode => {
   switch (token.type) {
     case "hr":
@@ -26,29 +25,27 @@ const renderToken = (
           {/* Paragraphs can contain other tokens like 'strong', 'em', etc. */}
           {token.tokens
             ? token.tokens.map((t) =>
-                renderToken(
-                  t,
-                  manager,
-                  codeBlockCounter,
-                  messageId,
-                  onExpandedCodeBlocksChange
-                )
+                renderToken(t, manager, codeBlockCounter, messageId)
               )
             : token.text}
         </p>
       );
 
     case "code":
-      const index = codeBlockCounter.current;
-      codeBlockCounter.current++;
+      // We are in a code block
+      const index = codeBlockCounter.current++;
       return (
         <CodeBlock
-          key={`code-block-${index}`}
-          blockIndex={index}
+          key={index}
           language={token.lang || "text"}
           code={token.text}
           isExpanded={manager.isExpanded(index)}
-          onToggleExpand={() => manager.toggle(index)}
+          onToggleExpand={() =>
+            manager.toggle(index, {
+              code: token.text,
+              language: token.lang || "text",
+            })
+          }
         />
       );
 
@@ -63,14 +60,8 @@ const renderToken = (
               : "list-disc list-outside mb-4 ml-6"
           }
         >
-          {token.items.map((item: Token) =>
-            renderToken(
-              item,
-              manager,
-              codeBlockCounter,
-              messageId,
-              onExpandedCodeBlocksChange
-            )
+          {token.items.map((item) =>
+            renderToken(item, manager, codeBlockCounter, messageId)
           )}
         </ListTag>
       );
@@ -78,14 +69,8 @@ const renderToken = (
     case "list_item":
       return (
         <li key={token.raw}>
-          {token.tokens?.map((t) =>
-            renderToken(
-              t,
-              manager,
-              codeBlockCounter,
-              messageId,
-              onExpandedCodeBlocksChange
-            )
+          {token.tokens.map((t) =>
+            renderToken(t, manager, codeBlockCounter, messageId)
           )}
         </li>
       );
@@ -104,6 +89,17 @@ const renderToken = (
         >
           {token.text}
         </code>
+      );
+
+    case "blockquote":
+      return (
+        <blockquote key={token.raw}>
+          {token.tokens.map((t, i) => (
+            <React.Fragment key={i}>
+              {renderToken(t, manager, codeBlockCounter, messageId)}
+            </React.Fragment>
+          ))}
+        </blockquote>
       );
 
     case "html":
@@ -141,13 +137,7 @@ const renderToken = (
           <React.Fragment key={token.raw}>
             {token.tokens.map((t, index) => (
               <React.Fragment key={t.raw || index}>
-                {renderToken(
-                  t,
-                  manager,
-                  codeBlockCounter,
-                  messageId,
-                  onExpandedCodeBlocksChange
-                )}
+                {renderToken(t, manager, codeBlockCounter, messageId)}
               </React.Fragment>
             ))}
           </React.Fragment>
@@ -171,13 +161,15 @@ const renderToken = (
 interface MarkedRendererProps {
   content: string;
   messageId: string;
-  onCodeBlockExpansionChange?: (hasExpanded: boolean) => void;
-  onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void;
   globalExpandedState?: {
     messageId: string | null;
     blockIndex: number | null;
   };
-  onGlobalCodeBlockToggle?: (messageId: string, blockIndex: number) => void;
+  onGlobalCodeBlockToggle?: (
+    messageId: string,
+    blockIndex: number,
+    payload: any
+  ) => void;
 }
 
 // Function to handle incomplete code blocks for the lexer
@@ -192,8 +184,6 @@ function handleIncompleteCodeBlocksForLexer(content: string): string {
 export function MarkedRenderer({
   content,
   messageId,
-  onCodeBlockExpansionChange,
-  onExpandedCodeBlocksChange,
   globalExpandedState,
   onGlobalCodeBlockToggle,
 }: MarkedRendererProps) {
@@ -202,65 +192,15 @@ export function MarkedRenderer({
     onGlobalToggle: onGlobalCodeBlockToggle,
     messageId,
   });
-  const previousHasAnyExpandedRef = useRef<boolean>(false);
-  const previousExpandedBlocksRef = useRef<string>("");
 
   // Memoize the tokens to avoid re-parsing on every render
   const tokens = useMemo(() => {
-    // Ensure incomplete code blocks don't break the lexer
-    const cleanContent = handleIncompleteCodeBlocksForLexer(content);
-    // Use marked.lexer to get the token stream
+    // Sanitize the content to prevent XSS attacks
+    const cleanContent = DOMPurify.sanitize(
+      handleIncompleteCodeBlocksForLexer(content)
+    );
     return marked.lexer(cleanContent);
   }, [content]);
-
-  // Check if expansion state has actually changed
-  useEffect(() => {
-    const hasAnyExpanded = manager.hasAnyExpanded();
-
-    // Only notify if the expansion state actually changed
-    if (hasAnyExpanded !== previousHasAnyExpandedRef.current) {
-      previousHasAnyExpandedRef.current = hasAnyExpanded;
-      onCodeBlockExpansionChange?.(hasAnyExpanded);
-    }
-  }, [manager, onCodeBlockExpansionChange]);
-
-  // Check if expanded blocks have actually changed
-  useEffect(() => {
-    const expandedBlocks: ExpandedCodeBlock[] = [];
-    let codeBlockIndex = 0;
-
-    const processToken = (token: Token) => {
-      if (token.type === "code") {
-        if (manager.isExpanded(codeBlockIndex)) {
-          expandedBlocks.push({
-            messageId,
-            blockIndex: codeBlockIndex,
-            language: token.lang || "text",
-            code: token.text,
-            filename: undefined,
-          });
-        }
-        codeBlockIndex++;
-      } else if (token.type === "paragraph" && token.tokens) {
-        token.tokens.forEach(processToken);
-      } else if (token.type === "list") {
-        token.items.forEach(processToken);
-      } else if (token.type === "list_item" && token.tokens) {
-        token.tokens.forEach(processToken);
-      }
-    };
-
-    tokens.forEach(processToken);
-
-    // Create a stable string representation for comparison
-    const expandedBlocksString = JSON.stringify(expandedBlocks);
-
-    // Only notify if the expanded blocks actually changed
-    if (expandedBlocksString !== previousExpandedBlocksRef.current) {
-      previousExpandedBlocksRef.current = expandedBlocksString;
-      onExpandedCodeBlocksChange?.(expandedBlocks);
-    }
-  }, [tokens, manager, messageId, onExpandedCodeBlocksChange]);
 
   // Use a mutable ref to count code blocks during a single render pass
   const codeBlockCounter = React.useRef(0);
@@ -269,13 +209,7 @@ export function MarkedRenderer({
   return (
     <div className="prose prose-invert max-w-none">
       {tokens.map((token) =>
-        renderToken(
-          token,
-          manager,
-          codeBlockCounter,
-          messageId,
-          onExpandedCodeBlocksChange
-        )
+        renderToken(token, manager, codeBlockCounter, messageId)
       )}
     </div>
   );

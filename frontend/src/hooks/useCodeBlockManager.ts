@@ -8,7 +8,11 @@ export interface CodeBlockManagerOptions {
     messageId: string | null;
     blockIndex: number | null;
   };
-  onGlobalToggle?: (messageId: string, blockIndex: number) => void;
+  onGlobalToggle?: (
+    messageId: string,
+    blockIndex: number,
+    payload?: any
+  ) => void;
   messageId?: string;
 }
 
@@ -31,10 +35,10 @@ export function useCodeBlockManager(
 
   // Callback to toggle the expanded state of a specific code block.
   const toggle = useCallback(
-    (index: number) => {
+    (index: number, payload?: any) => {
       if (options?.onGlobalToggle && options?.messageId) {
         // Use global state management
-        options.onGlobalToggle(options.messageId, index);
+        options.onGlobalToggle(options.messageId, index, payload);
       } else {
         // Use local state management (fallback)
         setExpandedState((prev) => {
