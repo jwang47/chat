@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StreamingText } from "@/components/chat/StreamingText";
 import { renderMarkdown } from "@/lib/markdown";
 import { Play, Pause, RotateCcw, Settings } from "lucide-react";
+import { StreamingMarkdown } from "../chat/StreamingMarkdown";
 
 // Sample code snippets for different languages
 const CODE_SAMPLES = {
@@ -658,15 +659,13 @@ export function StreamingCodeTest() {
             <CardContent>
               <div className="border rounded-lg p-4 bg-muted/30">
                 <div className="text-sm">
-                  <StreamingText
+                  <StreamingMarkdown
                     key={`stream-${index}`}
                     content={
                       stream.content
                         ? `\`\`\`${stream.language}\n${stream.content}\n\`\`\``
                         : ""
                     }
-                    isStreaming={stream.isStreaming}
-                    isUserMessage={false}
                     className="foobar"
                   />
                 </div>
