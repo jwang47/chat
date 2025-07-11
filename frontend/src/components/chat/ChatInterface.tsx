@@ -272,7 +272,7 @@ export function ChatInterface() {
         transition={{ duration: 0.5, ease: "easeInOut" }}
         className="relative z-10 p-4"
       >
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <MessageInput
             onSendMessage={handleSendMessage}
             placeholder={`Ask ${
