@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Play, Pause, RotateCcw, Settings } from "lucide-react";
-import { StreamingMarkdown } from "../chat/StreamingMarkdown";
+import { ChatMessage } from "../chat/ChatMessage";
 
 // Sample files to load
 const SAMPLE_FILES = ["javascript.md", "typescript.md", "python.md", "rust.md"];
@@ -14,7 +14,7 @@ interface StreamingState {
   currentIndex: number;
 }
 
-export function StreamingCodeTest() {
+export function StreamingTest() {
   const [streams, setStreams] = useState<StreamingState[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [streamSpeed, setStreamSpeed] = useState(50); // ms between characters
@@ -300,10 +300,15 @@ export function StreamingCodeTest() {
               </div>
             </CardHeader>
             <CardContent>
-              <StreamingMarkdown
+              <ChatMessage
                 key={`stream-${index}`}
-                content={stream.content}
-                className="foobar"
+                message={{
+                  id: `stream-${index}`,
+                  role: "assistant",
+                  content: stream.content,
+                  timestamp: new Date(),
+                  model: "gpt-4o",
+                }}
               />
             </CardContent>
           </Card>

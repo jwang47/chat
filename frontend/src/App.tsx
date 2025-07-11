@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { ChatInterface } from "@/components/chat/ChatInterface";
-import { StreamingCodeTest } from "@/components/test/StreamingCodeTest";
+import { StreamingTest } from "@/components/test/StreamingTest";
 
 function App() {
   return (
@@ -9,7 +9,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<ChatInterface />} />
-          <Route path="test/streaming-code" element={<StreamingCodeTest />} />
+          <Route path="test/streaming" element={<StreamingTest />} />
         </Route>
       </Routes>
     </Router>
