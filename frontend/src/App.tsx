@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { StreamingCodeTest } from "@/components/test/StreamingCodeTest";
-import "./App.css";
 
 function App() {
   return (

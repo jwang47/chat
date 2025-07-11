@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Play, Pause, RotateCcw, Settings } from "lucide-react";
@@ -300,19 +300,11 @@ export function StreamingCodeTest() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="border rounded-lg p-4 bg-muted/30">
-                <div className="text-sm">
-                  <StreamingMarkdown
-                    key={`stream-${index}`}
-                    content={
-                      stream.content
-                        ? `\`\`\`${stream.language}\n${stream.content}\n\`\`\``
-                        : ""
-                    }
-                    className="foobar"
-                  />
-                </div>
-              </div>
+              <StreamingMarkdown
+                key={`stream-${index}`}
+                content={stream.content}
+                className="foobar"
+              />
             </CardContent>
           </Card>
         ))}

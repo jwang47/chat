@@ -1,13 +1,24 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import hljs from "highlight.js";
 import { DiffDOM } from "diff-dom";
-import debounce from "lodash/debounce";
 
 interface StreamingMarkdownProps {
   content: string;
   className?: string;
+}
+
+// Simple debounce function
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
 }
 
 export function StreamingMarkdown({
@@ -15,68 +26,67 @@ export function StreamingMarkdown({
   className,
 }: StreamingMarkdownProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const bufferRef = useRef("");
-  const diffDom = useRef(new DiffDOM());
+  const lastLenRef = useRef(0);
+  const dd = useMemo(() => new DiffDOM(), []);
 
-  // Configure marked renderer for syntax highlighting
-  const renderer = new marked.Renderer();
-  renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
-    if (lang && hljs.getLanguage(lang)) {
-      const highlighted = hljs.highlight(text, { language: lang }).value;
-      return `<pre><code class="hljs language-${lang}">${highlighted}</code></pre>`;
-    }
-    const highlighted = hljs.highlightAuto(text).value;
-    return `<pre><code class="hljs">${highlighted}</code></pre>`;
-  };
+  /* syntax-highlighting renderer */
+  const renderer = useMemo(() => {
+    const r = new marked.Renderer();
+    r.code = ({ text, lang }: { text: string; lang?: string }) => {
+      const language = (lang || "").trim().split(/\s+/)[0];
+      const html =
+        language && hljs.getLanguage(language)
+          ? hljs.highlight(text, { language }).value
+          : hljs.highlightAuto(text).value;
+      return `<pre><code class="hljs language-${language}">${html}</code></pre>`;
+    };
+    return r;
+  }, []);
 
-  // Save selection
-  const saveSelection = () => {
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      return sel.getRangeAt(0).cloneRange();
-    }
-    return null;
-  };
+  /* debounced DOM patch */
+  const updateDOM = useMemo(
+    () =>
+      debounce(async () => {
+        if (!containerRef.current) return;
 
-  // Restore selection
-  const restoreSelection = (range: Range | null) => {
-    if (range) {
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
-    }
-  };
+        const sel = window.getSelection();
+        const mark = sel?.rangeCount ? sel.getRangeAt(0).cloneRange() : null;
 
-  // Debounced DOM update
-  const updateDOM = debounce(() => {
-    if (!containerRef.current) return;
+        const raw = await marked.parse(content, { renderer });
+        const safe = DOMPurify.sanitize(raw);
 
-    const selection = saveSelection();
-    const rawHtml = marked.parse(content, { renderer }) as string;
-    const safeHtml = DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ["center"],
-      ADD_ATTR: ["class"],
-    });
+        const temp = document.createElement("div");
+        temp.innerHTML = safe;
 
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = safeHtml;
-    diffDom.current.diff(containerRef.current, tempDiv);
-    diffDom.current.apply(
-      containerRef.current,
-      diffDom.current.diff(containerRef.current, tempDiv)
-    );
-    restoreSelection(selection);
-  }, 150);
+        const diff = dd.diff(containerRef.current, temp);
+        dd.apply(containerRef.current, diff);
 
+        // apply highlight.js to any new blocks
+        containerRef.current.querySelectorAll("pre code").forEach((el) => {
+          if (!el.classList.contains("hljs"))
+            hljs.highlightElement(el as HTMLElement);
+        });
+
+        if (mark) {
+          sel?.removeAllRanges();
+          sel?.addRange(mark);
+        }
+      }, 150),
+    [content, dd, renderer]
+  );
+
+  /* stream in only when content grows */
   useEffect(() => {
-    if (content.length <= bufferRef.current.length) return;
-    bufferRef.current = content;
-    updateDOM();
-  }, [content]);
+    if (content.length > lastLenRef.current) {
+      lastLenRef.current = content.length;
+      updateDOM();
+    }
+  }, [content, updateDOM]);
 
+  /* cleanup on unmount */
   useEffect(() => {
     return () => {
-      bufferRef.current = "";
+      lastLenRef.current = 0;
       if (containerRef.current) containerRef.current.innerHTML = "";
     };
   }, []);
@@ -84,7 +94,7 @@ export function StreamingMarkdown({
   return (
     <div
       ref={containerRef}
-      className={className + " prose prose-invert max-w-none"}
+      className={`${className ?? ""} prose prose-invert max-w-none`}
     />
   );
 }
