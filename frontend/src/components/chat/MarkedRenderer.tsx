@@ -1,5 +1,6 @@
 import React, { useMemo, type JSX } from "react";
 import { marked, type Token } from "marked";
+import DOMPurify from "dompurify";
 import { useCodeBlockManager } from "../../hooks/useCodeBlockManager"; // Reuse the hook!
 import { CodeBlock } from "./CodeBlock"; // Your interactive component
 
@@ -50,7 +51,7 @@ const renderToken = (
               : "list-disc list-outside mb-4 ml-6"
           }
         >
-          {token.items.map((item) =>
+          {token.items.map((item: Token) =>
             renderToken(item, manager, codeBlockCounter)
           )}
         </ListTag>
@@ -68,6 +69,44 @@ const renderToken = (
 
     case "em":
       return <em key={token.raw}>{token.text}</em>;
+
+    case "codespan":
+      return (
+        <code
+          key={token.raw}
+          className="bg-gray-800 text-gray-200 px-1 py-0.5 rounded text-sm font-mono"
+        >
+          {token.text}
+        </code>
+      );
+
+    case "html":
+      // Only allow center tags, sanitize everything else
+      const sanitizedHtml = DOMPurify.sanitize(token.text, {
+        ALLOWED_TAGS: ["center"],
+        ALLOWED_ATTR: [],
+        KEEP_CONTENT: true,
+      });
+
+      // Handle center tags specifically
+      if (
+        sanitizedHtml.includes("<center>") ||
+        sanitizedHtml.includes("</center>")
+      ) {
+        const centerContent = sanitizedHtml.replace(/<\/?center>/g, "");
+        return (
+          <div key={token.raw} className="text-center">
+            {centerContent}
+          </div>
+        );
+      }
+
+      // If no center tags remain after sanitization, treat as text
+      if (sanitizedHtml.trim()) {
+        return <span key={token.raw}>{sanitizedHtml}</span>;
+      }
+
+      return null;
 
     case "text":
       // Handle nested text tokens if they also have tokens (rare but possible)

@@ -40,8 +40,8 @@ const items = [
 // Test items
 const testItems = [
   {
-    title: "Streaming Code Test",
-    url: "/test/streaming-code",
+    title: "Streaming Test",
+    url: "/test/streaming",
     icon: Code,
     highlightIfActive: true,
   },

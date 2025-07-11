@@ -17,7 +17,7 @@ interface StreamingState {
 export function StreamingTest() {
   const [streams, setStreams] = useState<StreamingState[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [streamSpeed, setStreamSpeed] = useState(50); // ms between characters
+  const [streamSpeed, setStreamSpeed] = useState(5); // ms between characters
   const [maxStreams, setMaxStreams] = useState(3);
   const [codeSamples, setCodeSamples] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
