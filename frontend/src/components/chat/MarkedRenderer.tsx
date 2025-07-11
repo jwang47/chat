@@ -173,6 +173,11 @@ interface MarkedRendererProps {
   messageId: string;
   onCodeBlockExpansionChange?: (hasExpanded: boolean) => void;
   onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void;
+  globalExpandedState?: {
+    messageId: string | null;
+    blockIndex: number | null;
+  };
+  onGlobalCodeBlockToggle?: (messageId: string, blockIndex: number) => void;
 }
 
 // Function to handle incomplete code blocks for the lexer
@@ -189,8 +194,14 @@ export function MarkedRenderer({
   messageId,
   onCodeBlockExpansionChange,
   onExpandedCodeBlocksChange,
+  globalExpandedState,
+  onGlobalCodeBlockToggle,
 }: MarkedRendererProps) {
-  const manager = useCodeBlockManager(content);
+  const manager = useCodeBlockManager(content, {
+    globalExpandedState,
+    onGlobalToggle: onGlobalCodeBlockToggle,
+    messageId,
+  });
   const previousHasAnyExpandedRef = useRef<boolean>(false);
   const previousExpandedBlocksRef = useRef<string>("");
 

@@ -23,9 +23,15 @@ export function ChatInterface() {
     () => getDefaultModel().id
   );
   const [hasExpandedCodeBlock, setHasExpandedCodeBlock] = useState(false);
-  const [expandedCodeBlocks, setExpandedCodeBlocks] = useState<
-    ExpandedCodeBlock[]
-  >([]);
+  const [expandedCodeBlock, setExpandedCodeBlock] =
+    useState<ExpandedCodeBlock | null>(null);
+  const [globalExpandedState, setGlobalExpandedState] = useState<{
+    messageId: string | null;
+    blockIndex: number | null;
+  }>({
+    messageId: null,
+    blockIndex: null,
+  });
   const [copiedBlockId, setCopiedBlockId] = useState<string | null>(null);
 
   const messagesComponentRef = useRef<MessagesRef>(null);
@@ -48,7 +54,23 @@ export function ChatInterface() {
 
   const handleExpandedCodeBlocksChange = useCallback(
     (expandedBlocks: ExpandedCodeBlock[]) => {
-      setExpandedCodeBlocks(expandedBlocks);
+      setExpandedCodeBlock(
+        expandedBlocks.length > 0 ? expandedBlocks[0] : null
+      );
+    },
+    []
+  );
+
+  const handleGlobalCodeBlockToggle = useCallback(
+    (messageId: string, blockIndex: number) => {
+      setGlobalExpandedState((prev) => {
+        // If clicking the same block, collapse it
+        if (prev.messageId === messageId && prev.blockIndex === blockIndex) {
+          return { messageId: null, blockIndex: null };
+        }
+        // Otherwise, expand the new block (replacing any currently expanded one)
+        return { messageId, blockIndex };
+      });
     },
     []
   );
@@ -206,62 +228,65 @@ export function ChatInterface() {
             onScrollChange={handleScrollChange}
             onCodeBlockExpansionChange={handleCodeBlockExpansionChange}
             onExpandedCodeBlocksChange={handleExpandedCodeBlocksChange}
+            globalExpandedState={globalExpandedState}
+            onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
             className="max-w-3xl mx-auto"
           />
         </motion.div>
         <AnimatePresence>
-          {hasExpandedCodeBlock && (
+          {hasExpandedCodeBlock && expandedCodeBlock && (
             <motion.div
               key="code-block-pane"
               initial={{ x: "100%", opacity: 0 }}
               animate={{ x: "0%", opacity: 1 }}
               exit={{ x: "100%", opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="flex-1 overflow-auto p-4 space-y-4"
+              className="flex-1 flex flex-col p-4 space-y-4"
             >
-              {expandedCodeBlocks.map((block) => {
-                const blockId = `${block.messageId}-${block.blockIndex}`;
-                return (
-                  <div
-                    key={blockId}
-                    className="border border-border/50 rounded-lg overflow-hidden"
-                  >
-                    <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {block.filename || block.language}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyExpanded(block.code, blockId)}
-                        className="h-6 w-6 p-0"
-                      >
-                        {copiedBlockId === blockId ? (
-                          <Check className="h-3 w-3 text-green-400" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-                    <SyntaxHighlighter
-                      style={oneDark as any}
-                      language={block.language}
-                      PreTag="div"
-                      className="!m-0 !text-xs !font-mono !bg-surface"
-                      customStyle={{
-                        margin: 0,
-                        padding: "12px",
-                        maxHeight: "600px",
-                        overflow: "auto",
-                      }}
-                    >
-                      {block.code}
-                    </SyntaxHighlighter>
+              <div
+                key={`${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`}
+                className="border border-border/50 rounded-lg overflow-hidden flex-1 flex flex-col"
+              >
+                <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {expandedCodeBlock.filename || expandedCodeBlock.language}
+                    </span>
                   </div>
-                );
-              })}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      handleCopyExpanded(
+                        expandedCodeBlock.code,
+                        `${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`
+                      )
+                    }
+                    className="h-6 w-6 p-0"
+                  >
+                    {copiedBlockId ===
+                    `${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}` ? (
+                      <Check className="h-3 w-3 text-green-400" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+                </div>
+                <SyntaxHighlighter
+                  style={oneDark as any}
+                  language={expandedCodeBlock.language}
+                  PreTag="div"
+                  className="!m-0 !text-xs !font-mono !bg-surface flex-1"
+                  customStyle={{
+                    margin: 0,
+                    padding: "12px",
+                    overflow: "auto",
+                    height: "100%",
+                  }}
+                >
+                  {expandedCodeBlock.code}
+                </SyntaxHighlighter>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

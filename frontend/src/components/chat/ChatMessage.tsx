@@ -12,12 +12,19 @@ interface ChatMessageProps {
   ) => void;
   onCodeBlockExpansionChange?: (hasExpanded: boolean) => void;
   onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void;
+  globalExpandedState?: {
+    messageId: string | null;
+    blockIndex: number | null;
+  };
+  onGlobalCodeBlockToggle?: (messageId: string, blockIndex: number) => void;
 }
 
 export const ChatMessage = memo(function ChatMessage({
   message,
   onCodeBlockExpansionChange,
   onExpandedCodeBlocksChange,
+  globalExpandedState,
+  onGlobalCodeBlockToggle,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
 
@@ -32,6 +39,8 @@ export const ChatMessage = memo(function ChatMessage({
           messageId={message.id}
           onCodeBlockExpansionChange={onCodeBlockExpansionChange}
           onExpandedCodeBlocksChange={onExpandedCodeBlocksChange}
+          globalExpandedState={globalExpandedState}
+          onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
         />
       )}
     </div>

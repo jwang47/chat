@@ -1,6 +1,5 @@
 import {
   useRef,
-  useEffect,
   forwardRef,
   useImperativeHandle,
   useCallback,
@@ -24,6 +23,11 @@ interface MessagesProps {
   ) => void;
   onCodeBlockExpansionChange?: (hasExpanded: boolean) => void;
   onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void;
+  globalExpandedState?: {
+    messageId: string | null;
+    blockIndex: number | null;
+  };
+  onGlobalCodeBlockToggle?: (messageId: string, blockIndex: number) => void;
 }
 
 export interface MessagesRef {
@@ -52,6 +56,8 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
       onScrollChange,
       onCodeBlockExpansionChange,
       onExpandedCodeBlocksChange,
+      globalExpandedState,
+      onGlobalCodeBlockToggle,
       className,
     },
     ref
@@ -268,6 +274,8 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
                         expandedBlocks
                       )
                     }
+                    globalExpandedState={globalExpandedState}
+                    onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
                   />
                 );
               })}
