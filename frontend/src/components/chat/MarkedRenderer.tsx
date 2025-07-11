@@ -5,7 +5,6 @@ import { useCodeBlockManager } from "../../hooks/useCodeBlockManager";
 import { CodeBlock } from "./CodeBlock";
 import type { ExpandedCodeBlock } from "@/types/chat";
 
-// This is a simplified renderer. A production one would handle more token types.
 const renderToken = (
   token: Token,
   manager: ReturnType<typeof useCodeBlockManager>,
@@ -14,6 +13,8 @@ const renderToken = (
   onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void
 ): React.ReactNode => {
   switch (token.type) {
+    case "hr":
+      return <hr key={token.raw} />;
     case "heading":
       // Use 'as' to create dynamic heading tags H1, H2, etc.
       const Tag = `h${token.depth}` as keyof JSX.IntrinsicElements;
