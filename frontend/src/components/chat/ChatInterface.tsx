@@ -35,9 +35,10 @@ export function ChatInterface() {
   const [copiedBlockId, setCopiedBlockId] = useState<string | null>(null);
 
   const messagesComponentRef = useRef<MessagesRef>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageIdCounter = useRef(0);
   const shouldAutoScrollRef = useRef(true);
-  const forceScrollRef = useRef(false);
+  const isUserScrollingRef = useRef(false);
 
   // Define a type for the code block payload for clarity
   interface CodeBlockPayload {
@@ -91,82 +92,52 @@ export function ChatInterface() {
     return `msg_${Date.now()}_${messageIdCounter.current}`;
   }, []);
 
-  const getScrollContainer = useCallback(() => {
-    return messagesComponentRef.current?.getScrollContainer() || null;
+  const scrollToBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, []);
 
   const isAtBottom = useCallback(() => {
-    const scrollContainer = getScrollContainer();
-    if (!scrollContainer) return true;
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-    const threshold = 50;
-    return scrollTop + clientHeight >= scrollHeight - threshold;
-  }, [getScrollContainer]);
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    return scrollTop + clientHeight >= scrollHeight - 50;
+  }, []);
 
-  const scrollToBottom = useCallback(
-    (force: boolean = false) => {
-      const scrollContainer = getScrollContainer();
-      if (!scrollContainer) return;
-
-      if (force || shouldAutoScrollRef.current) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    },
-    [getScrollContainer]
-  );
-
-  const handleScrollChange = useCallback(() => {
-    // Only update auto-scroll behavior if user manually scrolls
-    if (!forceScrollRef.current) {
-      shouldAutoScrollRef.current = isAtBottom();
-    }
+  const handleScroll = useCallback(() => {
+    if (!isUserScrollingRef.current) return;
+    shouldAutoScrollRef.current = isAtBottom();
+    isUserScrollingRef.current = false;
   }, [isAtBottom]);
 
-  // Auto-scroll when messages change
-  useEffect(() => {
-    if (shouldAutoScrollRef.current || forceScrollRef.current) {
-      // Use multiple techniques to ensure scroll happens
-      const scroll = () => scrollToBottom(true);
+  const handleScrollStart = useCallback(() => {
+    isUserScrollingRef.current = true;
+  }, []);
 
-      // Immediate scroll
-      scroll();
-
-      // Scroll after next frame
-      requestAnimationFrame(scroll);
-
-      // Scroll after a short delay to account for any rendering
-      setTimeout(scroll, 10);
-      setTimeout(scroll, 50);
-
-      // Reset force scroll flag
-      if (forceScrollRef.current) {
-        setTimeout(() => {
-          forceScrollRef.current = false;
-        }, 100);
-      }
-    }
-  }, [messages, scrollToBottom]);
-
-  // Handle layout changes (code block expansion)
+  // Auto-scroll effect
   useEffect(() => {
     if (shouldAutoScrollRef.current) {
-      setTimeout(() => scrollToBottom(true), 100);
+      // Multiple scroll attempts with different timing
+      scrollToBottom();
+      requestAnimationFrame(scrollToBottom);
+      setTimeout(scrollToBottom, 0);
+      setTimeout(scrollToBottom, 10);
+      setTimeout(scrollToBottom, 50);
     }
-  }, [hasExpandedCodeBlock, scrollToBottom]);
+  }, [messages, hasExpandedCodeBlock, scrollToBottom]);
 
-  // Initial load
+  // Initial scroll
   useEffect(() => {
-    shouldAutoScrollRef.current = true;
-    forceScrollRef.current = true;
-    setTimeout(() => scrollToBottom(true), 100);
+    setTimeout(scrollToBottom, 100);
   }, [scrollToBottom]);
 
   const handleSendMessage = useCallback(
     (content: string) => {
       setError(null);
 
-      // Force scroll to bottom when user sends message
-      forceScrollRef.current = true;
+      // Always scroll to bottom when user sends message
       shouldAutoScrollRef.current = true;
 
       const userMessage: Message = {
@@ -186,54 +157,48 @@ export function ChatInterface() {
         isStreaming: true,
       };
 
-      // Add user message first
-      setMessages((prev) => [...prev, userMessage]);
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
-      // Add assistant message after a brief delay
-      setTimeout(() => {
-        setMessages((prev) => [...prev, assistantMessage]);
+      setIsTyping(true);
+      setStreamingMessageId(assistantMessage.id);
 
-        // Start streaming
-        setIsTyping(true);
-        setStreamingMessageId(assistantMessage.id);
-
-        // Prepare LLM messages
-        const currentMessages = [...messages, userMessage];
-        const llmMessages: LlmMessage[] = currentMessages.map((msg) => ({
+      // Prepare LLM messages
+      const llmMessages: LlmMessage[] = [...messages, userMessage].map(
+        (msg) => ({
           role: msg.role,
           content: msg.content,
-        }));
+        })
+      );
 
-        LlmService.streamChatCompletion(selectedModel, llmMessages, {
-          onChunk: (chunk: string) => {
-            setMessages((current) =>
-              current.map((msg) =>
-                msg.id === assistantMessage.id
-                  ? { ...msg, content: msg.content + chunk }
-                  : msg
-              )
-            );
-          },
-          onComplete: () => {
-            setIsTyping(false);
-            setStreamingMessageId(null);
-            setMessages((current) =>
-              current.map((msg) =>
-                msg.id === assistantMessage.id
-                  ? { ...msg, isStreaming: false }
-                  : msg
-              )
-            );
-          },
-          onError: (error: Error) => {
-            setError(error.message);
-            setIsTyping(false);
-            setStreamingMessageId(null);
-          },
-        });
-      }, 10);
+      LlmService.streamChatCompletion(selectedModel, llmMessages, {
+        onChunk: (chunk: string) => {
+          setMessages((current) =>
+            current.map((msg) =>
+              msg.id === assistantMessage.id
+                ? { ...msg, content: msg.content + chunk }
+                : msg
+            )
+          );
+        },
+        onComplete: () => {
+          setIsTyping(false);
+          setStreamingMessageId(null);
+          setMessages((current) =>
+            current.map((msg) =>
+              msg.id === assistantMessage.id
+                ? { ...msg, isStreaming: false }
+                : msg
+            )
+          );
+        },
+        onError: (error: Error) => {
+          setError(error.message);
+          setIsTyping(false);
+          setStreamingMessageId(null);
+        },
+      });
     },
-    [generateMessageId, selectedModel, messages]
+    [generateMessageId, selectedModel, messages, scrollToBottom]
   );
 
   return (
@@ -245,7 +210,6 @@ export function ChatInterface() {
         />
       </header>
       <div className="relative flex-1 flex overflow-hidden">
-        {/* Enhanced Messages Container with Better Animation */}
         <motion.div
           layout
           animate={{
@@ -261,26 +225,23 @@ export function ChatInterface() {
           }}
           className="flex flex-col min-w-0"
         >
-          <motion.div
-            layout
+          <div
+            ref={messagesContainerRef}
             className="flex-1 overflow-y-auto max-w-2xl mx-auto w-full"
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-              mass: 0.8,
-            }}
+            onScroll={handleScroll}
+            onTouchStart={handleScrollStart}
+            onMouseDown={handleScrollStart}
           >
             <Messages
               ref={messagesComponentRef}
               messages={messages}
               isTyping={isTyping}
               streamingMessageId={streamingMessageId}
-              onScrollChange={handleScrollChange}
+              onScrollChange={() => {}} // No longer needed
               globalExpandedState={globalExpandedState}
               onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
             />
-          </motion.div>
+          </div>
 
           <motion.div
             layout
@@ -310,7 +271,6 @@ export function ChatInterface() {
           </motion.div>
         </motion.div>
 
-        {/* Enhanced Code Block Pane */}
         <AnimatePresence mode="wait">
           {hasExpandedCodeBlock && expandedCodeBlock && (
             <motion.div
