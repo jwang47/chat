@@ -10,7 +10,7 @@ import { ChatMessage } from "./ChatMessage";
 import { motion } from "motion/react";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 
-import type { Message } from "@/types/chat";
+import type { Message, ExpandedCodeBlock } from "@/types/chat";
 
 interface MessagesProps {
   messages: Message[];
@@ -21,6 +21,8 @@ interface MessagesProps {
     scrollHeight: number,
     clientHeight: number
   ) => void;
+  onCodeBlockExpansionChange?: (hasExpanded: boolean) => void;
+  onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void;
 }
 
 export interface MessagesRef {
@@ -41,8 +43,22 @@ interface TypingIndicatorMessage extends Message {
 }
 
 export const Messages = forwardRef<MessagesRef, MessagesProps>(
-  ({ messages, isTyping, streamingMessageId, onScrollChange }, ref) => {
+  (
+    {
+      messages,
+      isTyping,
+      streamingMessageId,
+      onScrollChange,
+      onCodeBlockExpansionChange,
+      onExpandedCodeBlocksChange,
+    },
+    ref
+  ) => {
     const containerRef = useRef<HTMLDivElement>(null);
+    const expansionStateRef = useRef<Map<string, boolean>>(new Map());
+    const expandedCodeBlocksRef = useRef<Map<string, ExpandedCodeBlock[]>>(
+      new Map()
+    );
 
     // Use auto-scroll hook that depends on messages length and streaming state
     // We'll use the ScrollableFeed container as the scroll target
@@ -51,6 +67,42 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
       streamingMessageId,
       isTyping,
     ]);
+
+    // Handle code block expansion changes from individual messages
+    const handleMessageCodeBlockExpansion = useCallback(
+      (messageId: string, hasExpanded: boolean) => {
+        expansionStateRef.current.set(messageId, hasExpanded);
+
+        // Check if any message has expanded code blocks
+        const hasAnyExpanded = Array.from(
+          expansionStateRef.current.values()
+        ).some(Boolean);
+        onCodeBlockExpansionChange?.(hasAnyExpanded);
+
+        // Collect all expanded code blocks
+        const allExpandedBlocks: ExpandedCodeBlock[] = [];
+        expandedCodeBlocksRef.current.forEach((blocks) => {
+          allExpandedBlocks.push(...blocks);
+        });
+        onExpandedCodeBlocksChange?.(allExpandedBlocks);
+      },
+      [onCodeBlockExpansionChange, onExpandedCodeBlocksChange]
+    );
+
+    // Handle expanded code blocks data from individual messages
+    const handleMessageExpandedCodeBlocks = useCallback(
+      (messageId: string, expandedBlocks: ExpandedCodeBlock[]) => {
+        expandedCodeBlocksRef.current.set(messageId, expandedBlocks);
+
+        // Collect all expanded code blocks
+        const allExpandedBlocks: ExpandedCodeBlock[] = [];
+        expandedCodeBlocksRef.current.forEach((blocks) => {
+          allExpandedBlocks.push(...blocks);
+        });
+        onExpandedCodeBlocksChange?.(allExpandedBlocks);
+      },
+      [onExpandedCodeBlocksChange]
+    );
 
     // Create items including typing indicator
     const items = useMemo(() => {
@@ -199,7 +251,23 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
                   return <TypingIndicator key={message.id} />;
                 }
 
-                return <ChatMessage key={message.id} message={message} />;
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    onCodeBlockExpansionChange={(hasExpanded: boolean) =>
+                      handleMessageCodeBlockExpansion(message.id, hasExpanded)
+                    }
+                    onExpandedCodeBlocksChange={(
+                      expandedBlocks: ExpandedCodeBlock[]
+                    ) =>
+                      handleMessageExpandedCodeBlocks(
+                        message.id,
+                        expandedBlocks
+                      )
+                    }
+                  />
+                );
               })}
             </div>
           </div>

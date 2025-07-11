@@ -2,15 +2,12 @@ import { useState, useEffect } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronDown, Copy, Check } from "lucide-react";
-import { motion } from "framer-motion"; // Use framer-motion for better animations
+import { ChevronRight, Copy, Check } from "lucide-react";
 
 interface CodeBlockProps {
-  // ADDED: New props from our state manager
   blockIndex: number;
   isExpanded: boolean;
   onToggleExpand: () => void;
-  // Existing props
   language: string;
   code: string;
   filename?: string;
@@ -28,30 +25,23 @@ export function CodeBlock({
   filename,
 }: CodeBlockProps) {
   const [isCopied, setIsCopied] = useState(false);
-  // REMOVED: All internal state related to expansion is now gone.
-  // const [isExpanded, setIsExpanded] = useState(false);
-  // const [hasUserInteracted, setHasUserInteracted] = useState(false);
-
-  // You can still have local state for things like detecting if the code is streaming
   const [isStreaming, setIsStreaming] = useState(true);
 
   const lineCount = code.split("\n").length;
   const charCount = code.length;
 
-  // Determine if code should be collapsible.
-  // We collapse if it's long OR if it's currently streaming (to prevent layout shifts).
+  // Determine if code should be collapsible
   const shouldBeCollapsible =
     lineCount > COLLAPSE_THRESHOLD_LINES || isStreaming;
 
-  // Effect to detect when streaming stops.
+  // Effect to detect when streaming stops
   useEffect(() => {
-    // A simple heuristic: if the code hasn't changed for a short period, assume streaming is done.
     const timer = setTimeout(() => {
       setIsStreaming(false);
-    }, 1000); // 1 second of inactivity
+    }, 1000);
 
     return () => clearTimeout(timer);
-  }, [code]); // This effect re-runs every time the code content changes.
+  }, [code]);
 
   const handleCopy = async () => {
     try {
@@ -63,14 +53,23 @@ export function CodeBlock({
     }
   };
 
-  // Render non-collapsible for short, fully-loaded code.
-  if (!shouldBeCollapsible && !isExpanded) {
+  // For short code, show full code inline (no side panel needed)
+  if (!shouldBeCollapsible) {
     return (
-      <div className="mb-4 group relative" key={`cb-static-${blockIndex}`}>
-        <div className="flex items-center justify-between bg-surface/50 px-3 py-2 rounded-t-lg border-b border-border/50">
-          <span className="text-xs font-mono text-muted-foreground">
-            {language}
-          </span>
+      <div
+        className="mb-4 group relative border border-border/50 rounded-lg overflow-hidden"
+        key={`cb-static-${blockIndex}`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-muted-foreground">
+              {filename || language}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {lineCount} lines • {charCount} chars
+            </span>
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -88,7 +87,7 @@ export function CodeBlock({
           style={oneDark as any}
           language={language}
           PreTag="div"
-          className="!m-0 !text-xs !font-mono !bg-surface rounded-b-lg"
+          className="!m-0 !text-xs !font-mono !bg-surface"
           customStyle={{ margin: 0, padding: "12px" }}
         >
           {code}
@@ -97,97 +96,76 @@ export function CodeBlock({
     );
   }
 
-  // Render collapsible/expandable view
+  // For long code, always show as collapsed preview in conversation
+  // Full code appears in side panel when expanded
   return (
-    <div className="pb-2" key={`cb-collapsible-${blockIndex}`}>
-      {!isExpanded ? (
-        // --- Collapsed View ---
-        <div
-          onClick={onToggleExpand}
-          className="group relative cursor-pointer bg-surface/30 hover:bg-surface/50 border border-border/50 hover:border-border rounded-lg p-4 transition-colors duration-150 ease-in-out"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm">Code</span>
-                <span className="text-xs font-mono text-muted-foreground">
-                  {language}
-                </span>
-                {isStreaming && (
-                  <span className="text-xs text-muted-foreground/60 animate-pulse">
-                    streaming...
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {lineCount} lines • {charCount} chars
-            </div>
-          </div>
+    <div
+      className="mb-4 group relative border border-border/50 rounded-lg overflow-hidden"
+      key={`cb-collapsible-${blockIndex}`}
+    >
+      {/* Header - Always Visible */}
+      <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleExpand}
+            className="h-6 w-6 p-0"
+          >
+            <ChevronRight
+              className={`h-4 w-4 transition-transform ${
+                isExpanded ? "rotate-90" : ""
+              }`}
+            />
+          </Button>
+          <span className="text-xs font-mono text-muted-foreground">
+            {filename || language}
+          </span>
+          {isStreaming && (
+            <span className="text-xs text-muted-foreground/60 animate-pulse">
+              streaming...
+            </span>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {lineCount} lines • {charCount} chars
+          </span>
+          {isExpanded && (
+            <span className="text-xs text-accent font-medium">
+              → Expanded in side panel
+            </span>
+          )}
         </div>
-      ) : (
-        // --- Expanded View ---
-        <motion.div
-          key="expanded"
-          initial={{ opacity: 0.5, height: "auto" }}
-          animate={{ opacity: 1, height: "auto" }}
-          transition={{ duration: 0.2, ease: "easeInOut" }}
-          className="group relative overflow-hidden border border-border/50 rounded-lg"
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleCopy}
+          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
         >
-          <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggleExpand}
-                className="h-6 w-6 p-0"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-              <span className="text-xs font-mono text-muted-foreground">
-                {language}
-              </span>
-              {isStreaming && (
-                <span className="text-xs text-muted-foreground/60 animate-pulse">
-                  streaming...
-                </span>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCopy}
-              className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
-            >
-              {isCopied ? (
-                <Check className="h-3 w-3" />
-              ) : (
-                <Copy className="h-3 w-3" />
-              )}
-            </Button>
-          </div>
-          <div className="relative">
-            <SyntaxHighlighter
-              style={oneDark as any}
-              language={language}
-              PreTag="div"
-              className="!m-0 !text-xs !font-mono !bg-surface"
-              customStyle={{
-                margin: 0,
-                padding: "12px",
-                borderBottomLeftRadius: "0.5rem",
-                borderBottomRightRadius: "0.5rem",
-              }}
-            >
-              {code}
-            </SyntaxHighlighter>
-            {isStreaming && (
-              <div className="absolute bottom-3 right-3 w-2 h-4 bg-accent animate-pulse rounded-sm" />
-            )}
-          </div>
-        </motion.div>
-      )}
+          {isCopied ? (
+            <Check className="h-3 w-3" />
+          ) : (
+            <Copy className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
+
+      {/* Preview - Always shown in conversation */}
+      <div
+        className={`bg-surface/30 p-4 cursor-pointer transition-colors ${
+          isExpanded ? "bg-surface/50" : "hover:bg-surface/40"
+        }`}
+        onClick={onToggleExpand}
+      >
+        <div className="text-xs text-muted-foreground mb-2">
+          {isExpanded
+            ? "Click to close side panel"
+            : "Click to view in side panel"}
+        </div>
+        <div className="font-mono text-xs text-foreground/70 line-clamp-4 whitespace-pre-wrap">
+          {code.split("\n").slice(0, 4).join("\n")}
+          {lineCount > 4 && "\n..."}
+        </div>
+      </div>
     </div>
   );
 }

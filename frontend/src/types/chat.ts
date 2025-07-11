@@ -1,10 +1,18 @@
 export interface Message {
   id: string;
-  content: string;
   role: "user" | "assistant";
+  content: string;
   timestamp: Date;
-  isStreaming?: boolean;
   model: string;
+  isStreaming?: boolean;
+}
+
+export interface ExpandedCodeBlock {
+  messageId: string;
+  blockIndex: number;
+  language: string;
+  code: string;
+  filename?: string;
 }
 
 export interface ChatSession {

@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Messages, type MessagesRef } from "./Messages";
-import { ChatMinimap } from "./ChatMinimap";
 import { MessageInput } from "./MessageInput";
 import { LlmService, type LlmMessage } from "@/lib/llmService";
-import type { Message } from "@/types/chat";
+import type { Message, ExpandedCodeBlock } from "@/types/chat";
 import { motion, AnimatePresence } from "motion/react";
 import { mockMessages } from "@/data/mockChat";
 import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Button } from "@/components/ui/button";
+import { Copy, Check, X } from "lucide-react";
 
 export function ChatInterface() {
   // const [messages, setMessages] = useState<Message[]>([]);
@@ -22,10 +25,39 @@ export function ChatInterface() {
   );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [hasExpandedCodeBlock, setHasExpandedCodeBlock] = useState(false);
+  const [expandedCodeBlocks, setExpandedCodeBlocks] = useState<
+    ExpandedCodeBlock[]
+  >([]);
+  const [isCopied, setIsCopied] = useState(false);
 
   // Handle model selection
   const handleModelSelect = useCallback((model: ModelInfo) => {
     setSelectedModel(model.id);
+  }, []);
+
+  // Handle code block expansion state changes
+  const handleCodeBlockExpansionChange = useCallback((hasExpanded: boolean) => {
+    setHasExpandedCodeBlock(hasExpanded);
+  }, []);
+
+  // Handle expanded code blocks data
+  const handleExpandedCodeBlocksChange = useCallback(
+    (expandedBlocks: ExpandedCodeBlock[]) => {
+      setExpandedCodeBlocks(expandedBlocks);
+    },
+    []
+  );
+
+  // Handle copy for expanded code
+  const handleCopyExpanded = useCallback(async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy code:", err);
+    }
   }, []);
 
   const [contentHeight, setContentHeight] = useState(0);
@@ -312,24 +344,106 @@ export function ChatInterface() {
       {/* Main Content Area */}
       <div className="relative flex-1 flex overflow-hidden">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto">
+        <div
+          className={`flex-1 overflow-y-auto transition-all duration-300 ${
+            hasExpandedCodeBlock ? "lg:w-1/2" : "w-full"
+          }`}
+        >
           <Messages
             ref={messagesComponentRef}
             messages={messages}
             isTyping={isTyping}
             streamingMessageId={streamingMessageId}
             onScrollChange={handleScrollChange}
+            onCodeBlockExpansionChange={handleCodeBlockExpansionChange}
+            onExpandedCodeBlocksChange={handleExpandedCodeBlocksChange}
           />
         </div>
 
-        {/* Chat Minimap */}
-        <ChatMinimap
-          messages={messages}
-          scrollProgress={scrollProgress}
-          viewportHeight={viewportHeight}
-          contentHeight={contentHeight}
-          onScrollTo={scrollTo}
-        />
+        {/* Code Block Expanded View */}
+        <AnimatePresence>
+          {hasExpandedCodeBlock && (
+            <motion.div
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 100 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="hidden lg:block w-1/2 border-l border-border/50 bg-surface/20"
+            >
+              <div className="h-full flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-border/50">
+                  <div className="text-sm font-medium text-foreground">
+                    Expanded Code View
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      // Close all expanded code blocks
+                      setHasExpandedCodeBlock(false);
+                      setExpandedCodeBlocks([]);
+                    }}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Code Blocks */}
+                <div className="flex-1 overflow-auto p-4 space-y-4">
+                  {expandedCodeBlocks.map((block, index) => (
+                    <div
+                      key={`${block.messageId}-${block.blockIndex}`}
+                      className="border border-border/50 rounded-lg overflow-hidden"
+                    >
+                      {/* Code Block Header */}
+                      <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {block.filename || block.language}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {block.code.split("\n").length} lines •{" "}
+                            {block.code.length} chars
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyExpanded(block.code)}
+                          className="h-6 w-6 p-0"
+                        >
+                          {isCopied ? (
+                            <Check className="h-3 w-3" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Code Content */}
+                      <SyntaxHighlighter
+                        style={oneDark as any}
+                        language={block.language}
+                        PreTag="div"
+                        className="!m-0 !text-xs !font-mono !bg-surface"
+                        customStyle={{
+                          margin: 0,
+                          padding: "12px",
+                          maxHeight: "600px",
+                          overflow: "auto",
+                        }}
+                      >
+                        {block.code}
+                      </SyntaxHighlighter>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Message Input Area */}

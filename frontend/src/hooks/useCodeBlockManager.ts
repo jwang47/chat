@@ -36,9 +36,15 @@ export function useCodeBlockManager(content: string) {
     [expandedState]
   );
 
+  // Function to check if any code block is expanded
+  const hasAnyExpanded = useCallback(() => {
+    return Array.from(expandedState.values()).some(Boolean);
+  }, [expandedState]);
+
   return {
     codeBlockCount,
     isExpanded,
     toggle,
+    hasAnyExpanded,
   };
 }

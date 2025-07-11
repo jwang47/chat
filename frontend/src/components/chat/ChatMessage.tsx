@@ -1,4 +1,4 @@
-import type { Message } from "@/types/chat";
+import type { Message, ExpandedCodeBlock } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import { MarkedRenderer } from "./MarkedRenderer";
 import { memo } from "react";
@@ -10,10 +10,14 @@ interface ChatMessageProps {
     isCollapsed: boolean,
     element: HTMLElement | null
   ) => void;
+  onCodeBlockExpansionChange?: (hasExpanded: boolean) => void;
+  onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void;
 }
 
 export const ChatMessage = memo(function ChatMessage({
   message,
+  onCodeBlockExpansionChange,
+  onExpandedCodeBlocksChange,
 }: ChatMessageProps) {
   const isUser = message.role === "user";
 
@@ -23,7 +27,12 @@ export const ChatMessage = memo(function ChatMessage({
         <div className="whitespace-pre-wrap">{message.content}</div>
       ) : (
         // Use our new React-based Marked renderer
-        <MarkedRenderer content={message.content} />
+        <MarkedRenderer
+          content={message.content}
+          messageId={message.id}
+          onCodeBlockExpansionChange={onCodeBlockExpansionChange}
+          onExpandedCodeBlocksChange={onExpandedCodeBlocksChange}
+        />
       )}
     </div>
   );

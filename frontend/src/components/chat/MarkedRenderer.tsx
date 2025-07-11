@@ -1,14 +1,17 @@
-import React, { useMemo, type JSX } from "react";
+import React, { useMemo, useEffect, useCallback, type JSX } from "react";
 import { marked, type Token } from "marked";
 import DOMPurify from "dompurify";
-import { useCodeBlockManager } from "../../hooks/useCodeBlockManager"; // Reuse the hook!
-import { CodeBlock } from "./CodeBlock"; // Your interactive component
+import { useCodeBlockManager } from "../../hooks/useCodeBlockManager";
+import { CodeBlock } from "./CodeBlock";
+import type { ExpandedCodeBlock } from "@/types/chat";
 
 // This is a simplified renderer. A production one would handle more token types.
 const renderToken = (
   token: Token,
   manager: ReturnType<typeof useCodeBlockManager>,
-  codeBlockCounter: { current: number }
+  codeBlockCounter: { current: number },
+  messageId: string,
+  onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void
 ): React.ReactNode => {
   switch (token.type) {
     case "heading":
@@ -21,7 +24,15 @@ const renderToken = (
         <p key={token.raw} className="mb-4 last:mb-0 whitespace-pre-line">
           {/* Paragraphs can contain other tokens like 'strong', 'em', etc. */}
           {token.tokens
-            ? token.tokens.map((t) => renderToken(t, manager, codeBlockCounter))
+            ? token.tokens.map((t) =>
+                renderToken(
+                  t,
+                  manager,
+                  codeBlockCounter,
+                  messageId,
+                  onExpandedCodeBlocksChange
+                )
+              )
             : token.text}
         </p>
       );
@@ -52,7 +63,13 @@ const renderToken = (
           }
         >
           {token.items.map((item: Token) =>
-            renderToken(item, manager, codeBlockCounter)
+            renderToken(
+              item,
+              manager,
+              codeBlockCounter,
+              messageId,
+              onExpandedCodeBlocksChange
+            )
           )}
         </ListTag>
       );
@@ -60,7 +77,15 @@ const renderToken = (
     case "list_item":
       return (
         <li key={token.raw}>
-          {token.tokens?.map((t) => renderToken(t, manager, codeBlockCounter))}
+          {token.tokens?.map((t) =>
+            renderToken(
+              t,
+              manager,
+              codeBlockCounter,
+              messageId,
+              onExpandedCodeBlocksChange
+            )
+          )}
         </li>
       );
 
@@ -113,7 +138,15 @@ const renderToken = (
       if (token.tokens) {
         return (
           <>
-            {token.tokens.map((t) => renderToken(t, manager, codeBlockCounter))}
+            {token.tokens.map((t) =>
+              renderToken(
+                t,
+                manager,
+                codeBlockCounter,
+                messageId,
+                onExpandedCodeBlocksChange
+              )
+            )}
           </>
         );
       }
@@ -134,6 +167,9 @@ const renderToken = (
 
 interface MarkedRendererProps {
   content: string;
+  messageId: string;
+  onCodeBlockExpansionChange?: (hasExpanded: boolean) => void;
+  onExpandedCodeBlocksChange?: (expandedBlocks: ExpandedCodeBlock[]) => void;
 }
 
 // Function to handle incomplete code blocks for the lexer
@@ -145,8 +181,61 @@ function handleIncompleteCodeBlocksForLexer(content: string): string {
   return content;
 }
 
-export function MarkedRenderer({ content }: MarkedRendererProps) {
+export function MarkedRenderer({
+  content,
+  messageId,
+  onCodeBlockExpansionChange,
+  onExpandedCodeBlocksChange,
+}: MarkedRendererProps) {
   const manager = useCodeBlockManager(content);
+
+  // Collect expanded code blocks
+  const collectExpandedCodeBlocks = useCallback(() => {
+    const tokens = marked.lexer(handleIncompleteCodeBlocksForLexer(content));
+    const expandedBlocks: ExpandedCodeBlock[] = [];
+    let codeBlockIndex = 0;
+
+    const processToken = (token: Token) => {
+      if (token.type === "code") {
+        if (manager.isExpanded(codeBlockIndex)) {
+          expandedBlocks.push({
+            messageId,
+            blockIndex: codeBlockIndex,
+            language: token.lang || "text",
+            code: token.text,
+            filename: undefined, // Could be extracted from token if available
+          });
+        }
+        codeBlockIndex++;
+      } else if (token.type === "paragraph" && token.tokens) {
+        token.tokens.forEach(processToken);
+      } else if (token.type === "list") {
+        token.items.forEach(processToken);
+      } else if (token.type === "list_item" && token.tokens) {
+        token.tokens.forEach(processToken);
+      }
+    };
+
+    tokens.forEach(processToken);
+    return expandedBlocks;
+  }, [content, manager, messageId]);
+
+  // Notify parent when expansion state changes
+  useEffect(() => {
+    if (onCodeBlockExpansionChange) {
+      onCodeBlockExpansionChange(manager.hasAnyExpanded());
+    }
+
+    if (onExpandedCodeBlocksChange) {
+      const expandedBlocks = collectExpandedCodeBlocks();
+      onExpandedCodeBlocksChange(expandedBlocks);
+    }
+  }, [
+    manager.hasAnyExpanded,
+    onCodeBlockExpansionChange,
+    onExpandedCodeBlocksChange,
+    collectExpandedCodeBlocks,
+  ]);
 
   const tokens = useMemo(() => {
     // Ensure incomplete code blocks don't break the lexer
@@ -161,7 +250,15 @@ export function MarkedRenderer({ content }: MarkedRendererProps) {
 
   return (
     <div className="prose prose-invert max-w-none">
-      {tokens.map((token) => renderToken(token, manager, codeBlockCounter))}
+      {tokens.map((token) =>
+        renderToken(
+          token,
+          manager,
+          codeBlockCounter,
+          messageId,
+          onExpandedCodeBlocksChange
+        )
+      )}
     </div>
   );
 }
