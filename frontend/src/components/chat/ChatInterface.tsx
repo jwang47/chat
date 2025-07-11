@@ -196,9 +196,7 @@ export function ChatInterface() {
             width: hasExpandedCodeBlock ? "50%" : "100%",
           }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className={`flex-1 overflow-y-auto ${
-            hasExpandedCodeBlock ? "lg:w-1/2" : "w-full"
-          }`}
+          className={`overflow-y-auto`}
         >
           <Messages
             ref={messagesComponentRef}
