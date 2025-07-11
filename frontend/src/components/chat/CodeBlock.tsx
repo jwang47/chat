@@ -155,19 +155,39 @@ export function CodeBlock({
 
       {/* Preview - Always shown in conversation */}
       <div
-        className={`bg-surface/30 p-4 cursor-pointer transition-colors ${
+        className={`bg-surface/30 cursor-pointer transition-colors ${
           isExpanded ? "bg-surface/50" : "hover:bg-surface/40"
         }`}
         onClick={onToggleExpand}
       >
-        <div className="text-xs text-muted-foreground mb-2">
+        <div className="text-xs text-muted-foreground mb-2 px-4 pt-4">
           {isExpanded
             ? "Click to close side panel"
             : "Click to view in side panel"}
         </div>
-        <div className="font-mono text-xs text-foreground/70 line-clamp-4 whitespace-pre-wrap">
-          {code.split("\n").slice(0, 4).join("\n")}
-          {lineCount > 4 && "\n..."}
+        <div className="relative overflow-hidden">
+          <SyntaxHighlighter
+            style={oneDark as any}
+            language={language}
+            PreTag="div"
+            className="!m-0 !text-xs !font-mono !bg-transparent"
+            customStyle={{
+              margin: 0,
+              padding: "0 16px 16px 16px",
+              background: "transparent",
+              maxHeight: "6rem",
+              overflow: "hidden",
+            }}
+          >
+            {code.split("\n").slice(0, 4).join("\n")}
+          </SyntaxHighlighter>
+          {lineCount > 4 && (
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-surface/30 to-transparent flex items-end justify-center pb-2">
+              <span className="text-xs text-muted-foreground font-mono">
+                ...
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
