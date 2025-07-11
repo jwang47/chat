@@ -216,35 +216,106 @@ export function ChatInterface() {
         />
       </header>
       <div className="relative flex-1 flex overflow-hidden">
+        {/* Enhanced Messages Container with Better Animation */}
         <motion.div
+          layout
           animate={{
             width: hasExpandedCodeBlock ? "50%" : "100%",
+            marginRight: hasExpandedCodeBlock ? "8px" : "0px",
           }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className={`overflow-y-auto max-w-2xl mx-auto`}
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 30,
+            mass: 0.8,
+            duration: 0.4,
+          }}
+          className="flex flex-col min-w-0" // min-w-0 prevents flex shrinking issues
         >
-          <Messages
-            ref={messagesComponentRef}
-            messages={messages}
-            isTyping={isTyping}
-            streamingMessageId={streamingMessageId}
-            onScrollChange={handleScrollChange}
-            globalExpandedState={globalExpandedState}
-            onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
-          />
+          <motion.div
+            layout
+            className="flex-1 overflow-y-auto max-w-2xl mx-auto w-full"
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+              mass: 0.8,
+            }}
+          >
+            <Messages
+              ref={messagesComponentRef}
+              messages={messages}
+              isTyping={isTyping}
+              streamingMessageId={streamingMessageId}
+              onScrollChange={handleScrollChange}
+              globalExpandedState={globalExpandedState}
+              onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
+            />
+          </motion.div>
+
+          {/* Message Input with Smooth Repositioning */}
+          <motion.div
+            layout
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              opacity: { duration: 0.3 },
+              y: { duration: 0.3 },
+              layout: {
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+                mass: 0.8,
+              },
+            }}
+            className="relative z-10 p-4"
+          >
+            <div className="max-w-3xl mx-auto">
+              <MessageInput
+                onSendMessage={handleSendMessage}
+                placeholder={`Ask ${
+                  getModelById(selectedModel)?.displayName || "AI"
+                } anything...`}
+                disabled={isTyping}
+              />
+            </div>
+          </motion.div>
         </motion.div>
-        <AnimatePresence>
+
+        {/* Enhanced Code Block Pane */}
+        <AnimatePresence mode="wait">
           {hasExpandedCodeBlock && expandedCodeBlock && (
             <motion.div
               key="code-block-pane"
-              initial={{ x: "100%", opacity: 0 }}
-              animate={{ x: "0%", opacity: 1 }}
-              exit={{ x: "100%", opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="flex-1 flex flex-col p-4 space-y-4 max-w-2xl mx-auto"
+              initial={{
+                x: "100%",
+                opacity: 0,
+                scale: 0.95,
+              }}
+              animate={{
+                x: "0%",
+                opacity: 1,
+                scale: 1,
+              }}
+              exit={{
+                x: "100%",
+                opacity: 0,
+                scale: 0.95,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+                mass: 0.8,
+                opacity: { duration: 0.2 },
+              }}
+              className="flex-1 flex flex-col p-4 space-y-4 max-w-2xl mx-auto min-w-0"
             >
-              <div
+              <motion.div
                 key={`${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1, duration: 0.3 }}
                 className="border border-border/50 rounded-lg overflow-hidden flex-1 flex flex-col"
               >
                 <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
@@ -286,27 +357,11 @@ export function ChatInterface() {
                 >
                   {expandedCodeBlock.code}
                 </SyntaxHighlighter>
-              </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeInOut" }}
-        className="relative z-10 p-4"
-      >
-        <div className="max-w-3xl mx-auto">
-          <MessageInput
-            onSendMessage={handleSendMessage}
-            placeholder={`Ask ${
-              getModelById(selectedModel)?.displayName || "AI"
-            } anything...`}
-            disabled={isTyping}
-          />
-        </div>
-      </motion.div>
     </div>
   );
 }
