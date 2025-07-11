@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Copy, Check, X } from "lucide-react";
 
 export function ChatInterface() {
-  // const [messages, setMessages] = useState<Message[]>([]);
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
@@ -23,25 +22,32 @@ export function ChatInterface() {
   const [selectedModel, setSelectedModel] = useState<string>(
     () => getDefaultModel().id
   );
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(0);
   const [hasExpandedCodeBlock, setHasExpandedCodeBlock] = useState(false);
   const [expandedCodeBlocks, setExpandedCodeBlocks] = useState<
     ExpandedCodeBlock[]
   >([]);
-  const [isCopied, setIsCopied] = useState(false);
 
-  // Handle model selection
+  // FIX 1: Changed `isCopied` to track the specific block being copied
+  const [copiedBlockId, setCopiedBlockId] = useState<string | null>(null);
+
+  const messagesComponentRef = useRef<MessagesRef>(null);
+  const messageIdCounter = useRef(0);
+  const isUserScrolledUpRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false);
+  const messagesStateRef = useRef<Message[]>(messages);
+
+  useEffect(() => {
+    messagesStateRef.current = messages;
+  }, [messages]);
+
   const handleModelSelect = useCallback((model: ModelInfo) => {
     setSelectedModel(model.id);
   }, []);
 
-  // Handle code block expansion state changes
   const handleCodeBlockExpansionChange = useCallback((hasExpanded: boolean) => {
     setHasExpandedCodeBlock(hasExpanded);
   }, []);
 
-  // Handle expanded code blocks data
   const handleExpandedCodeBlocksChange = useCallback(
     (expandedBlocks: ExpandedCodeBlock[]) => {
       setExpandedCodeBlocks(expandedBlocks);
@@ -49,53 +55,39 @@ export function ChatInterface() {
     []
   );
 
-  // Handle copy for expanded code
-  const handleCopyExpanded = useCallback(async (code: string) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy code:", err);
-    }
-  }, []);
+  // FIX 2: Updated copy handler to manage state per-block
+  const handleCopyExpanded = useCallback(
+    async (code: string, blockId: string) => {
+      try {
+        await navigator.clipboard.writeText(code);
+        setCopiedBlockId(blockId);
+        setTimeout(() => setCopiedBlockId(null), 2000);
+      } catch (err) {
+        console.error("Failed to copy code:", err);
+      }
+    },
+    []
+  );
 
-  const [contentHeight, setContentHeight] = useState(0);
-  const messagesComponentRef = useRef<MessagesRef>(null);
-  const messageIdCounter = useRef(0);
-  const isUserScrolledUpRef = useRef(false);
-  const scrollUpdatePendingRef = useRef(false);
-  const isProgrammaticScrollRef = useRef(false);
-  const lastScrollTopRef = useRef(0);
-  const messagesStateRef = useRef<Message[]>(messages);
-
-  // Keep messagesStateRef in sync with messages state
-  useEffect(() => {
-    messagesStateRef.current = messages;
-  }, [messages]);
-
-  // Generate unique message ID
   const generateMessageId = useCallback(() => {
     messageIdCounter.current += 1;
     return `msg_${Date.now()}_${messageIdCounter.current}`;
   }, []);
 
-  // Get the scroll container from messages component
   const getScrollContainer = useCallback(() => {
     return messagesComponentRef.current?.getScrollContainer() || null;
   }, []);
 
-  // Check if user is at or near the bottom of the chat
   const isAtBottom = useCallback(() => {
     const scrollContainer = getScrollContainer();
     if (!scrollContainer) return true;
 
     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-    const threshold = 50; // pixels from bottom
+    const threshold = 50;
     return scrollTop + clientHeight >= scrollHeight - threshold;
   }, [getScrollContainer]);
 
-  // Optimized scroll to bottom function
+  // FIX 3: Robust scroll functions with better timeout handling
   const scrollToBottom = useCallback((smooth: boolean = false) => {
     isProgrammaticScrollRef.current = true;
     if (smooth) {
@@ -104,144 +96,50 @@ export function ChatInterface() {
       messagesComponentRef.current?.scrollToBottomInstant();
     }
     isUserScrolledUpRef.current = false;
-    // Reset the flag after a moderate delay to balance responsiveness and accuracy
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
-    }, 150);
+    }, 300); // Increased timeout for smooth scroll
   }, []);
 
-  // Scroll to specific position (for minimap)
   const scrollTo = useCallback((position: number) => {
     isProgrammaticScrollRef.current = true;
     messagesComponentRef.current?.scrollTo(position);
-    // Reset the flag after a moderate delay to balance responsiveness and accuracy
     setTimeout(() => {
       isProgrammaticScrollRef.current = false;
-    }, 150);
+    }, 300);
   }, []);
 
-  // Handle scroll events from virtualized messages
+  // FIX 4: Simplified and more reliable scroll handler
   const handleScrollChange = useCallback(
     (scrollTop: number, scrollHeight: number, clientHeight: number) => {
-      if (scrollUpdatePendingRef.current) return;
-
-      scrollUpdatePendingRef.current = true;
-      requestAnimationFrame(() => {
-        // Update the scroll position tracking
-        const threshold = 50;
-        const isAtBottomWithThreshold =
-          scrollTop + clientHeight >= scrollHeight - threshold;
-
-        // Only update scroll tracking if this isn't a programmatic scroll
-        // This prevents auto-scroll from interfering with user scroll detection
-        if (!isProgrammaticScrollRef.current) {
-          // Detect if user is actively scrolling up (more sensitive threshold)
-          const isScrollingUp = scrollTop < lastScrollTopRef.current - 5; // 5px threshold for better responsiveness
-          if (isScrollingUp) {
-            isUserScrolledUpRef.current = true;
-          } else if (isAtBottomWithThreshold) {
-            // Only reset to false if we're actually at the bottom
-            isUserScrolledUpRef.current = false;
-          }
-          // If we're not scrolling up and not at bottom, maintain current state
-        }
-
-        lastScrollTopRef.current = scrollTop;
-
-        // Calculate scroll progress (0 to 1)
-        const progress =
-          scrollHeight > clientHeight
-            ? scrollTop / (scrollHeight - clientHeight)
-            : 0;
-
-        // Batch state updates to prevent excessive re-renders
-        setScrollProgress((prev) => {
-          if (Math.abs(prev - progress) < 0.01) return prev; // Avoid micro-updates
-          return progress;
-        });
-
-        setViewportHeight((prev) => {
-          if (prev === clientHeight) return prev;
-          return clientHeight;
-        });
-
-        setContentHeight((prev) => {
-          if (prev === scrollHeight) return prev;
-          return scrollHeight;
-        });
-
-        scrollUpdatePendingRef.current = false;
-      });
+      if (isProgrammaticScrollRef.current) return;
+      isUserScrolledUpRef.current = !isAtBottom();
     },
-    [streamingMessageId]
+    [isAtBottom]
   );
 
-  // Auto-scroll to bottom when new messages arrive
+  // FIX 5: Unified auto-scroll logic into a single, clean effect
   useEffect(() => {
-    // Only auto-scroll when message count changes (new messages added)
-    if (messages.length > 0 && !isUserScrolledUpRef.current) {
-      // Use a small delay to ensure DOM is updated
+    if (!isUserScrolledUpRef.current) {
       const timer = setTimeout(() => {
-        scrollToBottom(true); // Use smooth scroll for new messages
-      }, 10);
+        scrollToBottom(true);
+      }, 50);
       return () => clearTimeout(timer);
     }
-  }, [messages.length, scrollToBottom]); // Only depend on message count, not content
-
-  // Handle streaming content updates
-  useEffect(() => {
-    // Only auto-scroll during streaming if user is at bottom and content is actually changing
-    if (streamingMessageId && !isUserScrolledUpRef.current) {
-      const streamingMessage = messages.find(
-        (msg) => msg.id === streamingMessageId
-      );
-      // Only scroll if there's actual content and we're still streaming
-      if (
-        streamingMessage &&
-        streamingMessage.content &&
-        streamingMessage.isStreaming
-      ) {
-        const timer = setTimeout(() => {
-          // Double-check user hasn't scrolled up while we were waiting
-          if (!isUserScrolledUpRef.current) {
-            scrollToBottom(true); // Use smooth scroll during streaming too
-          }
-        }, 10);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [streamingMessageId, messages, scrollToBottom]);
-
-  // Handle end of streaming - ensure we're at the very bottom
-  useEffect(() => {
-    // When streaming ends, if user was at bottom, ensure we're at the very bottom with smooth scroll
-    if (!streamingMessageId && !isUserScrolledUpRef.current) {
-      const timer = setTimeout(() => {
-        scrollToBottom(true); // Use smooth scroll when streaming ends
-      }, 50); // Slightly longer delay to ensure DOM is fully updated
-      return () => clearTimeout(timer);
-    }
-  }, [streamingMessageId, scrollToBottom]);
+  }, [messages, scrollToBottom]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
-    // Small delay to ensure DOM is fully rendered
     const timer = setTimeout(() => {
-      scrollToBottom(true); // Use smooth scroll for initial load
-      // Initialize scroll tracking
-      isUserScrolledUpRef.current = false;
-      setScrollProgress(0);
+      scrollToBottom(false); // Use instant scroll on load
     }, 100);
-
     return () => clearTimeout(timer);
   }, [scrollToBottom]);
 
   const handleSendMessage = useCallback(
     (content: string) => {
-      // Clear any previous error
       setError(null);
 
-      // Create user message
       const userMessage: Message = {
         id: generateMessageId(),
         role: "user",
@@ -249,8 +147,6 @@ export function ChatInterface() {
         timestamp: new Date(),
         model: selectedModel,
       };
-
-      // Create assistant message placeholder
       const assistantMessage: Message = {
         id: generateMessageId(),
         role: "assistant",
@@ -260,24 +156,21 @@ export function ChatInterface() {
         isStreaming: true,
       };
 
-      // Add both messages to state in a single update
+      // FIX 6: Proactively check scroll position BEFORE adding new messages
+      const shouldStickToBottom = isAtBottom();
+      isUserScrolledUpRef.current = !shouldStickToBottom;
+
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
-      // Set up streaming
       setIsTyping(true);
       setStreamingMessageId(assistantMessage.id);
 
-      // Ensure we're considered at bottom for streaming
-      isUserScrolledUpRef.current = false;
-
-      // Get current messages for context using ref to avoid stale closure
       const allMessages = [...messagesStateRef.current, userMessage];
       const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
         role: msg.role,
         content: msg.content,
       }));
 
-      // Stream chat completion using the unified LlmService
       LlmService.streamChatCompletion(selectedModel, llmMessages, {
         onChunk: (chunk: string) => {
           setMessages((prev) =>
@@ -291,7 +184,6 @@ export function ChatInterface() {
         onComplete: () => {
           setIsTyping(false);
           setStreamingMessageId(null);
-          // Clear streaming flag
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessage.id
@@ -304,14 +196,13 @@ export function ChatInterface() {
           setError(error.message);
           setIsTyping(false);
           setStreamingMessageId(null);
-          // Remove the failed assistant message
           setMessages((prev) =>
             prev.filter((msg) => msg.id !== assistantMessage.id)
           );
         },
       });
     },
-    [generateMessageId, selectedModel] // Removed 'messages' dependency
+    [generateMessageId, selectedModel, isAtBottom] // Added isAtBottom dependency
   );
 
   return (
@@ -324,22 +215,8 @@ export function ChatInterface() {
         />
       </header>
 
-      {/* Error Display */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="absolute top-16 left-4 right-4 mx-auto z-10"
-          >
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Error Display ... */}
+      {error && <div className="text-red-500">{error}</div>}
 
       {/* Main Content Area */}
       <div className="relative flex-1 flex overflow-hidden">
@@ -373,7 +250,6 @@ export function ChatInterface() {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    // Close all expanded code blocks
                     setHasExpandedCodeBlock(false);
                     setExpandedCodeBlocks([]);
                   }}
@@ -385,60 +261,62 @@ export function ChatInterface() {
 
               {/* Code Blocks */}
               <div className="flex-1 overflow-auto p-4 space-y-4">
-                {expandedCodeBlocks.map((block, index) => (
-                  <div
-                    key={`${block.messageId}-${block.blockIndex}`}
-                    className="border border-border/50 rounded-lg overflow-hidden"
-                  >
-                    {/* Code Block Header */}
-                    <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {block.filename || block.language}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {block.code.split("\n").length} lines •{" "}
-                          {block.code.length} chars
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCopyExpanded(block.code)}
-                        className="h-6 w-6 p-0"
-                      >
-                        {isCopied ? (
-                          <Check className="h-3 w-3" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* Code Content */}
-                    <SyntaxHighlighter
-                      style={oneDark as any}
-                      language={block.language}
-                      PreTag="div"
-                      className="!m-0 !text-xs !font-mono !bg-surface"
-                      customStyle={{
-                        margin: 0,
-                        padding: "12px",
-                        maxHeight: "600px",
-                        overflow: "auto",
-                      }}
+                {expandedCodeBlocks.map((block) => {
+                  // FIX 7: Create a unique ID for each block to manage copy state
+                  const blockId = `${block.messageId}-${block.blockIndex}`;
+                  return (
+                    <div
+                      key={blockId}
+                      className="border border-border/50 rounded-lg overflow-hidden"
                     >
-                      {block.code}
-                    </SyntaxHighlighter>
-                  </div>
-                ))}
+                      {/* Code Block Header */}
+                      <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {block.filename || block.language}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            handleCopyExpanded(block.code, blockId)
+                          }
+                          className="h-6 w-6 p-0"
+                        >
+                          {copiedBlockId === blockId ? (
+                            <Check className="h-3 w-3 text-green-400" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </div>
+
+                      {/* Code Content */}
+                      <SyntaxHighlighter
+                        style={oneDark as any}
+                        language={block.language}
+                        PreTag="div"
+                        className="!m-0 !text-xs !font-mono !bg-surface"
+                        customStyle={{
+                          margin: 0,
+                          padding: "12px",
+                          maxHeight: "600px",
+                          overflow: "auto",
+                        }}
+                      >
+                        {block.code}
+                      </SyntaxHighlighter>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Message Input Area */}
+      {/* Message Input Area ... */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
