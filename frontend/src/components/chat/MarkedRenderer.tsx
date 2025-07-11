@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useCallback, type JSX } from "react";
+import React, { useMemo, useEffect, useRef, type JSX } from "react";
 import { marked, type Token } from "marked";
 import DOMPurify from "dompurify";
 import { useCodeBlockManager } from "../../hooks/useCodeBlockManager";
@@ -188,10 +188,30 @@ export function MarkedRenderer({
   onExpandedCodeBlocksChange,
 }: MarkedRendererProps) {
   const manager = useCodeBlockManager(content);
+  const previousHasAnyExpandedRef = useRef<boolean>(false);
+  const previousExpandedBlocksRef = useRef<string>("");
 
-  // Collect expanded code blocks
-  const collectExpandedCodeBlocks = useCallback(() => {
-    const tokens = marked.lexer(handleIncompleteCodeBlocksForLexer(content));
+  // Memoize the tokens to avoid re-parsing on every render
+  const tokens = useMemo(() => {
+    // Ensure incomplete code blocks don't break the lexer
+    const cleanContent = handleIncompleteCodeBlocksForLexer(content);
+    // Use marked.lexer to get the token stream
+    return marked.lexer(cleanContent);
+  }, [content]);
+
+  // Check if expansion state has actually changed
+  useEffect(() => {
+    const hasAnyExpanded = manager.hasAnyExpanded();
+
+    // Only notify if the expansion state actually changed
+    if (hasAnyExpanded !== previousHasAnyExpandedRef.current) {
+      previousHasAnyExpandedRef.current = hasAnyExpanded;
+      onCodeBlockExpansionChange?.(hasAnyExpanded);
+    }
+  }, [manager, onCodeBlockExpansionChange]);
+
+  // Check if expanded blocks have actually changed
+  useEffect(() => {
     const expandedBlocks: ExpandedCodeBlock[] = [];
     let codeBlockIndex = 0;
 
@@ -203,7 +223,7 @@ export function MarkedRenderer({
             blockIndex: codeBlockIndex,
             language: token.lang || "text",
             code: token.text,
-            filename: undefined, // Could be extracted from token if available
+            filename: undefined,
           });
         }
         codeBlockIndex++;
@@ -217,32 +237,16 @@ export function MarkedRenderer({
     };
 
     tokens.forEach(processToken);
-    return expandedBlocks;
-  }, [content, manager, messageId]);
 
-  // Notify parent when expansion state changes
-  useEffect(() => {
-    if (onCodeBlockExpansionChange) {
-      onCodeBlockExpansionChange(manager.hasAnyExpanded());
+    // Create a stable string representation for comparison
+    const expandedBlocksString = JSON.stringify(expandedBlocks);
+
+    // Only notify if the expanded blocks actually changed
+    if (expandedBlocksString !== previousExpandedBlocksRef.current) {
+      previousExpandedBlocksRef.current = expandedBlocksString;
+      onExpandedCodeBlocksChange?.(expandedBlocks);
     }
-
-    if (onExpandedCodeBlocksChange) {
-      const expandedBlocks = collectExpandedCodeBlocks();
-      onExpandedCodeBlocksChange(expandedBlocks);
-    }
-  }, [
-    manager.hasAnyExpanded,
-    onCodeBlockExpansionChange,
-    onExpandedCodeBlocksChange,
-    collectExpandedCodeBlocks,
-  ]);
-
-  const tokens = useMemo(() => {
-    // Ensure incomplete code blocks don't break the lexer
-    const cleanContent = handleIncompleteCodeBlocksForLexer(content);
-    // Use marked.lexer to get the token stream
-    return marked.lexer(cleanContent);
-  }, [content]);
+  }, [tokens, manager, messageId, onExpandedCodeBlocksChange]);
 
   // Use a mutable ref to count code blocks during a single render pass
   const codeBlockCounter = React.useRef(0);

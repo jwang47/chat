@@ -361,89 +361,81 @@ export function ChatInterface() {
         </div>
 
         {/* Code Block Expanded View */}
-        <AnimatePresence>
-          {hasExpandedCodeBlock && (
-            <motion.div
-              initial={{ opacity: 0, x: 100 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 100 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="hidden lg:block w-1/2 border-l border-border/50 bg-surface/20"
-            >
-              <div className="h-full flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-border/50">
-                  <div className="text-sm font-medium text-foreground">
-                    Expanded Code View
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      // Close all expanded code blocks
-                      setHasExpandedCodeBlock(false);
-                      setExpandedCodeBlocks([]);
-                    }}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+        {hasExpandedCodeBlock && (
+          <div className="hidden lg:block w-1/2 border-l border-border/50 bg-surface/20">
+            <div className="h-full flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <div className="text-sm font-medium text-foreground">
+                  Expanded Code View
                 </div>
-
-                {/* Code Blocks */}
-                <div className="flex-1 overflow-auto p-4 space-y-4">
-                  {expandedCodeBlocks.map((block, index) => (
-                    <div
-                      key={`${block.messageId}-${block.blockIndex}`}
-                      className="border border-border/50 rounded-lg overflow-hidden"
-                    >
-                      {/* Code Block Header */}
-                      <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono text-muted-foreground">
-                            {block.filename || block.language}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {block.code.split("\n").length} lines •{" "}
-                            {block.code.length} chars
-                          </span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyExpanded(block.code)}
-                          className="h-6 w-6 p-0"
-                        >
-                          {isCopied ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-
-                      {/* Code Content */}
-                      <SyntaxHighlighter
-                        style={oneDark as any}
-                        language={block.language}
-                        PreTag="div"
-                        className="!m-0 !text-xs !font-mono !bg-surface"
-                        customStyle={{
-                          margin: 0,
-                          padding: "12px",
-                          maxHeight: "600px",
-                          overflow: "auto",
-                        }}
-                      >
-                        {block.code}
-                      </SyntaxHighlighter>
-                    </div>
-                  ))}
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    // Close all expanded code blocks
+                    setHasExpandedCodeBlock(false);
+                    setExpandedCodeBlocks([]);
+                  }}
+                  className="h-6 w-6 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
+              {/* Code Blocks */}
+              <div className="flex-1 overflow-auto p-4 space-y-4">
+                {expandedCodeBlocks.map((block, index) => (
+                  <div
+                    key={`${block.messageId}-${block.blockIndex}`}
+                    className="border border-border/50 rounded-lg overflow-hidden"
+                  >
+                    {/* Code Block Header */}
+                    <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {block.filename || block.language}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {block.code.split("\n").length} lines •{" "}
+                          {block.code.length} chars
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCopyExpanded(block.code)}
+                        className="h-6 w-6 p-0"
+                      >
+                        {isCopied ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Code Content */}
+                    <SyntaxHighlighter
+                      style={oneDark as any}
+                      language={block.language}
+                      PreTag="div"
+                      className="!m-0 !text-xs !font-mono !bg-surface"
+                      customStyle={{
+                        margin: 0,
+                        padding: "12px",
+                        maxHeight: "600px",
+                        overflow: "auto",
+                      }}
+                    >
+                      {block.code}
+                    </SyntaxHighlighter>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Message Input Area */}
