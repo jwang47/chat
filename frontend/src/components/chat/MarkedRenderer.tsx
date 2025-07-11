@@ -137,17 +137,19 @@ const renderToken = (
       // Handle nested text tokens if they also have tokens (rare but possible)
       if (token.tokens) {
         return (
-          <>
-            {token.tokens.map((t) =>
-              renderToken(
-                t,
-                manager,
-                codeBlockCounter,
-                messageId,
-                onExpandedCodeBlocksChange
-              )
-            )}
-          </>
+          <React.Fragment key={token.raw}>
+            {token.tokens.map((t, index) => (
+              <React.Fragment key={t.raw || index}>
+                {renderToken(
+                  t,
+                  manager,
+                  codeBlockCounter,
+                  messageId,
+                  onExpandedCodeBlocksChange
+                )}
+              </React.Fragment>
+            ))}
+          </React.Fragment>
         );
       }
       return <React.Fragment key={token.raw}>{token.text}</React.Fragment>;
