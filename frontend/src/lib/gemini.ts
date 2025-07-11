@@ -15,6 +15,22 @@ export interface GeminiStreamResponse {
   }>;
 }
 
+interface ModelConfig {
+  model: string;
+  minThinkingBudget: number;
+}
+
+const MODELS: Record<string, ModelConfig> = {
+  "gemini-2.5-flash": {
+    model: "gemini-2.5-flash",
+    minThinkingBudget: 0,
+  },
+  "gemini-2.5-pro": {
+    model: "gemini-2.5-pro",
+    minThinkingBudget: 512,
+  },
+};
+
 export class GeminiService {
   private static readonly BASE_URL =
     "https://generativelanguage.googleapis.com/v1beta";
@@ -45,6 +61,11 @@ export class GeminiService {
       // Convert messages to Gemini format
       const contents = this.convertMessagesToGeminiFormat(messages);
 
+      const modelConfig = MODELS[model];
+      if (!modelConfig) {
+        throw new Error(`Model ${model} not found`);
+      }
+
       const response = await fetch(
         `${this.BASE_URL}/models/${model}:streamGenerateContent?alt=sse`,
         {
@@ -58,7 +79,7 @@ export class GeminiService {
             generationConfig: {
               maxOutputTokens: 8192,
               thinkingConfig: {
-                thinkingBudget: 0,
+                thinkingBudget: modelConfig.minThinkingBudget,
               },
             },
           }),
