@@ -3,6 +3,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Copy, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CodeBlockProps {
   blockIndex: number;
@@ -100,7 +101,10 @@ export function CodeBlock({
   // Full code appears in side panel when expanded
   return (
     <div
-      className="mb-4 group relative border border-border/50 rounded-lg overflow-hidden"
+      className={cn(
+        "mb-4 group relative rounded-lg overflow-hidden",
+        isExpanded && "border border-[rgb(147,197,253)]"
+      )}
       key={`cb-collapsible-${blockIndex}`}
     >
       {/* Header - Always Visible */}
