@@ -10,7 +10,7 @@ import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, X } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
@@ -206,6 +206,7 @@ export function ChatInterface() {
             onScrollChange={handleScrollChange}
             onCodeBlockExpansionChange={handleCodeBlockExpansionChange}
             onExpandedCodeBlocksChange={handleExpandedCodeBlocksChange}
+            className="max-w-3xl mx-auto"
           />
         </motion.div>
         <AnimatePresence>

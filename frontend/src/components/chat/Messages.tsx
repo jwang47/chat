@@ -16,6 +16,7 @@ interface MessagesProps {
   messages: Message[];
   isTyping: boolean;
   streamingMessageId: string | null;
+  className?: string;
   onScrollChange?: (
     scrollTop: number,
     scrollHeight: number,
@@ -51,6 +52,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
       onScrollChange,
       onCodeBlockExpansionChange,
       onExpandedCodeBlocksChange,
+      className,
     },
     ref
   ) => {
@@ -238,7 +240,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
     );
 
     return (
-      <div ref={containerRef} className="flex-1 overflow-hidden">
+      <div ref={containerRef} className={`flex-1 overflow-hidden ${className}`}>
         <div
           ref={wrapperRef}
           className="h-full overflow-auto"
