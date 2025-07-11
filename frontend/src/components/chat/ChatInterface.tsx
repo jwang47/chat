@@ -36,13 +36,8 @@ export function ChatInterface() {
 
   const messagesComponentRef = useRef<MessagesRef>(null);
   const messageIdCounter = useRef(0);
-  const isProgrammaticScrollRef = useRef(false);
-  const shouldStickToBottomRef = useRef(true);
-  const messagesStateRef = useRef<Message[]>(messages);
-
-  useEffect(() => {
-    messagesStateRef.current = messages;
-  }, [messages]);
+  const shouldAutoScrollRef = useRef(true);
+  const forceScrollRef = useRef(false);
 
   // Define a type for the code block payload for clarity
   interface CodeBlockPayload {
@@ -108,43 +103,71 @@ export function ChatInterface() {
     return scrollTop + clientHeight >= scrollHeight - threshold;
   }, [getScrollContainer]);
 
-  const scrollToBottom = useCallback((smooth: boolean = false) => {
-    isProgrammaticScrollRef.current = true;
-    if (smooth) {
-      messagesComponentRef.current?.scrollToBottomSmooth();
-    } else {
-      messagesComponentRef.current?.scrollToBottomInstant();
-    }
-    setTimeout(() => {
-      isProgrammaticScrollRef.current = false;
-    }, 400);
-  }, []);
+  const scrollToBottom = useCallback(
+    (force: boolean = false) => {
+      const scrollContainer = getScrollContainer();
+      if (!scrollContainer) return;
+
+      if (force || shouldAutoScrollRef.current) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    },
+    [getScrollContainer]
+  );
 
   const handleScrollChange = useCallback(() => {
-    if (isProgrammaticScrollRef.current) {
-      return;
+    // Only update auto-scroll behavior if user manually scrolls
+    if (!forceScrollRef.current) {
+      shouldAutoScrollRef.current = isAtBottom();
     }
-    shouldStickToBottomRef.current = isAtBottom();
   }, [isAtBottom]);
 
+  // Auto-scroll when messages change
   useEffect(() => {
-    if (shouldStickToBottomRef.current) {
-      scrollToBottom(true);
+    if (shouldAutoScrollRef.current || forceScrollRef.current) {
+      // Use multiple techniques to ensure scroll happens
+      const scroll = () => scrollToBottom(true);
+
+      // Immediate scroll
+      scroll();
+
+      // Scroll after next frame
+      requestAnimationFrame(scroll);
+
+      // Scroll after a short delay to account for any rendering
+      setTimeout(scroll, 10);
+      setTimeout(scroll, 50);
+
+      // Reset force scroll flag
+      if (forceScrollRef.current) {
+        setTimeout(() => {
+          forceScrollRef.current = false;
+        }, 100);
+      }
     }
   }, [messages, scrollToBottom]);
 
-  // Initial load scroll (unchanged)
+  // Handle layout changes (code block expansion)
   useEffect(() => {
-    shouldStickToBottomRef.current = true;
-    const timer = setTimeout(() => {
-      scrollToBottom(false);
-    }, 100);
-    return () => clearTimeout(timer);
+    if (shouldAutoScrollRef.current) {
+      setTimeout(() => scrollToBottom(true), 100);
+    }
+  }, [hasExpandedCodeBlock, scrollToBottom]);
+
+  // Initial load
+  useEffect(() => {
+    shouldAutoScrollRef.current = true;
+    forceScrollRef.current = true;
+    setTimeout(() => scrollToBottom(true), 100);
   }, [scrollToBottom]);
 
   const handleSendMessage = useCallback(
     (content: string) => {
       setError(null);
+
+      // Force scroll to bottom when user sends message
+      forceScrollRef.current = true;
+      shouldAutoScrollRef.current = true;
 
       const userMessage: Message = {
         id: generateMessageId(),
@@ -153,6 +176,7 @@ export function ChatInterface() {
         timestamp: new Date(),
         model: selectedModel,
       };
+
       const assistantMessage: Message = {
         id: generateMessageId(),
         role: "assistant",
@@ -162,49 +186,54 @@ export function ChatInterface() {
         isStreaming: true,
       };
 
-      shouldStickToBottomRef.current = isAtBottom();
+      // Add user message first
+      setMessages((prev) => [...prev, userMessage]);
 
-      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      // Add assistant message after a brief delay
+      setTimeout(() => {
+        setMessages((prev) => [...prev, assistantMessage]);
 
-      setIsTyping(true);
-      setStreamingMessageId(assistantMessage.id);
+        // Start streaming
+        setIsTyping(true);
+        setStreamingMessageId(assistantMessage.id);
 
-      const allMessages = [...messagesStateRef.current, userMessage];
-      const llmMessages: LlmMessage[] = allMessages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+        // Prepare LLM messages
+        const currentMessages = [...messages, userMessage];
+        const llmMessages: LlmMessage[] = currentMessages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
-      LlmService.streamChatCompletion(selectedModel, llmMessages, {
-        onChunk: (chunk: string) => {
-          if (shouldStickToBottomRef.current) {
-            shouldStickToBottomRef.current = isAtBottom();
-          }
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessage.id
-                ? { ...msg, content: msg.content + chunk }
-                : msg
-            )
-          );
-        },
-        onComplete: () => {
-          setIsTyping(false);
-          setStreamingMessageId(null);
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === assistantMessage.id
-                ? { ...msg, isStreaming: false }
-                : msg
-            )
-          );
-        },
-        onError: (error: Error) => {
-          setError(error.message);
-        },
-      });
+        LlmService.streamChatCompletion(selectedModel, llmMessages, {
+          onChunk: (chunk: string) => {
+            setMessages((current) =>
+              current.map((msg) =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, content: msg.content + chunk }
+                  : msg
+              )
+            );
+          },
+          onComplete: () => {
+            setIsTyping(false);
+            setStreamingMessageId(null);
+            setMessages((current) =>
+              current.map((msg) =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, isStreaming: false }
+                  : msg
+              )
+            );
+          },
+          onError: (error: Error) => {
+            setError(error.message);
+            setIsTyping(false);
+            setStreamingMessageId(null);
+          },
+        });
+      }, 10);
     },
-    [generateMessageId, selectedModel, isAtBottom]
+    [generateMessageId, selectedModel, messages]
   );
 
   return (
@@ -230,7 +259,7 @@ export function ChatInterface() {
             mass: 0.8,
             duration: 0.4,
           }}
-          className="flex flex-col min-w-0" // min-w-0 prevents flex shrinking issues
+          className="flex flex-col min-w-0"
         >
           <motion.div
             layout
@@ -253,7 +282,6 @@ export function ChatInterface() {
             />
           </motion.div>
 
-          {/* Message Input with Smooth Repositioning */}
           <motion.div
             layout
             initial={{ opacity: 0, y: 20 }}
