@@ -175,7 +175,7 @@ export function ChatInterface() {
           );
         },
         onError: (error: Error) => {
-          /* ... */
+          setError(error.message);
         },
       });
     },
