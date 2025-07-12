@@ -94,7 +94,7 @@ export class OpenRouterService {
               try {
                 const parsed: OpenRouterStreamResponse = JSON.parse(data);
                 const content = parsed.choices[0]?.delta?.content;
-                if (content) {
+                if (content && content.trim()) { // Only send non-whitespace chunks
                   onChunk(content);
                 }
               } catch (e) {

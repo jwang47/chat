@@ -99,7 +99,9 @@ export function ChatInterface() {
   const scrollToBottom = useCallback(() => {
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
-      const scrollableElement = scrollArea.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      const scrollableElement = scrollArea.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      ) as HTMLElement;
       if (scrollableElement) {
         scrollableElement.scrollTop = scrollableElement.scrollHeight;
       }
@@ -109,27 +111,32 @@ export function ChatInterface() {
   const isAtBottom = useCallback(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return true;
-    const scrollableElement = scrollArea.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    const scrollableElement = scrollArea.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    ) as HTMLElement;
     if (!scrollableElement) return true;
     const { scrollTop, scrollHeight, clientHeight } = scrollableElement;
     return scrollTop + clientHeight >= scrollHeight - 10;
   }, []);
 
-  const handleScroll = useCallback((event: Event) => {
-    const target = event.target as HTMLElement;
-    if (!target) return;
-    
-    const currentScrollTop = target.scrollTop;
-    const scrollDelta = Math.abs(currentScrollTop - lastScrollTopRef.current);
-    
-    // Only consider it user scrolling if there's significant movement
-    if (scrollDelta > 5) {
-      shouldAutoScrollRef.current = isAtBottom();
-      isUserScrollingRef.current = false;
-    }
-    
-    lastScrollTopRef.current = currentScrollTop;
-  }, [isAtBottom]);
+  const handleScroll = useCallback(
+    (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (!target) return;
+
+      const currentScrollTop = target.scrollTop;
+      const scrollDelta = Math.abs(currentScrollTop - lastScrollTopRef.current);
+
+      // Only consider it user scrolling if there's significant movement
+      if (scrollDelta > 5) {
+        shouldAutoScrollRef.current = isAtBottom();
+        isUserScrollingRef.current = false;
+      }
+
+      lastScrollTopRef.current = currentScrollTop;
+    },
+    [isAtBottom]
+  );
 
   const handleScrollStart = useCallback(() => {
     isUserScrollingRef.current = true;
@@ -142,7 +149,7 @@ export function ChatInterface() {
       const timeoutId = setTimeout(() => {
         scrollToBottom();
       }, 16); // ~1 frame at 60fps
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [messages, hasExpandedCodeBlock, scrollToBottom]);
@@ -151,14 +158,16 @@ export function ChatInterface() {
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
-    
-    const scrollableElement = scrollArea.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+
+    const scrollableElement = scrollArea.querySelector(
+      "[data-radix-scroll-area-viewport]"
+    ) as HTMLElement;
     if (!scrollableElement) return;
-    
-    scrollableElement.addEventListener('scroll', handleScroll);
-    
+
+    scrollableElement.addEventListener("scroll", handleScroll);
+
     return () => {
-      scrollableElement.removeEventListener('scroll', handleScroll);
+      scrollableElement.removeEventListener("scroll", handleScroll);
     };
   }, [handleScroll]);
 
@@ -250,7 +259,7 @@ export function ChatInterface() {
       </div>
       <ScrollArea
         ref={scrollAreaRef}
-        className="h-screen overflow-y-auto p-4 pt-16 pb-16"
+        className="h-screen overflow-y-auto p-4 pt-16 pb-20"
         onTouchStart={handleScrollStart}
         onMouseDown={handleScrollStart}
       >
