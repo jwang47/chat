@@ -36,6 +36,7 @@ const renderToken = (
       const index = codeBlockCounter.current++;
       return (
         <CodeBlock
+          blockIndex={index}
           key={index}
           language={token.lang || "text"}
           code={token.text}
@@ -60,7 +61,7 @@ const renderToken = (
               : "list-disc list-outside mb-4 ml-6"
           }
         >
-          {token.items.map((item) =>
+          {token.items.map((item: Token) =>
             renderToken(item, manager, codeBlockCounter, messageId)
           )}
         </ListTag>
@@ -69,7 +70,7 @@ const renderToken = (
     case "list_item":
       return (
         <li key={token.raw}>
-          {token.tokens.map((t) =>
+          {token.tokens?.map((t) =>
             renderToken(t, manager, codeBlockCounter, messageId)
           )}
         </li>
@@ -94,7 +95,7 @@ const renderToken = (
     case "blockquote":
       return (
         <blockquote key={token.raw}>
-          {token.tokens.map((t, i) => (
+          {token.tokens?.map((t, i) => (
             <React.Fragment key={i}>
               {renderToken(t, manager, codeBlockCounter, messageId)}
             </React.Fragment>
