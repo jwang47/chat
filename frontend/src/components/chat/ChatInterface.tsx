@@ -203,13 +203,13 @@ export function ChatInterface() {
 
   return (
     <div className="relative flex flex-col h-screen bg-background">
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 w-full bg-background border-b border-border/20 backdrop-blur-sm">
+      <header className="sticky top-0 z-20 flex items-center justify-between p-4 w-full bg-background">
         <ModelSelector
           selectedModel={selectedModel}
           onModelSelect={handleModelSelect}
         />
       </header>
-      <div className="relative flex-1 flex pt-16">
+      <div className="relative flex-1 flex">
         <motion.div
           layout
           animate={{
@@ -227,7 +227,7 @@ export function ChatInterface() {
         >
           <div
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto max-w-2xl mx-auto w-full bg-background"
+            className="flex-1 overflow-y-auto max-w-2xl mx-auto w-full"
             onScroll={handleScroll}
             onTouchStart={handleScrollStart}
             onMouseDown={handleScrollStart}
