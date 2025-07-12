@@ -140,10 +140,29 @@ const renderToken = (
           } else if (isInsideCenter) {
             centerContent += part;
           } else if (part.trim()) {
-            // Content outside center tags
-            elements.push(
-              <span key={`${token.raw}-${elementIndex++}`}>{part}</span>
-            );
+            // Content outside center tags - check if it contains markdown that should be parsed
+            const trimmedPart = part.trim();
+            
+            // Split by lines and check if any line starts with '>'
+            const lines = trimmedPart.split('\n');
+            const hasBlockquote = lines.some(line => line.trim().startsWith('>'));
+            
+            if (hasBlockquote) {
+              // This contains markdown blockquote - parse it as markdown
+              const markdownTokens = marked.lexer(trimmedPart);
+              markdownTokens.forEach((mdToken, mdIndex) => {
+                elements.push(
+                  <React.Fragment key={`${token.raw}-md-${elementIndex++}-${mdIndex}`}>
+                    {renderToken(mdToken, manager, codeBlockCounter, messageId)}
+                  </React.Fragment>
+                );
+              });
+            } else {
+              // Regular content outside center tags
+              elements.push(
+                <span key={`${token.raw}-${elementIndex++}`}>{part}</span>
+              );
+            }
           }
         }
 
@@ -235,11 +254,43 @@ export function MarkedRenderer({
 
   // Memoize the tokens to avoid re-parsing on every render
   const tokens = useMemo(() => {
-    // Sanitize the content to prevent XSS attacks
-    const cleanContent = DOMPurify.sanitize(
-      handleIncompleteCodeBlocksForLexer(content)
-    );
-    return marked.lexer(cleanContent);
+    // Handle incomplete code blocks first, then let marked parse naturally
+    // Don't sanitize the entire content here as it breaks markdown syntax like blockquotes
+    let processedContent = handleIncompleteCodeBlocksForLexer(content);
+    
+    // Pre-process content to handle mixed center tags and markdown
+    // Split content by center tags and process each part separately
+    if (processedContent.includes('<center>')) {
+      const parts = processedContent.split(/(<\/?center[^>]*>)/);
+      const processedParts: string[] = [];
+      
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        
+        if (part.match(/<\/?center[^>]*>/)) {
+          // Keep center tags as-is
+          processedParts.push(part);
+        } else if (part.trim()) {
+          // For content between center tags, check if it has markdown that needs preservation
+          const lines = part.split('\n');
+          const hasBlockquote = lines.some(line => line.trim().startsWith('>'));
+          
+          if (hasBlockquote) {
+            // Temporarily replace center tags in this part to prevent HTML parsing
+            // This allows markdown parsing to work properly
+            processedParts.push('\n\n' + part.trim() + '\n\n');
+          } else {
+            processedParts.push(part);
+          }
+        } else {
+          processedParts.push(part);
+        }
+      }
+      
+      processedContent = processedParts.join('');
+    }
+    
+    return marked.lexer(processedContent);
   }, [content]);
 
   // Use a mutable ref to count code blocks during a single render pass

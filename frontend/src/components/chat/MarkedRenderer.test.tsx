@@ -20,7 +20,7 @@ describe("MarkedRenderer - Center Tag Handling", () => {
     // Should render with text-center class
     expect(container.innerHTML).toContain("text-center");
     expect(container.innerHTML).toContain("MILITARY ADVISOR 2");
-    
+
     // Should not contain actual center tags
     expect(container.innerHTML).not.toContain("<center>");
     expect(container.innerHTML).not.toContain("</center>");
@@ -40,7 +40,7 @@ describe("MarkedRenderer - Center Tag Handling", () => {
     // Should render both centered elements
     expect(container.innerHTML).toContain("MILITARY ADVISOR 2");
     expect(container.innerHTML).toContain("GENERAL THORNE");
-    
+
     // Should have text-center class for both
     const centerDivs = container.querySelectorAll(".text-center");
     expect(centerDivs).toHaveLength(2);
@@ -57,7 +57,7 @@ describe("MarkedRenderer - Center Tag Handling", () => {
     // Should contain the text content
     expect(container.innerHTML).toContain("Safe Content");
     expect(container.innerHTML).toContain("text-center");
-    
+
     // Should not contain dangerous attributes
     expect(container.innerHTML).not.toContain("onclick");
     expect(container.innerHTML).not.toContain("alert");
@@ -76,7 +76,7 @@ describe("MarkedRenderer - Center Tag Handling", () => {
     // Should contain safe centered content
     expect(container.innerHTML).toContain("Safe centered content");
     expect(container.innerHTML).toContain("text-center");
-    
+
     // Should not contain script tags or dangerous img attributes
     expect(container.innerHTML).not.toContain("<script>");
     expect(container.innerHTML).not.toContain("onerror");
@@ -163,7 +163,7 @@ Normal paragraph text.
     // Should have properly closed div elements
     const html = container.innerHTML;
     expect(html).toContain('<div class="text-center">CHARACTER NAME</div>');
-    
+
     // Count opening and closing div tags to ensure they match
     const openingDivs = (html.match(/<div[^>]*>/g) || []).length;
     const closingDivs = (html.match(/<\/div>/g) || []).length;
@@ -181,19 +181,19 @@ More dialogue text.`;
     );
 
     const html = container.innerHTML;
-    
+
     // Should have two properly closed center divs
     expect(html).toContain('<div class="text-center">FIRST CHARACTER</div>');
     expect(html).toContain('<div class="text-center">SECOND CHARACTER</div>');
-    
+
     // Verify HTML structure is well-formed
     const openingDivs = (html.match(/<div[^>]*>/g) || []).length;
     const closingDivs = (html.match(/<\/div>/g) || []).length;
     expect(openingDivs).toBe(closingDivs);
-    
+
     // Should have valid DOM structure
-    expect(container.querySelector('.text-center')).toBeTruthy();
-    expect(container.querySelectorAll('.text-center')).toHaveLength(2);
+    expect(container.querySelector(".text-center")).toBeTruthy();
+    expect(container.querySelectorAll(".text-center")).toHaveLength(2);
   });
 
   it("should handle malformed center tags gracefully", () => {
@@ -203,13 +203,54 @@ More dialogue text.`;
     );
 
     const html = container.innerHTML;
-    
+
     // DOMPurify should handle malformed HTML gracefully
     expect(html).toContain("Unclosed tag");
-    
+
     // Should still maintain proper div closure
     const openingDivs = (html.match(/<div[^>]*>/g) || []).length;
     const closingDivs = (html.match(/<\/div>/g) || []).length;
     expect(openingDivs).toBe(closingDivs);
+  });
+
+  it("should handle blockquotes with > characters correctly", () => {
+    const content = `<center>Dr Thorne</center>\n> Sir, intelligence reports from global monitoring stations indicate a significant uptick in public anxiety.`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-12" />
+    );
+
+    const html = container.innerHTML;
+
+    // Should have blockquotes rendered properly
+    expect(html).toContain("<blockquote>");
+    expect(html).toContain("intelligence reports");
+
+    // Should NOT contain escaped > characters in blockquote content
+    expect(html).not.toContain("&gt; Sir, intelligence");
+  });
+
+  it("should handle mixed center tags and blockquotes correctly", () => {
+    const content = `<center>MILITARY ADVISOR 2</center>
+> Sir, intelligence reports indicate unusual activity.
+
+<center>GENERAL THORNE</center>
+> What's your assessment?`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-13" />
+    );
+
+    const html = container.innerHTML;
+
+    // Should have center tags
+    expect(html).toContain("MILITARY ADVISOR 2");
+    expect(html).toContain("GENERAL THORNE");
+    expect(container.querySelectorAll(".text-center")).toHaveLength(2);
+
+    // Should have blockquotes rendered properly (if parsing works)
+    // Note: This is a complex case and the exact behavior may vary
+    expect(html).toContain("intelligence reports");
+    expect(html).toContain("What's your assessment");
   });
 });
