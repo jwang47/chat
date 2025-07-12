@@ -207,11 +207,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
 
     return (
       <div ref={containerRef} className={`flex-1 overflow-hidden ${className}`}>
-        <div
-          ref={wrapperRef}
-          className="h-full overflow-auto"
-          onScroll={handleScrollEvent}
-        >
+        <div ref={wrapperRef} className="" onScroll={handleScrollEvent}>
           <div className="flex flex-col gap-4 p-4 w-full max-w-[960px] mx-auto">
             <div className="flex flex-col gap-4 min-w-0">
               {items.map((message) => {
