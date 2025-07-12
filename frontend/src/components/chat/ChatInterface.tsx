@@ -232,7 +232,11 @@ export function ChatInterface() {
               onTouchStart={handleScrollStart}
               onMouseDown={handleScrollStart}
             >
-              <div ref={messagesContainerRef} onScroll={handleScroll}>
+              <div
+                ref={messagesContainerRef}
+                onScroll={handleScroll}
+                className="max-w-3xl mx-auto"
+              >
                 <Messages
                   ref={messagesComponentRef}
                   messages={messages}
