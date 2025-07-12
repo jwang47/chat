@@ -269,7 +269,7 @@ export function ChatInterface() {
             style={oneDark as any}
             language={expandedCodeBlock.language}
             PreTag="div"
-            className="!m-0 !text-xs !font-mono !bg-surface"
+            className="!m-0 !text-xs !font-mono !bg-surface min-h-screen"
             customStyle={{
               margin: 0,
               padding: "12px",
