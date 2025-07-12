@@ -64,7 +64,7 @@ const renderToken = (
       const ListTag = token.ordered ? "ol" : "ul";
       return (
         <ListTag
-          key={token.raw}
+          key={generateKey("list")}
           className={
             token.ordered
               ? "list-decimal list-outside mb-4 ml-6"
@@ -79,23 +79,23 @@ const renderToken = (
 
     case "list_item":
       return (
-        <li key={token.raw}>
-          {token.tokens?.map((t) =>
-            renderToken(t, manager, codeBlockCounter, messageId)
+        <li key={generateKey("li")}>
+          {token.tokens?.map((t, i) =>
+            renderToken(t, manager, codeBlockCounter, messageId, tokenIndex * 1000 + i)
           )}
         </li>
       );
 
     case "strong":
-      return <strong key={token.raw}>{token.text}</strong>;
+      return <strong key={generateKey("strong")}>{token.text}</strong>;
 
     case "em":
-      return <em key={token.raw}>{token.text}</em>;
+      return <em key={generateKey("em")}>{token.text}</em>;
 
     case "codespan":
       return (
         <code
-          key={token.raw}
+          key={generateKey("codespan")}
           className="bg-gray-800 text-gray-200 px-1 py-0.5 rounded text-sm font-mono"
         >
           {token.text}
@@ -104,10 +104,10 @@ const renderToken = (
 
     case "blockquote":
       return (
-        <blockquote key={token.raw}>
+        <blockquote key={generateKey("blockquote")}>
           {token.tokens?.map((t, i) => (
-            <React.Fragment key={i}>
-              {renderToken(t, manager, codeBlockCounter, messageId)}
+            <React.Fragment key={`${generateKey("bq-frag")}-${i}`}>
+              {renderToken(t, manager, codeBlockCounter, messageId, tokenIndex * 1000 + i)}
             </React.Fragment>
           ))}
         </blockquote>
@@ -140,7 +140,7 @@ const renderToken = (
           } else if (part === "</center>") {
             if (isInsideCenter) {
               elements.push(
-                <div key={`${token.raw}-${elementIndex++}`} className="text-center">
+                <div key={`${generateKey("center")}-${elementIndex++}`} className="text-center">
                   {centerContent.trim()}
                 </div>
               );
@@ -162,7 +162,7 @@ const renderToken = (
               const markdownTokens = marked.lexer(trimmedPart);
               markdownTokens.forEach((mdToken, mdIndex) => {
                 elements.push(
-                  <React.Fragment key={`${token.raw}-md-${elementIndex++}-${mdIndex}`}>
+                  <React.Fragment key={`${generateKey("md")}-${elementIndex++}-${mdIndex}`}>
                     {renderToken(mdToken, manager, codeBlockCounter, messageId)}
                   </React.Fragment>
                 );
@@ -170,7 +170,7 @@ const renderToken = (
             } else {
               // Regular content outside center tags
               elements.push(
-                <span key={`${token.raw}-${elementIndex++}`}>{part}</span>
+                <span key={`${generateKey("span")}-${elementIndex++}`}>{part}</span>
               );
             }
           }
@@ -179,14 +179,14 @@ const renderToken = (
         // Handle case where center tag wasn't closed
         if (isInsideCenter && centerContent.trim()) {
           elements.push(
-            <div key={`${token.raw}-${elementIndex++}`} className="text-center">
+            <div key={`${generateKey("center-unclosed")}-${elementIndex++}`} className="text-center">
               {centerContent.trim()}
             </div>
           );
         }
 
         return elements.length > 1 ? (
-          <React.Fragment key={token.raw}>{elements}</React.Fragment>
+          <React.Fragment key={generateKey("html-frag")}>{elements}</React.Fragment>
         ) : (
           elements[0] || null
         );
@@ -194,7 +194,7 @@ const renderToken = (
 
       // If no center tags remain after sanitization, treat as text
       if (sanitizedHtml.trim()) {
-        return <span key={token.raw}>{sanitizedHtml}</span>;
+        return <span key={generateKey("html-span")}>{sanitizedHtml}</span>;
       }
 
       return null;
@@ -203,23 +203,23 @@ const renderToken = (
       // Handle nested text tokens if they also have tokens (rare but possible)
       if (token.tokens) {
         return (
-          <React.Fragment key={token.raw}>
+          <React.Fragment key={generateKey("text-frag")}>
             {token.tokens.map((t, index) => (
-              <React.Fragment key={t.raw || index}>
-                {renderToken(t, manager, codeBlockCounter, messageId)}
+              <React.Fragment key={`${generateKey("text-nested")}-${index}`}>
+                {renderToken(t, manager, codeBlockCounter, messageId, tokenIndex * 1000 + index)}
               </React.Fragment>
             ))}
           </React.Fragment>
         );
       }
-      return <React.Fragment key={token.raw}>{token.text}</React.Fragment>;
+      return <React.Fragment key={generateKey("text")}>{token.text}</React.Fragment>;
 
     case "space":
       return null; // Ignore space tokens, layout is handled by CSS
 
     case "table":
       return (
-        <table key={token.raw} className="border-collapse border border-border mb-4">
+        <table key={generateKey("table")} className="border-collapse border border-border mb-4">
           <thead>
             <tr>
               {token.header?.map((headerCell, index) => (
@@ -246,7 +246,7 @@ const renderToken = (
     default:
       console.warn("Unhandled token type:", token.type);
       return (
-        <p key={token.raw} className="text-red-400">
+        <p key={generateKey("unhandled")} className="text-red-400">
           Unhandled type: {token.type}
         </p>
       );
