@@ -203,13 +203,13 @@ export function ChatInterface() {
 
   return (
     <div className="relative flex flex-col h-screen bg-background">
-      <header className="sticky top-0 z-20 flex items-center justify-between p-4 w-full bg-background">
+      <header className="relative z-20 flex items-center justify-between p-4">
         <ModelSelector
           selectedModel={selectedModel}
           onModelSelect={handleModelSelect}
         />
       </header>
-      <div className="relative flex-1 flex">
+      <div className="relative flex-1 flex overflow-hidden">
         <motion.div
           layout
           animate={{
@@ -257,7 +257,7 @@ export function ChatInterface() {
                 mass: 0.8,
               },
             }}
-            className="sticky bottom-0 z-10 p-4 w-full bg-background"
+            className="relative z-10 p-4"
           >
             <div className="max-w-3xl mx-auto">
               <MessageInput
