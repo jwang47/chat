@@ -203,7 +203,7 @@ export function ChatInterface() {
   );
 
   return (
-    <div className="relative flex flex-col bg-background">
+    <div className="relative flex flex-col bg-background overflow-hidden">
       {/* <header className="relative z-20 flex items-center justify-between p-4">
         <ModelSelector
           selectedModel={selectedModel}
