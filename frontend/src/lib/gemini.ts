@@ -126,20 +126,23 @@ export class GeminiService {
                   parsed.candidates?.[0]?.content?.parts?.[0]?.text;
                 
                 if (fullContent) {
-                  // Check if this is new content (Gemini sends cumulative content)
-                  if (fullContent.length > previousContent.length && fullContent.startsWith(previousContent)) {
-                    const newChunk = fullContent.slice(previousContent.length);
-                    if (newChunk) {
-                      console.log('Sending new chunk:', JSON.stringify(newChunk));
-                      onChunk(newChunk);
-                      previousContent = fullContent;
+                  // Only send content if it's actually new
+                  if (fullContent !== previousContent) {
+                    if (fullContent.length > previousContent.length && fullContent.startsWith(previousContent)) {
+                      // Incremental content - send only the new part
+                      const newChunk = fullContent.slice(previousContent.length);
+                      if (newChunk.trim()) { // Only send non-whitespace chunks
+                        console.log('Sending new chunk:', JSON.stringify(newChunk));
+                        onChunk(newChunk);
+                      }
+                    } else {
+                      // Non-incremental or completely different content
+                      console.log('Sending full content (non-incremental):', JSON.stringify(fullContent));
+                      onChunk(fullContent);
                     }
-                  } else if (fullContent !== previousContent) {
-                    // Handle case where content doesn't build incrementally
-                    console.log('Sending full content (non-incremental):', JSON.stringify(fullContent));
-                    onChunk(fullContent);
                     previousContent = fullContent;
                   }
+                  // If fullContent === previousContent, we skip it (no duplicate sending)
                 }
               } catch (e) {
                 // Ignore invalid JSON chunks

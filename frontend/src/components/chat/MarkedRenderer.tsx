@@ -5,6 +5,9 @@ import { useCodeBlockManager } from "../../hooks/useCodeBlockManager";
 import { CodeBlock } from "./CodeBlock";
 import type { ExpandedCodeBlock } from "@/types/chat";
 
+// Global counter for unique keys
+let globalTokenCounter = 0;
+
 const renderToken = (
   token: Token,
   manager: ReturnType<typeof useCodeBlockManager>,
@@ -12,10 +15,10 @@ const renderToken = (
   messageId: string,
   tokenIndex: number = 0
 ): React.ReactNode => {
-  // Generate a unique key that includes message, token type, index, and a hash of content
+  // Generate a unique key using global counter
   const generateKey = (type: string, index: number = tokenIndex) => {
-    const contentHash = token.raw ? token.raw.slice(0, 20).replace(/\s/g, '') : '';
-    return `${messageId}-${type}-${index}-${contentHash}`;
+    const uniqueId = ++globalTokenCounter;
+    return `${messageId}-${type}-${index}-${uniqueId}`;
   };
 
   switch (token.type) {
