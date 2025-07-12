@@ -38,10 +38,11 @@ export function ChatInterface() {
   const [leftPanelWidth, setLeftPanelWidth] = useState(50);
 
   const messagesComponentRef = useRef<MessagesRef>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messageIdCounter = useRef(0);
   const shouldAutoScrollRef = useRef(true);
   const isUserScrollingRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
 
   // Define a type for the code block payload for clarity
   interface CodeBlockPayload {
@@ -96,23 +97,38 @@ export function ChatInterface() {
   }, []);
 
   const scrollToBottom = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (container) {
-      container.scrollTop = container.scrollHeight;
+    const scrollArea = scrollAreaRef.current;
+    if (scrollArea) {
+      const scrollableElement = scrollArea.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (scrollableElement) {
+        scrollableElement.scrollTop = scrollableElement.scrollHeight;
+      }
     }
   }, []);
 
   const isAtBottom = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return true;
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    return scrollTop + clientHeight >= scrollHeight - 50;
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return true;
+    const scrollableElement = scrollArea.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    if (!scrollableElement) return true;
+    const { scrollTop, scrollHeight, clientHeight } = scrollableElement;
+    return scrollTop + clientHeight >= scrollHeight - 10;
   }, []);
 
-  const handleScroll = useCallback(() => {
-    if (!isUserScrollingRef.current) return;
-    shouldAutoScrollRef.current = isAtBottom();
-    isUserScrollingRef.current = false;
+  const handleScroll = useCallback((event: Event) => {
+    const target = event.target as HTMLElement;
+    if (!target) return;
+    
+    const currentScrollTop = target.scrollTop;
+    const scrollDelta = Math.abs(currentScrollTop - lastScrollTopRef.current);
+    
+    // Only consider it user scrolling if there's significant movement
+    if (scrollDelta > 5) {
+      shouldAutoScrollRef.current = isAtBottom();
+      isUserScrollingRef.current = false;
+    }
+    
+    lastScrollTopRef.current = currentScrollTop;
   }, [isAtBottom]);
 
   const handleScrollStart = useCallback(() => {
@@ -122,14 +138,29 @@ export function ChatInterface() {
   // Auto-scroll effect
   useEffect(() => {
     if (shouldAutoScrollRef.current) {
-      // Multiple scroll attempts with different timing
-      scrollToBottom();
-      requestAnimationFrame(scrollToBottom);
-      setTimeout(scrollToBottom, 0);
-      setTimeout(scrollToBottom, 10);
-      setTimeout(scrollToBottom, 50);
+      // Use a more reliable approach for scrolling
+      const timeoutId = setTimeout(() => {
+        scrollToBottom();
+      }, 16); // ~1 frame at 60fps
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [messages, hasExpandedCodeBlock, scrollToBottom]);
+
+  // Attach scroll listener to the correct element
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return;
+    
+    const scrollableElement = scrollArea.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+    if (!scrollableElement) return;
+    
+    scrollableElement.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      scrollableElement.removeEventListener('scroll', handleScroll);
+    };
+  }, [handleScroll]);
 
   // Initial scroll
   useEffect(() => {
@@ -213,15 +244,12 @@ export function ChatInterface() {
         />
       </div>
       <ScrollArea
+        ref={scrollAreaRef}
         className="h-screen overflow-y-auto p-4 pt-16 pb-16"
         onTouchStart={handleScrollStart}
         onMouseDown={handleScrollStart}
       >
-        <div
-          ref={messagesContainerRef}
-          onScroll={handleScroll}
-          className="max-w-3xl mx-auto"
-        >
+        <div className="max-w-3xl mx-auto">
           <Messages
             ref={messagesComponentRef}
             messages={messages}
