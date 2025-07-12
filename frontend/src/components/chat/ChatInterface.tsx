@@ -205,7 +205,7 @@ export function ChatInterface() {
   );
 
   const leftPanel = (
-    <div className="flex-1 mx-auto w-full relative">
+    <div className="flex-1 mx-auto w-full relative max-h-screen">
       <div className="absolute top-0 z-20 flex items-center p-4 bg-background w-[calc(100%-8px)] justify-between">
         <ModelSelector
           selectedModel={selectedModel}
@@ -213,7 +213,7 @@ export function ChatInterface() {
         />
       </div>
       <ScrollArea
-        className="h-screen overflow-y-auto p-4 pt-16"
+        className="h-screen overflow-y-auto p-4 pt-16 pb-16"
         onTouchStart={handleScrollStart}
         onMouseDown={handleScrollStart}
       >
@@ -233,6 +233,11 @@ export function ChatInterface() {
           />
         </div>
       </ScrollArea>
+      <div className="absolute bottom-0 z-20 p-4 w-full">
+        <div className="max-w-3xl mx-auto">
+          <MessageInput onSendMessage={handleSendMessage} />
+        </div>
+      </div>
     </div>
   );
 
