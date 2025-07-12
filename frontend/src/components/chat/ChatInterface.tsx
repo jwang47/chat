@@ -169,6 +169,11 @@ export function ChatInterface() {
 
   const handleSendMessage = useCallback(
     (content: string) => {
+      // Prevent sending if already streaming
+      if (isTyping || streamingMessageId) {
+        return;
+      }
+
       setError(null);
 
       // Always scroll to bottom when user sends message
@@ -191,12 +196,7 @@ export function ChatInterface() {
         isStreaming: true,
       };
 
-      setMessages((prev) => [...prev, userMessage, assistantMessage]);
-
-      setIsTyping(true);
-      setStreamingMessageId(assistantMessage.id);
-
-      // Prepare LLM messages
+      // Prepare LLM messages BEFORE updating state to avoid stale closure issues
       const llmMessages: LlmMessage[] = [...messages, userMessage].map(
         (msg) => ({
           role: msg.role,
@@ -204,11 +204,16 @@ export function ChatInterface() {
         })
       );
 
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+
+      setIsTyping(true);
+      setStreamingMessageId(assistantMessage.id);
+
       LlmService.streamChatCompletion(selectedModel, llmMessages, {
         onChunk: (chunk: string) => {
           setMessages((current) =>
             current.map((msg) =>
-              msg.id === assistantMessage.id
+              msg.id === assistantMessage.id && msg.isStreaming
                 ? { ...msg, content: msg.content + chunk }
                 : msg
             )
@@ -232,7 +237,7 @@ export function ChatInterface() {
         },
       });
     },
-    [generateMessageId, selectedModel, messages, scrollToBottom]
+    [generateMessageId, selectedModel, messages, isTyping, streamingMessageId]
   );
 
   const leftPanel = (

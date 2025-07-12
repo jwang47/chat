@@ -99,7 +99,7 @@ export class GeminiService {
 
       const decoder = new TextDecoder();
       let buffer = "";
-      let completeContent = "";
+      let previousContent = "";
 
       try {
         while (true) {
@@ -122,11 +122,24 @@ export class GeminiService {
 
               try {
                 const parsed: GeminiStreamResponse = JSON.parse(data);
-                const content =
+                const fullContent =
                   parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (content) {
-                  onChunk(content);
-                  completeContent += content; // Accumulate the content
+                
+                if (fullContent) {
+                  // Check if this is new content (Gemini sends cumulative content)
+                  if (fullContent.length > previousContent.length && fullContent.startsWith(previousContent)) {
+                    const newChunk = fullContent.slice(previousContent.length);
+                    if (newChunk) {
+                      console.log('Sending new chunk:', JSON.stringify(newChunk));
+                      onChunk(newChunk);
+                      previousContent = fullContent;
+                    }
+                  } else if (fullContent !== previousContent) {
+                    // Handle case where content doesn't build incrementally
+                    console.log('Sending full content (non-incremental):', JSON.stringify(fullContent));
+                    onChunk(fullContent);
+                    previousContent = fullContent;
+                  }
                 }
               } catch (e) {
                 // Ignore invalid JSON chunks
@@ -137,7 +150,7 @@ export class GeminiService {
         }
 
         onComplete();
-        console.log("Streaming complete: ", completeContent); // Log the complete parsed content
+        console.log("Streaming complete: ", previousContent); // Log the complete parsed content
       } finally {
         reader.cancel();
       }

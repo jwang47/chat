@@ -9,23 +9,30 @@ const renderToken = (
   token: Token,
   manager: ReturnType<typeof useCodeBlockManager>,
   codeBlockCounter: { current: number },
-  messageId: string
+  messageId: string,
+  tokenIndex: number = 0
 ): React.ReactNode => {
+  // Generate a unique key that includes message, token type, index, and a hash of content
+  const generateKey = (type: string, index: number = tokenIndex) => {
+    const contentHash = token.raw ? token.raw.slice(0, 20).replace(/\s/g, '') : '';
+    return `${messageId}-${type}-${index}-${contentHash}`;
+  };
+
   switch (token.type) {
     case "hr":
-      return <hr key={token.raw} />;
+      return <hr key={generateKey("hr")} />;
     case "heading":
       // Use 'as' to create dynamic heading tags H1, H2, etc.
       const Tag = `h${token.depth}` as keyof JSX.IntrinsicElements;
-      return <Tag key={token.raw}>{token.text}</Tag>;
+      return <Tag key={generateKey(`h${token.depth}`)}>{token.text}</Tag>;
 
     case "paragraph":
       return (
-        <p key={token.raw} className="mb-4 last:mb-0 whitespace-pre-line">
+        <p key={generateKey("p")} className="mb-4 last:mb-0 whitespace-pre-line">
           {/* Paragraphs can contain other tokens like 'strong', 'em', etc. */}
           {token.tokens
-            ? token.tokens.map((t) =>
-                renderToken(t, manager, codeBlockCounter, messageId)
+            ? token.tokens.map((t, i) =>
+                renderToken(t, manager, codeBlockCounter, messageId, tokenIndex * 1000 + i)
               )
             : token.text}
         </p>
@@ -325,8 +332,8 @@ export function MarkedRenderer({
 
   return (
     <div className="prose prose-invert max-w-none">
-      {tokens.map((token) =>
-        renderToken(token, manager, codeBlockCounter, messageId)
+      {tokens.map((token, index) =>
+        renderToken(token, manager, codeBlockCounter, messageId, index)
       )}
     </div>
   );
