@@ -12,6 +12,7 @@ import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ResizableSplitter } from "@/components/ResizableSplitter";
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
@@ -34,6 +35,7 @@ export function ChatInterface() {
     blockIndex: null,
   });
   const [copiedBlockId, setCopiedBlockId] = useState<string | null>(null);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50);
 
   const messagesComponentRef = useRef<MessagesRef>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -202,6 +204,87 @@ export function ChatInterface() {
     [generateMessageId, selectedModel, messages, scrollToBottom]
   );
 
+  const leftPanel = (
+    <div className="flex-1 mx-auto w-full">
+      <ScrollArea
+        className="h-screen overflow-y-auto p-4"
+        onTouchStart={handleScrollStart}
+        onMouseDown={handleScrollStart}
+      >
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="max-w-3xl mx-auto"
+        >
+          <Messages
+            ref={messagesComponentRef}
+            messages={messages}
+            isTyping={isTyping}
+            streamingMessageId={streamingMessageId}
+            onScrollChange={() => {}} // No longer needed
+            globalExpandedState={globalExpandedState}
+            onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
+          />
+        </div>
+      </ScrollArea>
+    </div>
+  );
+
+  const rightPanel = expandedCodeBlock && (
+    <motion.div
+      key={`${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`}
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 0.1, duration: 0.3 }}
+      className="border border-border/50 rounded-lg flex-1 flex flex-col"
+    >
+      <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-muted-foreground">
+            {expandedCodeBlock.filename || expandedCodeBlock.language}
+          </span>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() =>
+            handleCopyExpanded(
+              expandedCodeBlock.code,
+              `${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`
+            )
+          }
+          className="h-6 w-6 p-0"
+        >
+          {copiedBlockId ===
+          `${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}` ? (
+            <Check className="h-3 w-3 text-green-400" />
+          ) : (
+            <Copy className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
+      <ScrollArea className="h-full">
+        <div className="flex-1 overflow-y-auto h-screen">
+          <SyntaxHighlighter
+            style={oneDark as any}
+            language={expandedCodeBlock.language}
+            PreTag="div"
+            className="!m-0 !text-xs !font-mono !bg-surface"
+            customStyle={{
+              margin: 0,
+              padding: "12px",
+              overflow: "visible",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {expandedCodeBlock.code}
+          </SyntaxHighlighter>
+        </div>
+      </ScrollArea>
+    </motion.div>
+  );
+
   return (
     <div className="relative flex flex-col bg-background overflow-hidden">
       {/* <header className="relative z-20 flex items-center justify-between p-4">
@@ -211,156 +294,15 @@ export function ChatInterface() {
         />
       </header> */}
       <div className="relative flex-1 flex">
-        <motion.div
-          layout
-          animate={{
-            width: hasExpandedCodeBlock ? "50%" : "100%",
-            marginRight: hasExpandedCodeBlock ? "0px" : "0px",
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 30,
-            mass: 0.8,
-            duration: 0.4,
-          }}
-          className="flex flex-col min-w-0"
-        >
-          <div className="flex-1 mx-auto w-full">
-            <ScrollArea
-              className="h-screen overflow-y-auto p-4"
-              onTouchStart={handleScrollStart}
-              onMouseDown={handleScrollStart}
-            >
-              <div
-                ref={messagesContainerRef}
-                onScroll={handleScroll}
-                className="max-w-3xl mx-auto"
-              >
-                <Messages
-                  ref={messagesComponentRef}
-                  messages={messages}
-                  isTyping={isTyping}
-                  streamingMessageId={streamingMessageId}
-                  onScrollChange={() => {}} // No longer needed
-                  globalExpandedState={globalExpandedState}
-                  onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
-                />
-              </div>
-            </ScrollArea>
-          </div>
-
-          {/* <motion.div
-            layout
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              opacity: { duration: 0.3 },
-              y: { duration: 0.3 },
-              layout: {
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-                mass: 0.8,
-              },
-            }}
-            className="relative z-10 p-4"
-          >
-            <div className="max-w-3xl mx-auto">
-              <MessageInput
-                onSendMessage={handleSendMessage}
-                placeholder={`Ask ${
-                  getModelById(selectedModel)?.displayName || "AI"
-                } anything...`}
-                disabled={isTyping}
-              />
-            </div>
-          </motion.div> */}
-        </motion.div>
-
-        <AnimatePresence mode="wait">
-          {hasExpandedCodeBlock && expandedCodeBlock && (
-            <motion.div
-              key="code-block-pane"
-              initial={{
-                x: "100%",
-                opacity: 0,
-                scale: 0.95,
-              }}
-              animate={{
-                x: "0%",
-                opacity: 1,
-                scale: 1,
-              }}
-              exit={{
-                x: "100%",
-                opacity: 0,
-                scale: 0.95,
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 30,
-                mass: 0.8,
-                opacity: { duration: 0.2 },
-              }}
-              className="flex-1 flex flex-col mx-auto min-w-0"
-            >
-              <motion.div
-                key={`${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-                className="border border-border/50 rounded-lg flex-1 flex flex-col"
-              >
-                <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-muted-foreground">
-                      {expandedCodeBlock.filename || expandedCodeBlock.language}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      handleCopyExpanded(
-                        expandedCodeBlock.code,
-                        `${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`
-                      )
-                    }
-                    className="h-6 w-6 p-0"
-                  >
-                    {copiedBlockId ===
-                    `${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}` ? (
-                      <Check className="h-3 w-3 text-green-400" />
-                    ) : (
-                      <Copy className="h-3 w-3" />
-                    )}
-                  </Button>
-                </div>
-                <ScrollArea className="h-full">
-                  <div className="flex-1 overflow-y-auto h-screen">
-                    <SyntaxHighlighter
-                      style={oneDark as any}
-                      language={expandedCodeBlock.language}
-                      PreTag="div"
-                      className="!m-0 !text-xs !font-mono !bg-surface"
-                      customStyle={{
-                        margin: 0,
-                        padding: "12px",
-                        overflow: "visible",
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
-                      }}
-                    >
-                      {expandedCodeBlock.code}
-                    </SyntaxHighlighter>
-                  </div>
-                </ScrollArea>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <ResizableSplitter
+          leftPanel={leftPanel}
+          rightPanel={rightPanel}
+          showRightPanel={hasExpandedCodeBlock}
+          initialLeftWidth={leftPanelWidth}
+          minLeftWidth={30}
+          maxLeftWidth={70}
+          onWidthChange={setLeftPanelWidth}
+        />
       </div>
     </div>
   );
