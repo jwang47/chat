@@ -116,11 +116,50 @@ const renderToken = (
         sanitizedHtml.includes("<center>") ||
         sanitizedHtml.includes("</center>")
       ) {
-        const centerContent = sanitizedHtml.replace(/<\/?center>/g, "");
-        return (
-          <div key={token.raw} className="text-center">
-            {centerContent}
-          </div>
+        // Split content by center tags and process each part
+        const parts = sanitizedHtml.split(/(<\/?center>)/);
+        const elements: React.ReactNode[] = [];
+        let isInsideCenter = false;
+        let centerContent = "";
+        let elementIndex = 0;
+
+        for (const part of parts) {
+          if (part === "<center>") {
+            isInsideCenter = true;
+            centerContent = "";
+          } else if (part === "</center>") {
+            if (isInsideCenter) {
+              elements.push(
+                <div key={`${token.raw}-${elementIndex++}`} className="text-center">
+                  {centerContent.trim()}
+                </div>
+              );
+            }
+            isInsideCenter = false;
+            centerContent = "";
+          } else if (isInsideCenter) {
+            centerContent += part;
+          } else if (part.trim()) {
+            // Content outside center tags
+            elements.push(
+              <span key={`${token.raw}-${elementIndex++}`}>{part}</span>
+            );
+          }
+        }
+
+        // Handle case where center tag wasn't closed
+        if (isInsideCenter && centerContent.trim()) {
+          elements.push(
+            <div key={`${token.raw}-${elementIndex++}`} className="text-center">
+              {centerContent.trim()}
+            </div>
+          );
+        }
+
+        return elements.length > 1 ? (
+          <React.Fragment key={token.raw}>{elements}</React.Fragment>
+        ) : (
+          elements[0] || null
         );
       }
 
