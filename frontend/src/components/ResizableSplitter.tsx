@@ -23,48 +23,88 @@ export function ResizableSplitter({
   const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const currentWidthRef = useRef(initialLeftWidth);
+  const animationFrameRef = useRef<number | null>(null);
+  const isDraggingRef = useRef(false);
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      setIsDragging(true);
-      startXRef.current = e.clientX;
-      startWidthRef.current = leftWidth;
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-    },
-    [leftWidth]
-  );
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    isDraggingRef.current = true;
+    startXRef.current = e.clientX;
+    startWidthRef.current = currentWidthRef.current;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
+
+  const updatePanelWidths = useCallback((newLeftWidth: number) => {
+    const rightWidth = 100 - newLeftWidth;
+
+    // Update DOM directly for immediate visual feedback
+    if (leftPanelRef.current) {
+      leftPanelRef.current.style.width = `${newLeftWidth}%`;
+    }
+    if (rightPanelRef.current) {
+      rightPanelRef.current.style.width = `${rightWidth}%`;
+    }
+
+    currentWidthRef.current = newLeftWidth;
+  }, []);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDragging || !containerRef.current) return;
+      if (!isDraggingRef.current || !containerRef.current) return;
 
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const deltaX = e.clientX - startXRef.current;
-      const deltaPercent = (deltaX / containerRect.width) * 100;
-      const newLeftWidth = Math.max(
-        minLeftWidth,
-        Math.min(maxLeftWidth, startWidthRef.current + deltaPercent)
-      );
+      // Cancel any pending animation frame
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
 
-      setLeftWidth(newLeftWidth);
-      onWidthChange?.(newLeftWidth);
+      // Use requestAnimationFrame for smooth updates
+      animationFrameRef.current = requestAnimationFrame(() => {
+        if (!containerRef.current) return;
+
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const deltaX = e.clientX - startXRef.current;
+        const deltaPercent = (deltaX / containerRect.width) * 100;
+        const newLeftWidth = Math.max(
+          minLeftWidth,
+          Math.min(maxLeftWidth, startWidthRef.current + deltaPercent)
+        );
+
+        updatePanelWidths(newLeftWidth);
+      });
     },
-    [isDragging, minLeftWidth, maxLeftWidth, onWidthChange]
+    [minLeftWidth, maxLeftWidth, updatePanelWidths]
   );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    isDraggingRef.current = false;
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
-  }, []);
+
+    // Cancel any pending animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    // Update React state and notify parent
+    const finalWidth = currentWidthRef.current;
+    setLeftWidth(finalWidth);
+    onWidthChange?.(finalWidth);
+  }, [onWidthChange]);
 
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mousemove", handleMouseMove, {
+        passive: true,
+      });
       document.addEventListener("mouseup", handleMouseUp);
       return () => {
         document.removeEventListener("mousemove", handleMouseMove);
@@ -72,6 +112,22 @@ export function ResizableSplitter({
       };
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  // Sync currentWidthRef with leftWidth when not dragging
+  useEffect(() => {
+    if (!isDragging) {
+      currentWidthRef.current = leftWidth;
+    }
+  }, [leftWidth, isDragging]);
 
   if (!showRightPanel) {
     return <div className="flex-1 flex flex-col min-w-0">{leftPanel}</div>;
@@ -81,12 +137,13 @@ export function ResizableSplitter({
     <div ref={containerRef} className="flex-1 flex relative">
       {/* Left Panel */}
       <motion.div
+        ref={leftPanelRef}
         style={{ width: `${leftWidth}%` }}
         className="flex flex-col min-w-0"
         transition={{
           width: isDragging
             ? { duration: 0 }
-            : { duration: 0.2, ease: "easeOut" },
+            : { duration: 0.15, ease: "easeOut" },
         }}
       >
         {leftPanel}
@@ -116,12 +173,13 @@ export function ResizableSplitter({
 
       {/* Right Panel */}
       <motion.div
+        ref={rightPanelRef}
         style={{ width: `${100 - leftWidth}%` }}
         className="flex flex-col min-w-0"
         transition={{
           width: isDragging
             ? { duration: 0 }
-            : { duration: 0.2, ease: "easeOut" },
+            : { duration: 0.15, ease: "easeOut" },
         }}
       >
         {rightPanel}
