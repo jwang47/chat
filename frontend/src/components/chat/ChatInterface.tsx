@@ -205,9 +205,15 @@ export function ChatInterface() {
   );
 
   const leftPanel = (
-    <div className="flex-1 mx-auto w-full">
+    <div className="flex-1 mx-auto w-full relative">
+      <div className="absolute top-0 z-20 flex items-center p-4 bg-background w-[calc(100%-8px)] justify-between">
+        <ModelSelector
+          selectedModel={selectedModel}
+          onModelSelect={handleModelSelect}
+        />
+      </div>
       <ScrollArea
-        className="h-screen overflow-y-auto p-4"
+        className="h-screen overflow-y-auto p-4 pt-16"
         onTouchStart={handleScrollStart}
         onMouseDown={handleScrollStart}
       >
@@ -288,12 +294,6 @@ export function ChatInterface() {
 
   return (
     <div className="relative flex flex-col bg-background overflow-hidden">
-      {/* <header className="relative z-20 flex items-center justify-between p-4">
-        <ModelSelector
-          selectedModel={selectedModel}
-          onModelSelect={handleModelSelect}
-        />
-      </header> */}
       <div className="relative flex-1 flex">
         <ResizableSplitter
           leftPanel={leftPanel}
