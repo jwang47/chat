@@ -300,7 +300,7 @@ export function ChatInterface() {
                 mass: 0.8,
                 opacity: { duration: 0.2 },
               }}
-              className="flex-1 flex flex-col mx-auto"
+              className="flex-1 flex flex-col mx-auto min-w-0"
             >
               <motion.div
                 key={`${expandedCodeBlock.messageId}-${expandedCodeBlock.blockIndex}`}
