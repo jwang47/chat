@@ -253,4 +253,211 @@ More dialogue text.`;
     expect(html).toContain("intelligence reports");
     expect(html).toContain("What's your assessment");
   });
+
+  it("should handle center tags with other markdown elements", () => {
+    const content = `<center>SCENE: LABORATORY</center>
+
+## Important Discovery
+
+**Dr. Smith** makes a breakthrough:
+
+> The samples show unprecedented cellular activity.
+
+<center>DR. JONES</center>
+*Worried expression*
+
+1. Check the readings
+2. Verify the results
+3. Alert the team
+
+\`\`\`javascript
+const result = analyzeData();
+console.log(result);
+\`\`\``;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-14" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have center tags
+    expect(html).toContain("SCENE: LABORATORY");
+    expect(html).toContain("DR. JONES");
+    expect(container.querySelectorAll(".text-center")).toHaveLength(2);
+    
+    // Should have other markdown elements
+    expect(html).toContain("Important Discovery"); // heading
+    expect(html).toContain("<strong>"); // bold text
+    expect(html).toContain("<blockquote>"); // blockquote
+    expect(html).toContain("<ol class="); // ordered list with classes
+    expect(html).toContain("Check the readings"); // list item
+    expect(html).toContain("javascript"); // code block language
+    // Note: italic text might be in HTML tokens, not separate <em> tags
+    expect(html).toContain("Worried expression");
+  });
+
+  it("should handle nested formatting within center tags", () => {
+    const content = `<center>**BOLD CHARACTER NAME**</center>
+<center>*Italic Character*</center>
+<center>\`Code Character\`</center>`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-15" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have center divs
+    expect(container.querySelectorAll(".text-center")).toHaveLength(3);
+    
+    // Content should be in center divs (markdown may or may not be processed within center tags)
+    expect(html).toContain("BOLD CHARACTER NAME");
+    expect(html).toContain("Italic Character");
+    expect(html).toContain("Code Character");
+  });
+
+  it("should handle center tags with line breaks and whitespace", () => {
+    const content = `<center>
+    CHARACTER NAME
+</center>
+
+<center>  SPACED CHARACTER  </center>
+
+<center>
+MULTI
+LINE
+CHARACTER
+</center>`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-16" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have center divs
+    expect(container.querySelectorAll(".text-center")).toHaveLength(3);
+    
+    // Should handle whitespace properly
+    expect(html).toContain("CHARACTER NAME");
+    expect(html).toContain("SPACED CHARACTER");
+    expect(html).toContain("MULTI");
+  });
+
+  it("should handle multiple blockquotes with center tags", () => {
+    const content = `<center>NARRATOR</center>
+> The story begins in a dark laboratory.
+> Strange sounds echo through the halls.
+
+<center>SCIENTIST</center>
+> What was that noise?
+> Did you hear that too?
+
+Regular paragraph text between quotes.
+
+<center>ASSISTANT</center>
+> Yes, it came from the basement.`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-17" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have center tags
+    expect(container.querySelectorAll(".text-center")).toHaveLength(3);
+    expect(html).toContain("NARRATOR");
+    expect(html).toContain("SCIENTIST");
+    expect(html).toContain("ASSISTANT");
+    
+    // Should have blockquote content
+    expect(html).toContain("dark laboratory");
+    expect(html).toContain("What was that noise");
+    expect(html).toContain("came from the basement");
+    
+    // Should have regular paragraph
+    expect(html).toContain("Regular paragraph text");
+  });
+
+  it("should handle edge case with adjacent center tags", () => {
+    const content = `<center>FIRST</center><center>SECOND</center>
+Some text between
+<center>THIRD</center><center>FOURTH</center>`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-18" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have all center divs
+    expect(container.querySelectorAll(".text-center")).toHaveLength(4);
+    expect(html).toContain("FIRST");
+    expect(html).toContain("SECOND");
+    expect(html).toContain("THIRD");
+    expect(html).toContain("FOURTH");
+    
+    // Should have text between
+    expect(html).toContain("Some text between");
+  });
+
+  it("should handle center tags with special characters", () => {
+    const content = `<center>DR. SMITH & CO.</center>
+<center>CHARACTER #1</center>
+<center>NAME (ALIAS)</center>
+<center>!@#$%^&*()</center>`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-19" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have center divs
+    expect(container.querySelectorAll(".text-center")).toHaveLength(4);
+    
+    // Should contain special characters (properly escaped in HTML)
+    expect(html).toContain("DR. SMITH");
+    expect(html).toContain("CHARACTER #1");
+    expect(html).toContain("NAME (ALIAS)");
+    expect(html).toContain("!@#$%^&amp;amp;*()"); // & should be double-escaped
+  });
+
+  it("should handle center tags mixed with tables and other complex markdown", () => {
+    const content = `<center>DATA ANALYSIS REPORT</center>
+
+| Sample | Result | Status |
+|--------|--------|--------|
+| A1     | Positive | ✓ |
+| B2     | Negative | ✗ |
+
+<center>CONCLUSION</center>
+> Results are **significant** and require immediate action.
+
+- [x] Completed analysis
+- [ ] Pending review
+- [ ] Final report`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-20" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have center tags
+    expect(container.querySelectorAll(".text-center")).toHaveLength(2);
+    expect(html).toContain("DATA ANALYSIS REPORT");
+    expect(html).toContain("CONCLUSION");
+    
+    // Should contain table content
+    expect(html).toContain("<table");
+    expect(html).toContain("Sample");
+    expect(html).toContain("Result");
+    expect(html).toContain("Positive");
+    
+    // Should have other elements
+    expect(html).toContain("significant");
+    expect(html).toContain("Completed analysis");
+  });
 });

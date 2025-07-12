@@ -207,6 +207,32 @@ const renderToken = (
     case "space":
       return null; // Ignore space tokens, layout is handled by CSS
 
+    case "table":
+      return (
+        <table key={token.raw} className="border-collapse border border-border mb-4">
+          <thead>
+            <tr>
+              {token.header?.map((headerCell, index) => (
+                <th key={index} className="border border-border px-2 py-1 font-semibold">
+                  {headerCell.text}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {token.rows?.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {row.map((cell, cellIndex) => (
+                  <td key={cellIndex} className="border border-border px-2 py-1">
+                    {cell.text}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+
     default:
       console.warn("Unhandled token type:", token.type);
       return (
