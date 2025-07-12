@@ -152,9 +152,9 @@ export function ResizableSplitter({
       {/* Resizable Splitter */}
       <div
         className={`
-          relative w-1 bg-border/30 cursor-col-resize select-none
-          hover:bg-border/50 transition-colors duration-150
-          ${isDragging ? "bg-border/70" : ""}
+          relative w-1 bg-surface cursor-col-resize select-none
+          hover:bg-surface/80 transition-colors duration-150
+          ${isDragging ? "bg-surface/60" : ""}
         `}
         onMouseDown={handleMouseDown}
       >

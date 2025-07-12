@@ -236,7 +236,7 @@ export function ChatInterface() {
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ delay: 0.1, duration: 0.3 }}
-      className="border border-border/50 rounded-lg flex-1 flex flex-col"
+      className="border-t border-r border-b border-border/50 rounded-r-lg flex-1 flex flex-col"
     >
       <div className="flex items-center justify-between bg-surface/50 px-3 py-2 border-b border-border/50">
         <div className="flex items-center gap-2">
@@ -276,6 +276,7 @@ export function ChatInterface() {
               overflow: "visible",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
+              borderRadius: "0px",
             }}
           >
             {expandedCodeBlock.code}
