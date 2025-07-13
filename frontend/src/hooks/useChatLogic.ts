@@ -3,6 +3,7 @@ import { LlmService, type LlmMessage } from "@/lib/llmService";
 import type { Message } from "@/types/chat";
 import { getModelById } from "@/lib/models";
 import { useChat } from "@/contexts/ChatContext";
+import { historyService } from "@/lib/historyService";
 
 interface UseChatLogicProps {
   selectedModel: string;
@@ -24,6 +25,9 @@ export function useChatLogic({
     setIsThinking,
     streamingMessageId,
     setStreamingMessageId,
+    currentConversationId,
+    setCurrentConversationId,
+    refreshConversations,
   } = useChat();
   const [error, setError] = useState<string | null>(null);
   const messageIdCounter = useRef(0);
@@ -35,7 +39,7 @@ export function useChatLogic({
 
   // Phase 1: Add user message and scroll instantly
   const addUserMessage = useCallback(
-    (content: string) => {
+    async (content: string) => {
       const userMessage: Message = {
         id: generateMessageId(),
         role: "user",
@@ -47,6 +51,30 @@ export function useChatLogic({
       console.log("📝 Phase 1: Adding user message");
       setMessages((prev) => [...prev, userMessage]);
 
+      // Handle conversation creation and persistence
+      let conversationId = currentConversationId;
+      
+      // If no current conversation, create a new one
+      if (!conversationId) {
+        try {
+          conversationId = await historyService.createConversation();
+          setCurrentConversationId(conversationId);
+          await refreshConversations();
+        } catch (error) {
+          console.error("Failed to create conversation:", error);
+          return userMessage;
+        }
+      }
+
+      // Save the user message to the database
+      try {
+        const historyMessage = historyService.convertFromMessage(userMessage, conversationId);
+        await historyService.addMessage(historyMessage);
+        await refreshConversations(); // Refresh to update timestamps
+      } catch (error) {
+        console.error("Failed to save user message:", error);
+      }
+
       // Instant scroll to show user message
       setTimeout(() => {
         console.log("⚡ Instant scroll for user message");
@@ -55,7 +83,7 @@ export function useChatLogic({
 
       return userMessage;
     },
-    [generateMessageId, selectedModel, setMessages, scrollToBottom]
+    [generateMessageId, selectedModel, setMessages, scrollToBottom, currentConversationId, setCurrentConversationId, refreshConversations]
   );
 
   // Phase 2: Add assistant message and start streaming
@@ -103,7 +131,7 @@ export function useChatLogic({
   );
 
   const handleSendMessage = useCallback(
-    (content: string) => {
+    async (content: string) => {
       // Prevent sending if already streaming
       if (isTyping || isThinking || streamingMessageId) {
         return;
@@ -113,7 +141,7 @@ export function useChatLogic({
       shouldAutoScrollRef.current = true;
 
       // Phase 1: Add user message with instant scroll
-      const userMessage = addUserMessage(content);
+      const userMessage = await addUserMessage(content);
 
       // Phase 2: Add assistant message and start streaming (after delay)
       setTimeout(() => {
@@ -139,17 +167,33 @@ export function useChatLogic({
               )
             );
           },
-          onComplete: () => {
+          onComplete: async () => {
             setIsTyping(false);
             setIsThinking(false);
             setStreamingMessageId(null);
+            
+            // Update the assistant message to not be streaming
+            let finalAssistantMessage: Message | null = null;
             setMessages((current) =>
-              current.map((msg) =>
-                msg.id === assistantMessage.id
-                  ? { ...msg, isStreaming: false }
-                  : msg
-              )
+              current.map((msg) => {
+                if (msg.id === assistantMessage.id) {
+                  finalAssistantMessage = { ...msg, isStreaming: false };
+                  return finalAssistantMessage;
+                }
+                return msg;
+              })
             );
+
+            // Save the completed assistant message to the database
+            if (finalAssistantMessage && currentConversationId) {
+              try {
+                const historyMessage = historyService.convertFromMessage(finalAssistantMessage, currentConversationId);
+                await historyService.addMessage(historyMessage);
+                await refreshConversations(); // Refresh to update timestamps
+              } catch (error) {
+                console.error("Failed to save assistant message:", error);
+              }
+            }
           },
           onError: (err: Error) => {
             setError(err.message);
@@ -172,6 +216,8 @@ export function useChatLogic({
       setIsTyping,
       setMessages,
       setStreamingMessageId,
+      currentConversationId,
+      refreshConversations,
     ]
   );
 

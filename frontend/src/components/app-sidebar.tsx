@@ -4,9 +4,12 @@ import {
   PanelLeftClose,
   SquarePen,
   Palette,
+  MessageSquare,
+  Trash2,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useChat } from "@/contexts/ChatContext";
+import { historyService } from "@/lib/historyService";
 
 import {
   Sidebar,
@@ -25,13 +28,33 @@ export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
-  const { newChat } = useChat();
+  const { newChat, conversations, loadConversation, refreshConversations, currentConversationId } = useChat();
   const isCollapsed = state === "collapsed";
 
   const handleNewChat = () => {
     newChat();
     if (location.pathname !== "/") {
       navigate("/");
+    }
+  };
+
+  const handleLoadConversation = async (conversationId: string) => {
+    await loadConversation(conversationId);
+    if (location.pathname !== "/") {
+      navigate("/");
+    }
+  };
+
+  const handleDeleteConversation = async (conversationId: string) => {
+    try {
+      await historyService.deleteConversation(conversationId);
+      await refreshConversations();
+      // If the deleted conversation was the current one, start a new chat
+      if (currentConversationId === conversationId) {
+        newChat();
+      }
+    } catch (error) {
+      console.error("Failed to delete conversation:", error);
     }
   };
 
@@ -104,6 +127,41 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        
+        {conversations.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Recent Conversations</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {conversations.map((conversation) => (
+                  <SidebarMenuItem key={conversation.id}>
+                    <SidebarMenuButton
+                      onClick={() => handleLoadConversation(conversation.id)}
+                      tooltip={conversation.title}
+                      isActive={currentConversationId === conversation.id}
+                      className="group justify-between pr-2"
+                    >
+                      <div className="flex items-center">
+                        <MessageSquare className="w-4 h-4" />
+                        <span className="truncate">{conversation.title}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteConversation(conversation.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 hover:text-red-600 rounded"
+                        title="Delete conversation"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

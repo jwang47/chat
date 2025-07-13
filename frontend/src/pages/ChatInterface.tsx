@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Messages, type MessagesRef } from "@/components/chat/Messages";
 import { MessageInput } from "@/components/chat/MessageInput";
 import type { ExpandedCodeBlock } from "@/types/chat";
@@ -12,7 +12,7 @@ import { useChatLogic } from "@/hooks/useChatLogic";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ChatInterface() {
-  const { messages, isTyping, isThinking, streamingMessageId } = useChat();
+  const { messages, isTyping, isThinking, streamingMessageId, currentConversationId } = useChat();
   const [selectedModel, setSelectedModel] = useState<string>(
     () => getDefaultModel().id
   );
@@ -78,6 +78,15 @@ export function ChatInterface() {
     scrollToBottom,
     shouldAutoScrollRef,
   });
+
+  // Scroll to bottom when conversation changes
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 100);
+    }
+  }, [currentConversationId, scrollToBottom]);
 
   const leftPanel = (
     <div className="flex-1 mx-auto w-full relative h-full">
