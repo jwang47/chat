@@ -5,6 +5,7 @@ interface SmoothScrollOptions {
   easing?: (t: number) => number;
   lerp?: boolean;
   lerpFactor?: number;
+  maxScrollPerSecond?: number;
 }
 
 export function useSmoothScroll(options: SmoothScrollOptions = {}) {
@@ -12,7 +13,8 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
     duration = 800,
     easing = (t: number) => t * t * (3 - 2 * t), // smoothstep
     lerp = false,
-    lerpFactor = 0.1
+    lerpFactor = 0.1,
+    maxScrollPerSecond = 2000 // pixels per second
   } = options;
 
   const animationRef = useRef<number | null>(null);
@@ -21,6 +23,7 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
   const isAnimating = useRef<boolean>(false);
   const lastUserScrollTime = useRef<number>(0);
   const lastProgrammaticScrollTop = useRef<number>(-1);
+  const lastFrameTime = useRef<number>(0);
 
   const smoothScrollTo = useCallback((element: HTMLElement, target: number) => {
     if (animationRef.current) {
@@ -42,7 +45,7 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
       
       console.log('🚀 Starting lerp animation', { from: currentScrollTop.current, to: target, factor: lerpFactor });
 
-      const lerpAnimate = () => {
+      const lerpAnimate = (timestamp: number) => {
         // Check if user scrolled during animation
         if (now - lastUserScrollTime.current < 50 && performance.now() - now > 50) {
           console.log('🛑 Cancelling lerp - user scrolled during animation');
@@ -50,6 +53,10 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
           lastProgrammaticScrollTop.current = -1;
           return;
         }
+
+        // Calculate delta time
+        const deltaTime = lastFrameTime.current ? timestamp - lastFrameTime.current : 16;
+        lastFrameTime.current = timestamp;
 
         const diff = targetScrollTop.current - currentScrollTop.current;
         
@@ -65,7 +72,23 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
           return;
         }
 
-        currentScrollTop.current += diff * lerpFactor;
+        // Calculate max scroll distance for this frame based on time
+        const maxScrollThisFrame = (maxScrollPerSecond * deltaTime) / 1000;
+        
+        // Calculate desired scroll distance
+        let scrollDistance = diff * lerpFactor;
+        
+        // Limit the scroll distance to maxScrollThisFrame
+        if (Math.abs(scrollDistance) > maxScrollThisFrame) {
+          scrollDistance = Math.sign(scrollDistance) * maxScrollThisFrame;
+          console.log('🚦 Limiting scroll speed:', { 
+            desired: diff * lerpFactor, 
+            limited: scrollDistance, 
+            maxThisFrame: maxScrollThisFrame 
+          });
+        }
+
+        currentScrollTop.current += scrollDistance;
         lastProgrammaticScrollTop.current = currentScrollTop.current;
         element.scrollTop = currentScrollTop.current;
         
@@ -74,7 +97,7 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         }
       };
 
-      lerpAnimate();
+      lerpAnimate(performance.now());
     } else {
       // Easing-based smooth scrolling
       const startScrollTop = element.scrollTop;

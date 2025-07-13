@@ -51,6 +51,7 @@ export function ChatInterface() {
   const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll({
     lerp: true,
     lerpFactor: 0.0015, // Lower = smoother but more laggy, higher = snappier
+    maxScrollPerSecond: 100, // Limit fast scrolls to 1500px/sec
   });
 
   // Define a type for the code block payload for clarity
