@@ -274,8 +274,20 @@ const renderToken = (
         <React.Fragment key={generateKey("text")}>{token.text}</React.Fragment>
       );
 
-    case "space":
-      return null; // Ignore space tokens, layout is handled by CSS
+    case "space": {
+      // Preserve empty lines by converting them to line breaks
+      const spaceContent = token.raw || "";
+      const newlineCount = (spaceContent.match(/\n/g) || []).length;
+      
+      // If there are multiple newlines, preserve them as line breaks
+      if (newlineCount > 1) {
+        return (
+          <div key={generateKey("space")} style={{ height: `${(newlineCount - 1) * 1.5}em` }} />
+        );
+      }
+      
+      return null; // Single spaces are handled by CSS
+    }
 
     case "table":
       return (
@@ -286,7 +298,7 @@ const renderToken = (
           <thead>
             <tr>
               {token.header?.map(
-                (headerCell: any, index: number) => (
+                (headerCell: { text: string }, index: number) => (
                   <th
                     key={index}
                     className="border border-border px-2 py-1 font-semibold"
@@ -298,9 +310,9 @@ const renderToken = (
             </tr>
           </thead>
           <tbody>
-            {token.rows?.map((row: any, rowIndex: number) => (
+            {token.rows?.map((row: { text: string }[], rowIndex: number) => (
               <tr key={rowIndex}>
-                {row.map((cell: any, cellIndex: number) => (
+                {row.map((cell: { text: string }, cellIndex: number) => (
                   <td
                     key={cellIndex}
                     className="border border-border px-2 py-1"

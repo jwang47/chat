@@ -1,14 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import { MarkedRenderer } from "./MarkedRenderer";
-
-// Mock the useCodeBlockManager hook
-vi.mock("../../hooks/useCodeBlockManager", () => ({
-  useCodeBlockManager: () => ({
-    isExpanded: () => false,
-    toggle: vi.fn(),
-  }),
-}));
 
 describe("MarkedRenderer - Center Tag Handling", () => {
   it("should render center tags as text-center divs", () => {
@@ -459,5 +451,112 @@ Some text between
     // Should have other elements
     expect(html).toContain("significant");
     expect(html).toContain("Completed analysis");
+  });
+});
+
+describe("MarkedRenderer - Empty Line Preservation", () => {
+  it("should preserve multiple empty lines between paragraphs", () => {
+    const content = `First paragraph.
+
+
+Second paragraph after double empty line.
+
+
+
+Third paragraph after triple empty line.`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-empty-lines-1" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have spacing divs for empty lines
+    expect(html).toContain("First paragraph");
+    expect(html).toContain("Second paragraph");
+    expect(html).toContain("Third paragraph");
+    
+    // Should have spacing elements for empty lines
+    const spacingElements = container.querySelectorAll('[style*="height"]');
+    expect(spacingElements.length).toBeGreaterThan(0);
+  });
+
+  it("should preserve empty lines in center tag contexts", () => {
+    const content = `<center>KAL</center>
+>I am still seeking to understand the function of these flaws.
+
+A new line of text appears on the screen:
+
+<center>TEXT ON SCREEN</center>
+>QUERY: WHAT IS THE PURPOSE OF HUMAN EXISTENCE?
+
+Elara blinks.
+
+<center>ELARA</center>
+>That's… that's a big question, Kal.`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-empty-lines-2" />
+    );
+
+    const html = container.innerHTML;
+    
+    // Should have center elements
+    expect(container.querySelectorAll(".text-center")).toHaveLength(3);
+    expect(html).toContain("KAL");
+    expect(html).toContain("TEXT ON SCREEN");
+    expect(html).toContain("ELARA");
+    
+    // Should preserve spacing between elements
+    expect(html).toContain("new line of text appears");
+    expect(html).toContain("Elara blinks");
+    
+    // Should have blockquotes
+    expect(html).toContain("seeking to understand");
+    expect(html).toContain("PURPOSE OF HUMAN EXISTENCE");
+    expect(html).toContain("big question");
+  });
+
+  it("should handle empty lines at the beginning and end", () => {
+    const content = `
+
+First paragraph after empty lines.
+
+
+Last paragraph before empty lines.
+
+`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-empty-lines-3" />
+    );
+
+    expect(container.innerHTML).toContain("First paragraph");
+    expect(container.innerHTML).toContain("Last paragraph");
+  });
+
+  it("should preserve spacing in complex dialogue", () => {
+    const content = `<center>CHARACTER 1</center>
+>First line of dialogue.
+
+
+<center>CHARACTER 2</center>
+>Response after pause.
+
+
+
+<center>NARRATOR</center>
+>Long pause before narration.`;
+
+    const { container } = render(
+      <MarkedRenderer content={content} messageId="test-empty-lines-4" />
+    );
+    
+    // Should have all center elements
+    expect(container.querySelectorAll(".text-center")).toHaveLength(3);
+    
+    // Should have appropriate spacing
+    const spacingElements = container.querySelectorAll('[style*="height"]');
+    expect(spacingElements.length).toBeGreaterThan(0);
   });
 });
