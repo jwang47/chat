@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Messages, type MessagesRef } from "./Messages";
-import { MessageInput } from "./MessageInput";
+import { Messages, type MessagesRef } from "@/components/chat/Messages";
+import { MessageInput } from "@/components/chat/MessageInput";
 import { LlmService, type LlmMessage } from "@/lib/llmService";
 import type { Message, ExpandedCodeBlock } from "@/types/chat";
 import { motion } from "motion/react";
