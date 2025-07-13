@@ -231,24 +231,15 @@ export function ChatInterface() {
       // Notify smooth scroll hook about user interaction
       onUserScroll(currentScrollTop);
 
-      console.log("📜 Scroll event:", {
-        currentScrollTop,
-        lastScrollTop: lastScrollTopRef.current,
-        scrollDirection,
-        isAtBottom: isAtBottom(),
-      });
-
       // Only disable autoscroll if user scrolls UP (more than 5px)
       // Downward scrolling or small movements keep autoscroll enabled
-      if (scrollDirection < -5) {
-        console.log("⬆️ User scrolled up - disabling autoscroll");
+      if (scrollDirection < 0) {
         shouldAutoScrollRef.current = false;
         isUserScrollingRef.current = true;
         // Cancel any ongoing smooth scroll when user manually scrolls
         cancelScroll();
       } else if (isAtBottom()) {
         // Re-enable autoscroll when at bottom
-        console.log("⬇️ At bottom - enabling autoscroll");
         shouldAutoScrollRef.current = true;
         isUserScrollingRef.current = false;
       }
@@ -299,18 +290,9 @@ export function ChatInterface() {
     }
   }, [scrollToBottom]);
 
-  const handleSendMessage = useCallback(
+  // Phase 1: Add user message and scroll instantly
+  const addUserMessage = useCallback(
     (content: string) => {
-      // Prevent sending if already streaming
-      if (isTyping || isThinking || streamingMessageId) {
-        return;
-      }
-
-      setError(null);
-
-      // Always scroll to bottom when user sends message
-      shouldAutoScrollRef.current = true;
-
       const userMessage: Message = {
         id: generateMessageId(),
         role: "user",
@@ -319,6 +301,23 @@ export function ChatInterface() {
         model: selectedModel,
       };
 
+      console.log("📝 Phase 1: Adding user message");
+      setMessages((prev) => [...prev, userMessage]);
+      
+      // Instant scroll to show user message
+      setTimeout(() => {
+        console.log("⚡ Instant scroll for user message");
+        scrollToBottom(true);
+      }, 50);
+
+      return userMessage;
+    },
+    [generateMessageId, selectedModel, scrollToBottom]
+  );
+
+  // Phase 2: Add assistant message and start streaming
+  const startAssistantResponse = useCallback(
+    (userMessage: Message) => {
       const assistantMessage: Message = {
         id: generateMessageId(),
         role: "assistant",
@@ -328,15 +327,8 @@ export function ChatInterface() {
         isStreaming: true,
       };
 
-      // Prepare LLM messages BEFORE updating state to avoid stale closure issues
-      const llmMessages: LlmMessage[] = [...messages, userMessage].map(
-        (msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })
-      );
-
-      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      console.log("📝 Phase 2: Adding assistant message");
+      setMessages((prev) => [...prev, assistantMessage]);
 
       const currentModel = getModelById(selectedModel);
       if (currentModel?.supportsThinking) {
@@ -346,49 +338,80 @@ export function ChatInterface() {
       }
       setStreamingMessageId(assistantMessage.id);
 
-      LlmService.streamChatCompletion(selectedModel, llmMessages, {
-        onChunk: (chunk: string) => {
-          // Transition from thinking to typing on first chunk
-          setIsThinking((current) => {
-            if (current) {
-              setIsTyping(true);
-              return false;
-            }
-            return current;
-          });
+      // Prepare LLM messages
+      const llmMessages: LlmMessage[] = [...messages, userMessage].map(
+        (msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })
+      );
 
-          setMessages((current) =>
-            current.map((msg) =>
-              msg.id === assistantMessage.id && msg.isStreaming
-                ? { ...msg, content: msg.content + chunk }
-                : msg
-            )
-          );
-        },
-        onComplete: () => {
-          setIsTyping(false);
-          setIsThinking(false);
-          setStreamingMessageId(null);
-          setMessages((current) =>
-            current.map((msg) =>
-              msg.id === assistantMessage.id
-                ? { ...msg, isStreaming: false }
-                : msg
-            )
-          );
-        },
-        onError: (error: Error) => {
-          setError(error.message);
-          setIsTyping(false);
-          setIsThinking(false);
-          setStreamingMessageId(null);
-        },
-      });
+      return { assistantMessage, llmMessages };
+    },
+    [generateMessageId, selectedModel, messages]
+  );
+
+  const handleSendMessage = useCallback(
+    (content: string) => {
+      // Prevent sending if already streaming
+      if (isTyping || isThinking || streamingMessageId) {
+        return;
+      }
+
+      setError(null);
+      shouldAutoScrollRef.current = true;
+
+      // Phase 1: Add user message with instant scroll
+      const userMessage = addUserMessage(content);
+
+      // Phase 2: Add assistant message and start streaming (after delay)
+      setTimeout(() => {
+        const { assistantMessage, llmMessages } = startAssistantResponse(userMessage);
+
+        LlmService.streamChatCompletion(selectedModel, llmMessages, {
+          onChunk: (chunk: string) => {
+            // Transition from thinking to typing on first chunk
+            setIsThinking((current) => {
+              if (current) {
+                setIsTyping(true);
+                return false;
+              }
+              return current;
+            });
+
+            setMessages((current) =>
+              current.map((msg) =>
+                msg.id === assistantMessage.id && msg.isStreaming
+                  ? { ...msg, content: msg.content + chunk }
+                  : msg
+              )
+            );
+          },
+          onComplete: () => {
+            setIsTyping(false);
+            setIsThinking(false);
+            setStreamingMessageId(null);
+            setMessages((current) =>
+              current.map((msg) =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, isStreaming: false }
+                  : msg
+              )
+            );
+          },
+          onError: (error: Error) => {
+            setError(error.message);
+            setIsTyping(false);
+            setIsThinking(false);
+            setStreamingMessageId(null);
+          },
+        });
+      }, 150); // Delay to let user message render and scroll
     },
     [
-      generateMessageId,
+      addUserMessage,
+      startAssistantResponse,
       selectedModel,
-      messages,
       isTyping,
       isThinking,
       streamingMessageId,
