@@ -72,13 +72,13 @@ export function ExpandedCodeBlockPanel({
           )}
         </Button>
       </div>
-      <ScrollArea className="h-full">
-        <div className="flex-1 overflow-y-auto h-screen">
+      <ScrollArea className="flex-1">
+        <div className="h-full">
           <SyntaxHighlighter
             style={oneDark as React.ComponentProps<typeof SyntaxHighlighter>['style']}
             language={expandedCodeBlock.language}
             PreTag="div"
-            className="!m-0 !text-xs !font-mono !bg-surface min-h-screen"
+            className="!m-0 !text-xs !font-mono !bg-surface"
             customStyle={{
               margin: 0,
               padding: "12px",

@@ -126,13 +126,13 @@ export function ResizableSplitter({
   return (
     <motion.div 
       ref={containerRef} 
-      className="flex-1 flex relative"
+      className="flex-1 flex relative h-full"
       initial={false}
     >
       {/* Left Panel */}
       <motion.div
         ref={leftPanelRef}
-        className="flex flex-col min-w-0"
+        className="flex flex-col min-w-0 h-full"
         initial={false}
         animate={{ width: `${effectiveLeftWidth}%` }}
         transition={{
@@ -174,7 +174,7 @@ export function ResizableSplitter({
       {/* Right Panel */}
       <motion.div
         ref={rightPanelRef}
-        className="flex flex-col min-w-0 overflow-hidden"
+        className="flex flex-col min-w-0 overflow-hidden h-full"
         initial={false}
         animate={{ width: `${effectiveRightWidth}%` }}
         transition={{

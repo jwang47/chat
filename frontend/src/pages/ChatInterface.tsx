@@ -89,7 +89,7 @@ export function ChatInterface() {
       </div>
       <ScrollArea
         ref={scrollAreaRef}
-        className={`h-screen overflow-y-auto p-4 pt-16 pb-18 ${
+        className={`h-full overflow-y-auto p-4 pt-16 pb-18 ${
           messages.length === 0 ? "hidden" : ""
         }`}
         onTouchStart={handleScrollStart}
@@ -131,7 +131,7 @@ export function ChatInterface() {
 
   return (
     <div className="relative flex flex-col bg-background overflow-hidden h-screen">
-      <div className="relative flex-1 flex">
+      <div className="relative flex-1 flex h-full">
         <ResizableSplitter
           leftPanel={leftPanel}
           rightPanel={rightPanel}
