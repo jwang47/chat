@@ -28,7 +28,7 @@ export function IncrementalRenderer({
   const [displayedContent, setDisplayedContent] = useState("");
   const [visibleWords, setVisibleWords] = useState(0);
   const lastContentRef = useRef("");
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastUpdateTimeRef = useRef<number>(Date.now());
   const streamingSpeedRef = useRef<number>(wordsPerSecond);
 
@@ -129,9 +129,6 @@ export function IncrementalRenderer({
         globalExpandedState={globalExpandedState}
         onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
       />
-      {isStreaming && visibleWords < words.length && (
-        <span className="animate-pulse opacity-70 ml-1 mt-5 mb-5">▊</span>
-      )}
     </div>
   );
 }
