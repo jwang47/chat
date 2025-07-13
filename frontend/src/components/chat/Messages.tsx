@@ -8,9 +8,8 @@ import {
 import { ChatMessage } from "./ChatMessage";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { motion } from "motion/react";
-import { useAutoScroll } from "@/hooks/useAutoScroll";
 
-import type { Message, ExpandedCodeBlock } from "@/types/chat";
+import type { Message } from "@/types/chat";
 
 interface MessagesProps {
   messages: Message[];

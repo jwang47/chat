@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Messages, type MessagesRef } from "./Messages";
 import { MessageInput } from "./MessageInput";
 import { LlmService, type LlmMessage } from "@/lib/llmService";
 import type { Message, ExpandedCodeBlock } from "@/types/chat";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { mockMessages } from "@/data/mockChat";
 import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizableSplitter } from "@/components/ResizableSplitter";
+import { DevControls } from "@/components/DevControls";
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
@@ -21,7 +22,7 @@ export function ChatInterface() {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   );
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>(
     () => getDefaultModel().id
   );
@@ -71,7 +72,6 @@ export function ChatInterface() {
       let elementOffsetFromTop = 0;
 
       if (scrollableElement) {
-        const scrollTop = scrollableElement.scrollTop;
         const messages =
           scrollableElement.querySelectorAll("[data-message-id]");
 
@@ -373,6 +373,25 @@ export function ChatInterface() {
     ]
   );
 
+  // Dev controls helpers
+  const handleDevAddMessage = (role: 'user' | 'assistant', content: string) => {
+    const newMessage: Message = {
+      id: generateMessageId(),
+      role,
+      content,
+      timestamp: new Date(),
+      model: role === 'user' ? 'user' : 'dev-assistant'
+    };
+    setMessages(prev => [...prev, newMessage]);
+  };
+
+  const handleDevClearMessages = () => {
+    setMessages([]);
+    setIsTyping(false);
+    setIsThinking(false);
+    setStreamingMessageId(null);
+  };
+
   const leftPanel = (
     <div className="flex-1 mx-auto w-full relative max-h-screen">
       <div className="absolute top-0 z-20 flex items-center p-4 bg-background w-[calc(100%-8px)] justify-between">
@@ -477,6 +496,22 @@ export function ChatInterface() {
           onWidthChange={setLeftPanelWidth}
         />
       </div>
+      
+      {/* Development Controls */}
+      {process.env.NODE_ENV === 'development' && (
+        <DevControls
+          isTyping={isTyping}
+          isThinking={isThinking}
+          streamingMessageId={streamingMessageId}
+          messages={messages}
+          setIsTyping={setIsTyping}
+          setIsThinking={setIsThinking}
+          setStreamingMessageId={setStreamingMessageId}
+          setMessages={setMessages}
+          onAddMessage={handleDevAddMessage}
+          onClearMessages={handleDevClearMessages}
+        />
+      )}
     </div>
   );
 }
