@@ -303,7 +303,7 @@ export function ChatInterface() {
 
       console.log("📝 Phase 1: Adding user message");
       setMessages((prev) => [...prev, userMessage]);
-      
+
       // Instant scroll to show user message
       setTimeout(() => {
         console.log("⚡ Instant scroll for user message");
@@ -366,7 +366,8 @@ export function ChatInterface() {
 
       // Phase 2: Add assistant message and start streaming (after delay)
       setTimeout(() => {
-        const { assistantMessage, llmMessages } = startAssistantResponse(userMessage);
+        const { assistantMessage, llmMessages } =
+          startAssistantResponse(userMessage);
 
         LlmService.streamChatCompletion(selectedModel, llmMessages, {
           onChunk: (chunk: string) => {
@@ -439,7 +440,7 @@ export function ChatInterface() {
 
   const leftPanel = (
     <div className="flex-1 mx-auto w-full relative max-h-screen">
-      <div className="absolute top-0 z-20 flex items-center p-4 bg-background w-[calc(100%-8px)] justify-between">
+      <div className="absolute top-0 z-20 flex items-center p-2 bg-background w-[calc(100%-8px)] justify-between">
         <ModelSelector
           selectedModel={selectedModel}
           onModelSelect={handleModelSelect}
