@@ -17,6 +17,7 @@ import { ResizableSplitter } from "@/components/ResizableSplitter";
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [isTyping, setIsTyping] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   );
@@ -59,25 +60,26 @@ export function ChatInterface() {
     (messageId: string, blockIndex: number, payload: CodeBlockPayload) => {
       // Temporarily disable auto-scroll during code block operations
       shouldAutoScrollRef.current = false;
-      
+
       // Find the first visible element to maintain its position
       const scrollArea = scrollAreaRef.current;
       const scrollableElement = scrollArea?.querySelector(
         "[data-radix-scroll-area-viewport]"
       ) as HTMLElement;
-      
+
       let firstVisibleElement: Element | null = null;
       let elementOffsetFromTop = 0;
-      
+
       if (scrollableElement) {
         const scrollTop = scrollableElement.scrollTop;
-        const messages = scrollableElement.querySelectorAll('[data-message-id]');
-        
+        const messages =
+          scrollableElement.querySelectorAll("[data-message-id]");
+
         for (const message of messages) {
           const rect = message.getBoundingClientRect();
           const containerRect = scrollableElement.getBoundingClientRect();
           const relativeTop = rect.top - containerRect.top;
-          
+
           if (relativeTop >= 0) {
             firstVisibleElement = message;
             elementOffsetFromTop = relativeTop;
@@ -85,39 +87,41 @@ export function ChatInterface() {
           }
         }
       }
-      
+
       setGlobalExpandedState((prev) => {
         // If clicking the same block, collapse it
         if (prev.messageId === messageId && prev.blockIndex === blockIndex) {
           setHasExpandedCodeBlock(false);
           setExpandedCodeBlock(null);
-          
+
           // Restore scroll position to maintain first visible element
           const restorePosition = () => {
             const currentScrollArea = scrollAreaRef.current;
             const currentScrollableElement = currentScrollArea?.querySelector(
               "[data-radix-scroll-area-viewport]"
             ) as HTMLElement;
-            
+
             if (currentScrollableElement && firstVisibleElement) {
               const newRect = firstVisibleElement.getBoundingClientRect();
-              const newContainerRect = currentScrollableElement.getBoundingClientRect();
-              
+              const newContainerRect =
+                currentScrollableElement.getBoundingClientRect();
+
               if (newRect.height === 0) {
                 setTimeout(restorePosition, 50);
                 return;
               }
-              
+
               const currentRelativeTop = newRect.top - newContainerRect.top;
-              const scrollAdjustment = currentRelativeTop - elementOffsetFromTop;
+              const scrollAdjustment =
+                currentRelativeTop - elementOffsetFromTop;
               currentScrollableElement.scrollTop += scrollAdjustment;
             }
           };
-          
+
           setTimeout(restorePosition, 100);
           return { messageId: null, blockIndex: null };
         }
-        
+
         // Otherwise, expand the new block
         const newExpandedBlock: ExpandedCodeBlock = {
           messageId,
@@ -126,29 +130,30 @@ export function ChatInterface() {
         };
         setHasExpandedCodeBlock(true);
         setExpandedCodeBlock(newExpandedBlock);
-        
+
         // Restore scroll position to maintain first visible element
         const restorePosition = () => {
           const currentScrollArea = scrollAreaRef.current;
           const currentScrollableElement = currentScrollArea?.querySelector(
             "[data-radix-scroll-area-viewport]"
           ) as HTMLElement;
-          
+
           if (currentScrollableElement && firstVisibleElement) {
             const newRect = firstVisibleElement.getBoundingClientRect();
-            const newContainerRect = currentScrollableElement.getBoundingClientRect();
-            
+            const newContainerRect =
+              currentScrollableElement.getBoundingClientRect();
+
             if (newRect.height === 0) {
               setTimeout(restorePosition, 50);
               return;
             }
-            
+
             const currentRelativeTop = newRect.top - newContainerRect.top;
             const scrollAdjustment = currentRelativeTop - elementOffsetFromTop;
             currentScrollableElement.scrollTop += scrollAdjustment;
           }
         };
-        
+
         setTimeout(restorePosition, 100);
         return { messageId, blockIndex };
       });
@@ -175,14 +180,12 @@ export function ChatInterface() {
   }, []);
 
   const scrollToBottom = useCallback(() => {
-    console.log('📜 scrollToBottom called');
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
       const scrollableElement = scrollArea.querySelector(
         "[data-radix-scroll-area-viewport]"
       ) as HTMLElement;
       if (scrollableElement) {
-        console.log('📜 Scrolling to bottom, height:', scrollableElement.scrollHeight);
         scrollableElement.scrollTo({
           top: scrollableElement.scrollHeight,
           behavior: "smooth",
@@ -232,12 +235,15 @@ export function ChatInterface() {
 
   // Auto-scroll effect
   useEffect(() => {
-    console.log('🚀 Auto-scroll effect triggered, shouldAutoScroll:', shouldAutoScrollRef.current);
+    console.log(
+      "🚀 Auto-scroll effect triggered, shouldAutoScroll:",
+      shouldAutoScrollRef.current
+    );
     if (shouldAutoScrollRef.current) {
-      console.log('🚀 Scheduling auto-scroll');
+      console.log("🚀 Scheduling auto-scroll");
       // Use a more reliable approach for scrolling
       const timeoutId = setTimeout(() => {
-        console.log('🚀 Executing scrollToBottom');
+        console.log("🚀 Executing scrollToBottom");
         scrollToBottom();
       }, 100); // Small delay to ensure content is rendered
 
@@ -270,7 +276,7 @@ export function ChatInterface() {
   const handleSendMessage = useCallback(
     (content: string) => {
       // Prevent sending if already streaming
-      if (isTyping || streamingMessageId) {
+      if (isTyping || isThinking || streamingMessageId) {
         return;
       }
 
@@ -306,11 +312,29 @@ export function ChatInterface() {
 
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
-      setIsTyping(true);
+      const currentModel = getModelById(selectedModel);
+      console.log("🤔 Current model:", currentModel);
+      console.log("🤔 Supports thinking:", currentModel?.supportsThinking);
+      if (currentModel?.supportsThinking) {
+        console.log("🤔 Setting isThinking to true");
+        setIsThinking(true);
+      } else {
+        console.log("🤔 Setting isTyping to true");
+        setIsTyping(true);
+      }
       setStreamingMessageId(assistantMessage.id);
 
       LlmService.streamChatCompletion(selectedModel, llmMessages, {
         onChunk: (chunk: string) => {
+          // Transition from thinking to typing on first chunk
+          setIsThinking((current) => {
+            if (current) {
+              setIsTyping(true);
+              return false;
+            }
+            return current;
+          });
+
           setMessages((current) =>
             current.map((msg) =>
               msg.id === assistantMessage.id && msg.isStreaming
@@ -321,6 +345,7 @@ export function ChatInterface() {
         },
         onComplete: () => {
           setIsTyping(false);
+          setIsThinking(false);
           setStreamingMessageId(null);
           setMessages((current) =>
             current.map((msg) =>
@@ -333,11 +358,19 @@ export function ChatInterface() {
         onError: (error: Error) => {
           setError(error.message);
           setIsTyping(false);
+          setIsThinking(false);
           setStreamingMessageId(null);
         },
       });
     },
-    [generateMessageId, selectedModel, messages, isTyping, streamingMessageId]
+    [
+      generateMessageId,
+      selectedModel,
+      messages,
+      isTyping,
+      isThinking,
+      streamingMessageId,
+    ]
   );
 
   const leftPanel = (
@@ -359,6 +392,7 @@ export function ChatInterface() {
             ref={messagesComponentRef}
             messages={messages}
             isTyping={isTyping}
+            isThinking={isThinking}
             streamingMessageId={streamingMessageId}
             onScrollChange={() => {}} // No longer needed
             globalExpandedState={globalExpandedState}

@@ -5,6 +5,7 @@ export interface ModelInfo {
   displayName: string;
   description?: string;
   maxTokens?: number;
+  supportsThinking?: boolean;
 }
 
 export const AVAILABLE_MODELS: ModelInfo[] = [
@@ -16,6 +17,7 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     displayName: "Gemini 2.5 Flash",
     description: "",
     maxTokens: 1000000,
+    supportsThinking: true,
   },
   {
     id: "google/gemini-2.5-pro",
@@ -24,6 +26,7 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     displayName: "Gemini 2.5 Pro",
     description: "",
     maxTokens: 1000000,
+    supportsThinking: true,
   },
   // OpenRouter models
   {
