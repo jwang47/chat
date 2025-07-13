@@ -74,7 +74,8 @@ export class LlmService {
         onChunk,
         onComplete,
         onError,
-        modelName
+        modelName,
+        "Please answer in Markdown format."
       );
     } else {
       onError(new Error(`Unsupported provider: ${provider}`));

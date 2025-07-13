@@ -44,7 +44,8 @@ export class GeminiService {
     onChunk: (content: string) => void,
     onComplete: () => void,
     onError: (error: Error) => void,
-    model: string = this.DEFAULT_MODEL
+    model: string = this.DEFAULT_MODEL,
+    systemInstruction?: string
   ): Promise<void> {
     const apiKey = ApiKeyStorage.getApiKey("gemini");
 
@@ -76,6 +77,9 @@ export class GeminiService {
           },
           body: JSON.stringify({
             contents,
+            systemInstruction: systemInstruction ? {
+              parts: [{ text: systemInstruction }]
+            } : undefined,
             generationConfig: {
               maxOutputTokens: 8192,
               thinkingConfig: {
