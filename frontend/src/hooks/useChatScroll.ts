@@ -39,10 +39,10 @@ export function useChatScroll(options?: UseChatScrollOptions) {
         ) as HTMLElement;
         if (scrollableElement) {
           if (immediate) {
-            console.log("⚡ Immediate scroll to bottom");
+            console.debug("⚡ Immediate scroll to bottom");
             scrollableElement.scrollTop = scrollableElement.scrollHeight;
           } else {
-            console.log("🌊 Smooth scroll to bottom called");
+            console.debug("🌊 Smooth scroll to bottom called");
             smoothScrollToBottom(scrollableElement);
           }
         }
@@ -63,14 +63,14 @@ export function useChatScroll(options?: UseChatScrollOptions) {
 
       // Break autoscroll immediately when user scrolls up any amount
       if (scrollDirection < 0) {
-        console.log("🔼 User scrolled up - breaking autoscroll");
+        console.debug("🔼 User scrolled up - breaking autoscroll");
         shouldAutoScrollRef.current = false;
         isUserScrollingRef.current = true;
         cancelScroll();
-      } 
+      }
       // Re-enable autoscroll only when user reaches the bottom
       else if (isAtBottom()) {
-        console.log("🔽 User at bottom - enabling autoscroll");
+        console.debug("🔽 User at bottom - enabling autoscroll");
         shouldAutoScrollRef.current = true;
         isUserScrollingRef.current = false;
       }
