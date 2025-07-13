@@ -11,7 +11,7 @@ export interface CodeBlockManagerOptions {
   onGlobalToggle?: (
     messageId: string,
     blockIndex: number,
-    payload?: any
+    payload: { code: string; language: string; filename?: string }
   ) => void;
   messageId?: string;
 }
@@ -35,7 +35,7 @@ export function useCodeBlockManager(
 
   // Callback to toggle the expanded state of a specific code block.
   const toggle = useCallback(
-    (index: number, payload?: any) => {
+    (index: number, payload: { code: string; language: string; filename?: string }) => {
       if (options?.onGlobalToggle && options?.messageId) {
         // Use global state management
         options.onGlobalToggle(options.messageId, index, payload);

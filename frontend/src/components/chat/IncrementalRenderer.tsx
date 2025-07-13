@@ -12,7 +12,7 @@ interface IncrementalRendererProps {
   onGlobalCodeBlockToggle?: (
     messageId: string,
     blockIndex: number,
-    payload: unknown
+    payload: { code: string; language: string; filename?: string }
   ) => void;
   wordsPerSecond?: number;
 }

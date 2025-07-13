@@ -4,7 +4,7 @@ import {
   PanelLeftClose,
   SquarePen,
 } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useChat } from "@/contexts/ChatContext";
 
 import {

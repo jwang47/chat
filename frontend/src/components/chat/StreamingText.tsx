@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface StreamingTextProps {
   content: string;
@@ -16,7 +16,7 @@ export function StreamingText({
   const [displayedContent, setDisplayedContent] = useState('');
   const [visibleWords, setVisibleWords] = useState(0);
   const contentRef = useRef(content);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const words = content.split(/(\s+)/); // Split on whitespace but keep the spaces
 
   // Update content reference when it changes

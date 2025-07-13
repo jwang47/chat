@@ -1,4 +1,4 @@
-import type { Message, ExpandedCodeBlock } from "@/types/chat";
+import type { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import { MarkedRenderer } from "./MarkedRenderer";
 import { IncrementalRenderer } from "./IncrementalRenderer";
@@ -9,6 +9,12 @@ import { ChevronRight } from "lucide-react";
 
 // Threshold for when to show collapsed view for user messages (number of lines)
 const COLLAPSE_THRESHOLD_LINES = 8;
+
+interface CodeBlockPayload {
+  code: string;
+  language: string;
+  filename?: string;
+}
 
 interface ChatMessageProps {
   message: Message;
@@ -25,7 +31,7 @@ interface ChatMessageProps {
   onGlobalCodeBlockToggle?: (
     messageId: string,
     blockIndex: number,
-    payload: any
+    payload: CodeBlockPayload
   ) => void;
 }
 

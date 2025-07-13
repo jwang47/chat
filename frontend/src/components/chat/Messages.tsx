@@ -29,7 +29,7 @@ interface MessagesProps {
   onGlobalCodeBlockToggle?: (
     messageId: string,
     blockIndex: number,
-    payload: any
+    payload: { code: string; language: string; filename?: string }
   ) => void;
 }
 

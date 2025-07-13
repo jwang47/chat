@@ -85,7 +85,7 @@ export function CodeBlock({
           </Button>
         </div>
         <SyntaxHighlighter
-          style={oneDark as any}
+          style={oneDark as React.ComponentProps<typeof SyntaxHighlighter>['style']}
           language={language}
           PreTag="div"
           className="!m-0 !text-xs !font-mono !bg-surface"
@@ -167,7 +167,7 @@ export function CodeBlock({
         </div>
         <div className="relative overflow-hidden">
           <SyntaxHighlighter
-            style={oneDark as any}
+            style={oneDark as React.ComponentProps<typeof SyntaxHighlighter>['style']}
             language={language}
             PreTag="div"
             className="!m-0 !text-xs !font-mono !bg-transparent"

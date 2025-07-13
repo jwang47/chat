@@ -127,23 +127,23 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
 
       animationRef.current = requestAnimationFrame(animate);
     }
-  }, [duration, easing, lerp, lerpFactor]);
+  }, [duration, easing, lerp, lerpFactor, maxScrollPerSecond]);
 
   const smoothScrollToBottom = useCallback((element: HTMLElement) => {
     smoothScrollTo(element, element.scrollHeight);
   }, [smoothScrollTo]);
 
-  const instantScrollToBottom = useCallback((element: HTMLElement) => {
-    isInstantScrolling.current = true;
-    lastProgrammaticScrollTop.current = element.scrollHeight;
-    element.scrollTop = element.scrollHeight;
-    console.log('📍 Set instant scroll position:', element.scrollHeight);
-    // Clear the instant scroll flag after a delay
-    setTimeout(() => {
-      isInstantScrolling.current = false;
-      lastProgrammaticScrollTop.current = -1;
-    }, 100);
-  }, []);
+  // const instantScrollToBottom = useCallback((element: HTMLElement) => {
+  //   isInstantScrolling.current = true;
+  //   lastProgrammaticScrollTop.current = element.scrollHeight;
+  //   element.scrollTop = element.scrollHeight;
+  //   console.log('📍 Set instant scroll position:', element.scrollHeight);
+  //   // Clear the instant scroll flag after a delay
+  //   setTimeout(() => {
+  //     isInstantScrolling.current = false;
+  //     lastProgrammaticScrollTop.current = -1;
+  //   }, 100);
+  // }, []);
 
   const cancelScroll = useCallback(() => {
     console.log('🔥 Cancel scroll called');

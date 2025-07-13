@@ -1,5 +1,5 @@
 import React, { useMemo, type JSX } from "react";
-import { marked, type Token, type Tokens } from "marked";
+import { marked, type Token } from "marked";
 import DOMPurify from "dompurify";
 import { useCodeBlockManager } from "../../hooks/useCodeBlockManager";
 import { CodeBlock } from "./CodeBlock";
@@ -23,10 +23,11 @@ const renderToken = (
   switch (token.type) {
     case "hr":
       return <hr key={generateKey("hr")} />;
-    case "heading":
+    case "heading": {
       // Use 'as' to create dynamic heading tags H1, H2, etc.
       const Tag = `h${token.depth}` as keyof JSX.IntrinsicElements;
       return <Tag key={generateKey(`h${token.depth}`)}>{token.text}</Tag>;
+    }
 
     case "paragraph":
       return (
@@ -49,7 +50,7 @@ const renderToken = (
         </p>
       );
 
-    case "code":
+    case "code": {
       // We are in a code block
       const index = codeBlockCounter.current++;
       return (
@@ -67,8 +68,9 @@ const renderToken = (
           }
         />
       );
+    }
 
-    case "list":
+    case "list": {
       const ListTag = token.ordered ? "ol" : "ul";
       return (
         <ListTag
@@ -90,6 +92,7 @@ const renderToken = (
           )}
         </ListTag>
       );
+    }
 
     case "list_item":
       return (
@@ -139,7 +142,7 @@ const renderToken = (
         </blockquote>
       );
 
-    case "html":
+    case "html": {
       // Only allow center tags, sanitize everything else
       const sanitizedHtml = DOMPurify.sanitize(token.text, {
         ALLOWED_TAGS: ["center"],
@@ -244,6 +247,7 @@ const renderToken = (
       }
 
       return null;
+    }
 
     case "text":
       // Handle nested text tokens if they also have tokens (rare but possible)
@@ -281,7 +285,7 @@ const renderToken = (
           <thead>
             <tr>
               {token.header?.map(
-                (headerCell: Tokens.Table.header, index: number) => (
+                (headerCell: any, index: number) => (
                   <th
                     key={index}
                     className="border border-border px-2 py-1 font-semibold"
@@ -293,9 +297,9 @@ const renderToken = (
             </tr>
           </thead>
           <tbody>
-            {token.rows?.map((row: Tokens.Table.row, rowIndex: number) => (
+            {token.rows?.map((row: any, rowIndex: number) => (
               <tr key={rowIndex}>
-                {row.map((cell: Tokens.Table.cell, cellIndex: number) => (
+                {row.map((cell: any, cellIndex: number) => (
                   <td
                     key={cellIndex}
                     className="border border-border px-2 py-1"
@@ -330,7 +334,7 @@ interface MarkedRendererProps {
   onGlobalCodeBlockToggle?: (
     messageId: string,
     blockIndex: number,
-    payload: any
+    payload: { code: string; language: string; filename?: string }
   ) => void;
 }
 
