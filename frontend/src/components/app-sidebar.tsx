@@ -37,16 +37,6 @@ const items = [
   },
 ];
 
-// Test items
-const testItems = [
-  {
-    title: "Streaming Test",
-    url: "/test/streaming",
-    icon: Code,
-    highlightIfActive: true,
-  },
-];
-
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const location = useLocation();
@@ -81,33 +71,6 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    isActive={
-                      item.highlightIfActive && location.pathname === item.url
-                    }
-                  >
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>
-            <TestTube className="w-4 h-4 mr-2" />
-            Testing
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {testItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild

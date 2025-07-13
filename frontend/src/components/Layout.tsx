@@ -9,7 +9,7 @@ export function Layout() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset className="h-screen">
+        <SidebarInset className="min-h-screen">
           <Outlet />
         </SidebarInset>
         <CommandPalette />
