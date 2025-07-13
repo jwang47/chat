@@ -103,7 +103,10 @@ export function ChatInterface() {
         "[data-radix-scroll-area-viewport]"
       ) as HTMLElement;
       if (scrollableElement) {
-        scrollableElement.scrollTop = scrollableElement.scrollHeight;
+        scrollableElement.scrollTo({
+          top: scrollableElement.scrollHeight,
+          behavior: "smooth",
+        });
       }
     }
   }, []);
@@ -125,11 +128,16 @@ export function ChatInterface() {
       if (!target) return;
 
       const currentScrollTop = target.scrollTop;
-      const scrollDelta = Math.abs(currentScrollTop - lastScrollTopRef.current);
+      const scrollDirection = currentScrollTop - lastScrollTopRef.current;
 
-      // Only consider it user scrolling if there's significant movement
-      if (scrollDelta > 5) {
-        shouldAutoScrollRef.current = isAtBottom();
+      // Only disable autoscroll if user scrolls UP (more than 5px)
+      // Downward scrolling or small movements keep autoscroll enabled
+      if (scrollDirection < -5) {
+        shouldAutoScrollRef.current = false;
+        isUserScrollingRef.current = true;
+      } else if (isAtBottom()) {
+        // Re-enable autoscroll when at bottom
+        shouldAutoScrollRef.current = true;
         isUserScrollingRef.current = false;
       }
 
@@ -148,7 +156,7 @@ export function ChatInterface() {
       // Use a more reliable approach for scrolling
       const timeoutId = setTimeout(() => {
         scrollToBottom();
-      }, 16); // ~1 frame at 60fps
+      }, 100); // Small delay to ensure content is rendered
 
       return () => clearTimeout(timeoutId);
     }

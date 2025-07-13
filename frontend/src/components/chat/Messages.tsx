@@ -64,13 +64,9 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Use auto-scroll hook that depends on messages length and streaming state
-    // We'll use the ScrollableFeed container as the scroll target
-    const { wrapperRef, handleScroll: handleAutoScroll } = useAutoScroll([
-      messages.length,
-      streamingMessageId,
-      isTyping,
-    ]);
+    // Auto-scroll is now handled by ChatInterface to work with Radix ScrollArea
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const handleAutoScroll = () => {};
 
     // Create items including typing indicator
     const items = useMemo(() => {
