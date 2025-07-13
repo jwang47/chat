@@ -52,7 +52,7 @@ export function ChatInterface() {
   const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll({
     lerp: true,
     lerpFactor: 0.02, // Lower = smoother but more laggy, higher = snappier
-    maxScrollPerSecond: 300, // Limit fast scrolls to 300px/sec
+    maxScrollPerSecond: 100, // Limit fast scrolls to 300px/sec
   });
 
   // Define a type for the code block payload for clarity
@@ -424,7 +424,7 @@ export function ChatInterface() {
       </div>
       <ScrollArea
         ref={scrollAreaRef}
-        className="h-screen overflow-y-auto p-4 pt-16 pb-24"
+        className="h-screen overflow-y-auto p-4 pt-16 pb-18"
         onTouchStart={handleScrollStart}
         onMouseDown={handleScrollStart}
       >
@@ -441,7 +441,7 @@ export function ChatInterface() {
           />
         </div>
       </ScrollArea>
-      <div className="absolute bottom-0 z-20 p-4 w-full">
+      <div className="absolute bottom-0 z-20 mb-4 w-full">
         <div className="max-w-3xl mx-auto">
           <MessageInput onSendMessage={handleSendMessage} />
         </div>
