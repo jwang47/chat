@@ -60,15 +60,31 @@ export function ChatInterface() {
       // Temporarily disable auto-scroll during code block operations
       shouldAutoScrollRef.current = false;
       
-      // Preserve scroll position by maintaining distance from bottom
+      // Find the first visible element to maintain its position
       const scrollArea = scrollAreaRef.current;
       const scrollableElement = scrollArea?.querySelector(
         "[data-radix-scroll-area-viewport]"
       ) as HTMLElement;
-      const currentScrollTop = scrollableElement?.scrollTop || 0;
-      const scrollHeight = scrollableElement?.scrollHeight || 0;
-      const clientHeight = scrollableElement?.clientHeight || 0;
-      const distanceFromBottom = scrollHeight - currentScrollTop - clientHeight;
+      
+      let firstVisibleElement: Element | null = null;
+      let elementOffsetFromTop = 0;
+      
+      if (scrollableElement) {
+        const scrollTop = scrollableElement.scrollTop;
+        const messages = scrollableElement.querySelectorAll('[data-message-id]');
+        
+        for (const message of messages) {
+          const rect = message.getBoundingClientRect();
+          const containerRect = scrollableElement.getBoundingClientRect();
+          const relativeTop = rect.top - containerRect.top;
+          
+          if (relativeTop >= 0) {
+            firstVisibleElement = message;
+            elementOffsetFromTop = relativeTop;
+            break;
+          }
+        }
+      }
       
       setGlobalExpandedState((prev) => {
         // If clicking the same block, collapse it
@@ -76,25 +92,25 @@ export function ChatInterface() {
           setHasExpandedCodeBlock(false);
           setExpandedCodeBlock(null);
           
-          // Restore scroll position after DOM update
+          // Restore scroll position to maintain first visible element
           const restorePosition = () => {
             const currentScrollArea = scrollAreaRef.current;
             const currentScrollableElement = currentScrollArea?.querySelector(
               "[data-radix-scroll-area-viewport]"
             ) as HTMLElement;
             
-            if (currentScrollableElement) {
-              const newScrollHeight = currentScrollableElement.scrollHeight;
-              const newClientHeight = currentScrollableElement.clientHeight;
+            if (currentScrollableElement && firstVisibleElement) {
+              const newRect = firstVisibleElement.getBoundingClientRect();
+              const newContainerRect = currentScrollableElement.getBoundingClientRect();
               
-              // If dimensions are still 0, retry
-              if (newScrollHeight === 0 || newClientHeight === 0) {
+              if (newRect.height === 0) {
                 setTimeout(restorePosition, 50);
                 return;
               }
               
-              const targetScrollTop = newScrollHeight - distanceFromBottom - newClientHeight;
-              currentScrollableElement.scrollTop = Math.max(0, targetScrollTop);
+              const currentRelativeTop = newRect.top - newContainerRect.top;
+              const scrollAdjustment = currentRelativeTop - elementOffsetFromTop;
+              currentScrollableElement.scrollTop += scrollAdjustment;
             }
           };
           
@@ -111,25 +127,25 @@ export function ChatInterface() {
         setHasExpandedCodeBlock(true);
         setExpandedCodeBlock(newExpandedBlock);
         
-        // Restore scroll position after DOM update
+        // Restore scroll position to maintain first visible element
         const restorePosition = () => {
           const currentScrollArea = scrollAreaRef.current;
           const currentScrollableElement = currentScrollArea?.querySelector(
             "[data-radix-scroll-area-viewport]"
           ) as HTMLElement;
           
-          if (currentScrollableElement) {
-            const newScrollHeight = currentScrollableElement.scrollHeight;
-            const newClientHeight = currentScrollableElement.clientHeight;
+          if (currentScrollableElement && firstVisibleElement) {
+            const newRect = firstVisibleElement.getBoundingClientRect();
+            const newContainerRect = currentScrollableElement.getBoundingClientRect();
             
-            // If dimensions are still 0, retry
-            if (newScrollHeight === 0 || newClientHeight === 0) {
+            if (newRect.height === 0) {
               setTimeout(restorePosition, 50);
               return;
             }
             
-            const targetScrollTop = newScrollHeight - distanceFromBottom - newClientHeight;
-            currentScrollableElement.scrollTop = Math.max(0, targetScrollTop);
+            const currentRelativeTop = newRect.top - newContainerRect.top;
+            const scrollAdjustment = currentRelativeTop - elementOffsetFromTop;
+            currentScrollableElement.scrollTop += scrollAdjustment;
           }
         };
         
