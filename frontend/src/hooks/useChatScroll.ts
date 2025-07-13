@@ -59,11 +59,20 @@ export function useChatScroll(options?: UseChatScrollOptions) {
       const currentScrollTop = target.scrollTop;
       const scrollDirection = currentScrollTop - lastScrollTopRef.current;
 
+      // Only process significant scroll changes (> 1 pixel) to reduce noise
+      if (Math.abs(scrollDirection) < 1) {
+        return;
+      }
+
       onUserScroll(currentScrollTop);
 
-      // Break autoscroll immediately when user scrolls up any amount
-      if (scrollDirection < 0) {
-        console.debug("🔼 User scrolled up - breaking autoscroll");
+      // Break autoscroll immediately when user scrolls up any significant amount
+      // Use a threshold to avoid breaking on tiny movements
+      if (scrollDirection < -2) {
+        console.debug("🔼 User scrolled up - breaking autoscroll", {
+          direction: scrollDirection,
+          position: currentScrollTop
+        });
         shouldAutoScrollRef.current = false;
         isUserScrollingRef.current = true;
         cancelScroll();

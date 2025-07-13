@@ -78,10 +78,10 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
             element.scrollTop = targetScrollTop.current;
             isAnimating.current = false;
             console.debug("✅ Lerp animation complete");
-            // Clear the programmatic scroll tracking after a delay
+            // Clear the programmatic scroll tracking after a longer delay to prevent false positives
             setTimeout(() => {
               lastProgrammaticScrollTop.current = -1;
-            }, 50);
+            }, 150);
             return;
           }
 
@@ -170,10 +170,29 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         return;
       }
 
-      // Check if this scroll position matches our programmatic scroll
-      if (Math.abs(currentScrollTop - lastProgrammaticScrollTop.current) < 1) {
+      // Check if this scroll position matches our programmatic scroll with higher tolerance
+      // Use 3 pixels to account for sub-pixel rendering and floating point precision
+      if (Math.abs(currentScrollTop - lastProgrammaticScrollTop.current) < 3) {
         console.debug("🤖 Ignoring programmatic scroll at", currentScrollTop);
         return;
+      }
+
+      // Additional check: if we're animating and the scroll is in the same direction,
+      // it's likely programmatic
+      if (isAnimating.current) {
+        const scrollDirection = currentScrollTop - lastProgrammaticScrollTop.current;
+        const animationDirection = targetScrollTop.current - lastProgrammaticScrollTop.current;
+        
+        // If scroll is in the same direction as animation and within reasonable range
+        if (Math.sign(scrollDirection) === Math.sign(animationDirection) && 
+            Math.abs(scrollDirection) < 10) {
+          console.debug("🤖 Ignoring scroll during animation - same direction", {
+            current: currentScrollTop,
+            last: lastProgrammaticScrollTop.current,
+            target: targetScrollTop.current
+          });
+          return;
+        }
       }
 
       lastUserScrollTime.current = performance.now();
