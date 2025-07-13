@@ -42,16 +42,8 @@ export function ResizableSplitter({
   }, []);
 
   const updatePanelWidths = useCallback((newLeftWidth: number) => {
-    const rightWidth = 100 - newLeftWidth;
-
-    // Update DOM directly for immediate visual feedback
-    if (leftPanelRef.current) {
-      leftPanelRef.current.style.width = `${newLeftWidth}%`;
-    }
-    if (rightPanelRef.current) {
-      rightPanelRef.current.style.width = `${rightWidth}%`;
-    }
-
+    // Update state for immediate visual feedback during dragging
+    setLeftWidth(newLeftWidth);
     currentWidthRef.current = newLeftWidth;
   }, []);
 
@@ -94,10 +86,8 @@ export function ResizableSplitter({
       animationFrameRef.current = null;
     }
 
-    // Update React state and notify parent
-    const finalWidth = currentWidthRef.current;
-    setLeftWidth(finalWidth);
-    onWidthChange?.(finalWidth);
+    // Notify parent of final width
+    onWidthChange?.(currentWidthRef.current);
   }, [onWidthChange]);
 
   useEffect(() => {
@@ -129,34 +119,44 @@ export function ResizableSplitter({
     }
   }, [leftWidth, isDragging]);
 
-  if (!showRightPanel) {
-    return <div className="flex-1 flex flex-col min-w-0">{leftPanel}</div>;
-  }
+  // Calculate effective widths based on showRightPanel
+  const effectiveLeftWidth = showRightPanel ? leftWidth : 100;
+  const effectiveRightWidth = showRightPanel ? 100 - leftWidth : 0;
 
   return (
-    <div ref={containerRef} className="flex-1 flex relative">
+    <motion.div 
+      ref={containerRef} 
+      className="flex-1 flex relative"
+      initial={false}
+    >
       {/* Left Panel */}
       <motion.div
         ref={leftPanelRef}
-        style={{ width: `${leftWidth}%` }}
         className="flex flex-col min-w-0"
+        initial={false}
+        animate={{ width: `${effectiveLeftWidth}%` }}
         transition={{
-          width: isDragging
-            ? { duration: 0 }
-            : { duration: 0.15, ease: "easeOut" },
+          width: isDragging ? { duration: 0 } : { duration: 0.2, ease: "easeOut" },
         }}
       >
         {leftPanel}
       </motion.div>
 
       {/* Resizable Splitter */}
-      <div
+      <motion.div
         className={`
           relative w-1 bg-surface cursor-col-resize select-none
           hover:bg-surface/80 transition-colors duration-150
           ${isDragging ? "bg-surface/60" : ""}
         `}
         onMouseDown={handleMouseDown}
+        initial={false}
+        animate={{ 
+          opacity: showRightPanel ? 1 : 0,
+          width: showRightPanel ? 4 : 0
+        }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        style={{ pointerEvents: showRightPanel ? 'auto' : 'none' }}
       >
         {/* Hover area for easier grabbing */}
         <div className="absolute inset-y-0 -left-1 -right-1 w-3" />
@@ -169,21 +169,20 @@ export function ResizableSplitter({
             <div className="w-0.5 h-1 bg-muted-foreground/40 rounded-full" />
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Right Panel */}
       <motion.div
         ref={rightPanelRef}
-        style={{ width: `${100 - leftWidth}%` }}
-        className="flex flex-col min-w-0"
+        className="flex flex-col min-w-0 overflow-hidden"
+        initial={false}
+        animate={{ width: `${effectiveRightWidth}%` }}
         transition={{
-          width: isDragging
-            ? { duration: 0 }
-            : { duration: 0.15, ease: "easeOut" },
+          width: isDragging ? { duration: 0 } : { duration: 0.2, ease: "easeOut" },
         }}
       >
-        {rightPanel}
+        {showRightPanel && rightPanel}
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
