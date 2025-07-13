@@ -450,40 +450,38 @@ export function ChatInterface() {
           onModelSelect={handleModelSelect}
         />
       </div>
-      {messages.length === 0 ? (
-        <div className="h-screen flex items-center justify-center">
-          <div className="w-full max-w-3xl px-4">
-            <MessageInput onSendMessage={handleSendMessage} />
-          </div>
+      <ScrollArea
+        ref={scrollAreaRef}
+        className={`h-screen overflow-y-auto p-4 pt-16 pb-18 ${
+          messages.length === 0 ? "hidden" : ""
+        }`}
+        onTouchStart={handleScrollStart}
+        onMouseDown={handleScrollStart}
+      >
+        <div className="max-w-3xl mx-auto">
+          <Messages
+            ref={messagesComponentRef}
+            messages={messages}
+            isTyping={isTyping}
+            isThinking={isThinking}
+            streamingMessageId={streamingMessageId}
+            onScrollChange={() => {}} // No longer needed
+            globalExpandedState={globalExpandedState}
+            onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
+          />
         </div>
-      ) : (
-        <>
-          <ScrollArea
-            ref={scrollAreaRef}
-            className="h-screen overflow-y-auto p-4 pt-16 pb-18"
-            onTouchStart={handleScrollStart}
-            onMouseDown={handleScrollStart}
-          >
-            <div className="max-w-3xl mx-auto">
-              <Messages
-                ref={messagesComponentRef}
-                messages={messages}
-                isTyping={isTyping}
-                isThinking={isThinking}
-                streamingMessageId={streamingMessageId}
-                onScrollChange={() => {}} // No longer needed
-                globalExpandedState={globalExpandedState}
-                onGlobalCodeBlockToggle={handleGlobalCodeBlockToggle}
-              />
-            </div>
-          </ScrollArea>
-          <div className="absolute bottom-0 z-20 mb-4 w-full">
-            <div className="max-w-3xl mx-auto">
-              <MessageInput onSendMessage={handleSendMessage} />
-            </div>
-          </div>
-        </>
-      )}
+      </ScrollArea>
+      <div
+        className={
+          messages.length > 0
+            ? "absolute bottom-0 z-20 mb-4 w-full"
+            : "h-full flex items-center justify-center"
+        }
+      >
+        <div className="w-full max-w-3xl px-4">
+          <MessageInput onSendMessage={handleSendMessage} />
+        </div>
+      </div>
     </div>
   );
 
