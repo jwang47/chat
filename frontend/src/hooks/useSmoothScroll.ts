@@ -78,6 +78,14 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         // Calculate desired scroll distance
         let scrollDistance = diff * lerpFactor;
         
+        console.log('📊 Scroll calculation:', {
+          diff,
+          lerpFactor,
+          desiredDistance: scrollDistance,
+          maxScrollThisFrame,
+          deltaTime
+        });
+        
         // Limit the scroll distance to maxScrollThisFrame
         if (Math.abs(scrollDistance) > maxScrollThisFrame) {
           scrollDistance = Math.sign(scrollDistance) * maxScrollThisFrame;

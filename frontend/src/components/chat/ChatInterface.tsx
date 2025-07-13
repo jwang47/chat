@@ -46,12 +46,13 @@ export function ChatInterface() {
   const shouldAutoScrollRef = useRef(true);
   const isUserScrollingRef = useRef(false);
   const lastScrollTopRef = useRef(0);
+  const hasInitialScrolled = useRef(false);
 
   // Initialize smooth scroll with lerp for buttery smoothness
   const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll({
     lerp: true,
-    lerpFactor: 0.0015, // Lower = smoother but more laggy, higher = snappier
-    maxScrollPerSecond: 100, // Limit fast scrolls to 1500px/sec
+    lerpFactor: 0.02, // Lower = smoother but more laggy, higher = snappier
+    maxScrollPerSecond: 300, // Limit fast scrolls to 300px/sec
   });
 
   // Define a type for the code block payload for clarity
@@ -187,17 +188,26 @@ export function ChatInterface() {
     return `msg_${Date.now()}_${messageIdCounter.current}`;
   }, []);
 
-  const scrollToBottom = useCallback(() => {
-    const scrollArea = scrollAreaRef.current;
-    if (scrollArea) {
-      const scrollableElement = scrollArea.querySelector(
-        "[data-radix-scroll-area-viewport]"
-      ) as HTMLElement;
-      if (scrollableElement) {
-        smoothScrollToBottom(scrollableElement);
+  const scrollToBottom = useCallback(
+    (immediate = false) => {
+      const scrollArea = scrollAreaRef.current;
+      if (scrollArea) {
+        const scrollableElement = scrollArea.querySelector(
+          "[data-radix-scroll-area-viewport]"
+        ) as HTMLElement;
+        if (scrollableElement) {
+          if (immediate) {
+            console.log("⚡ Immediate scroll to bottom");
+            scrollableElement.scrollTop = scrollableElement.scrollHeight;
+          } else {
+            console.log("🌊 Smooth scroll to bottom called");
+            smoothScrollToBottom(scrollableElement);
+          }
+        }
       }
-    }
-  }, [smoothScrollToBottom]);
+    },
+    [smoothScrollToBottom]
+  );
 
   const isAtBottom = useCallback(() => {
     const scrollArea = scrollAreaRef.current;
@@ -281,9 +291,12 @@ export function ChatInterface() {
     };
   }, [handleScroll]);
 
-  // Initial scroll
+  // Initial scroll - go to bottom immediately on page load (only once)
   useEffect(() => {
-    setTimeout(scrollToBottom, 100);
+    if (!hasInitialScrolled.current) {
+      hasInitialScrolled.current = true;
+      setTimeout(() => scrollToBottom(true), 100);
+    }
   }, [scrollToBottom]);
 
   const handleSendMessage = useCallback(

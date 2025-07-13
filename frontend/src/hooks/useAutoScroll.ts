@@ -11,8 +11,8 @@ export function useAutoScroll<T>(dep: T) {
   
   const { smoothScrollToBottom } = useSmoothScroll({
     lerp: true,
-    lerpFactor: 0.002,
-    maxScrollPerSecond: 1500
+    lerpFactor: 0.02,
+    maxScrollPerSecond: 300
   });
 
   const handleScroll = useCallback(() => {
