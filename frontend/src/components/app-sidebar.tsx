@@ -133,31 +133,42 @@ export function AppSidebar() {
             <SidebarGroupLabel>Recent Conversations</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {conversations.map((conversation) => (
-                  <SidebarMenuItem key={conversation.id}>
-                    <div className="group flex items-center justify-between pr-2">
-                      <SidebarMenuButton
-                        onClick={() => handleLoadConversation(conversation.id)}
-                        tooltip={conversation.title}
-                        isActive={currentConversationId === conversation.id}
-                        className="flex-1"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                        <span className="truncate">{conversation.title}</span>
-                      </SidebarMenuButton>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteConversation(conversation.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 hover:text-red-600 rounded"
-                        title="Delete conversation"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  </SidebarMenuItem>
-                ))}
+                {conversations.map((conversation) => {
+                  // Display formatted timestamp if no custom title
+                  const displayTitle = conversation.title || new Date(conversation.createdAt).toLocaleString('en-US', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  });
+
+                  return (
+                    <SidebarMenuItem key={conversation.id}>
+                      <div className="group flex items-center justify-between pr-2">
+                        <SidebarMenuButton
+                          onClick={() => handleLoadConversation(conversation.id)}
+                          tooltip={displayTitle}
+                          isActive={currentConversationId === conversation.id}
+                          className="flex-1"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          <span className="truncate">{displayTitle}</span>
+                        </SidebarMenuButton>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteConversation(conversation.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 hover:text-red-600 rounded"
+                          title="Delete conversation"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

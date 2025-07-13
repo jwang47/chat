@@ -36,17 +36,10 @@ export const historyService = {
   // CRUD for Conversations
   createConversation: async (title?: string): Promise<string> => {
     const now = Date.now();
-    const defaultTitle = title || new Date().toLocaleString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
     
     const conversation: Conversation = {
       id: crypto.randomUUID(),
-      title: defaultTitle,
+      title: title || "", // Empty title by default
       createdAt: now,
       updatedAt: now,
     };
@@ -156,4 +149,91 @@ export const historyService = {
     conversationId,
     isStreaming: message.isStreaming,
   }),
+
+  // Generate a better title for a conversation using AI
+  generateConversationTitle: async (conversationId: string): Promise<void> => {
+    try {
+      console.log("🏷️ Generating title for conversation:", conversationId);
+      
+      // Check if the conversation already has a custom title
+      const conversation = await db.conversations.get(conversationId);
+      if (!conversation) {
+        console.log("❌ Conversation not found");
+        return;
+      }
+      
+      // If title is not empty, skip generation
+      if (conversation.title && conversation.title.trim().length > 0) {
+        console.log("⏭️ Conversation already has a custom title:", conversation.title);
+        return;
+      }
+      
+      // Get the first user message from the conversation
+      const messages = await db.messages
+        .where("conversationId")
+        .equals(conversationId)
+        .sortBy("timestamp");
+      
+      if (messages.length < 1) {
+        console.log("⏭️ No messages found for title generation");
+        return;
+      }
+
+      // Get the first user message
+      const firstUserMessage = messages.find(msg => msg.role === 'user');
+      if (!firstUserMessage) {
+        console.log("⏭️ No user message found for title generation");
+        return;
+      }
+      
+      // Use just the first user message for title generation
+      const conversationText = firstUserMessage.content;
+
+      // Call Gemini to generate a title
+      const ApiKeyStorage = (await import('./apiKeyStorage')).default;
+      const apiKey = ApiKeyStorage.getApiKey("gemini");
+      
+      if (!apiKey) {
+        console.error("❌ No Gemini API key found for title generation");
+        return;
+      }
+
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent', {
+        method: 'POST',
+        headers: {
+          'x-goog-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Generate a concise 2-4 word title for a conversation that starts with this user message. Just return the title, nothing else:\n\n"${conversationText}"`
+            }]
+          }],
+          generationConfig: {
+            maxOutputTokens: 20,
+            temperature: 0.3,
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.error("❌ Failed to generate title, API response:", response.status);
+        return;
+      }
+
+      const data = await response.json();
+      const generatedTitle = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      
+      if (generatedTitle && generatedTitle.length > 0) {
+        console.log("✨ Generated title:", generatedTitle);
+        await historyService.updateConversationTitle(conversationId, generatedTitle);
+        console.log("✅ Title updated successfully");
+      } else {
+        console.warn("⚠️ No valid title generated");
+      }
+    } catch (error) {
+      console.error("❌ Failed to generate conversation title:", error);
+    }
+  },
 };

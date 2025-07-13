@@ -77,6 +77,14 @@ export function useChatLogic({
         await historyService.addMessage(historyMessage);
         await refreshConversations(); // Refresh to update timestamps
         console.log("✅ User message saved successfully");
+        
+        // Generate title based on first user message (async, non-blocking)
+        historyService.generateConversationTitle(conversationId).then(() => {
+          // Refresh conversations after title is generated to update UI
+          refreshConversations();
+        }).catch(error => {
+          console.error("Title generation failed:", error);
+        });
       } catch (error) {
         console.error("❌ Failed to save user message:", error);
       }
