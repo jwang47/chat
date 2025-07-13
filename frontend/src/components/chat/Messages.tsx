@@ -7,6 +7,7 @@ import {
 } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { motion } from "motion/react";
+import { useSmoothScroll } from "@/hooks/useSmoothScroll";
 
 import type { Message } from "@/types/chat";
 
@@ -69,6 +70,12 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
     // Auto-scroll is now handled by ChatInterface to work with Radix ScrollArea
     const wrapperRef = useRef<HTMLDivElement>(null);
     const handleAutoScroll = () => {};
+    
+    // Initialize smooth scroll for fallback methods
+    const { smoothScrollToBottom, smoothScrollTo } = useSmoothScroll({
+      lerp: true,
+      lerpFactor: 0.08
+    });
 
     // Create items including typing indicator (thinking is handled per-message)
     const items = useMemo(() => {
@@ -98,18 +105,15 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
 
     const scrollToBottomSmooth = useCallback(() => {
       if (wrapperRef.current) {
-        wrapperRef.current.scrollTo({
-          top: wrapperRef.current.scrollHeight,
-          behavior: "smooth",
-        });
+        smoothScrollToBottom(wrapperRef.current);
       }
-    }, []);
+    }, [smoothScrollToBottom]);
 
     const scrollTo = useCallback((position: number) => {
       if (wrapperRef.current) {
-        wrapperRef.current.scrollTop = position;
+        smoothScrollTo(wrapperRef.current, position);
       }
-    }, []);
+    }, [smoothScrollTo]);
 
     const getScrollContainer = useCallback(() => {
       return wrapperRef.current;

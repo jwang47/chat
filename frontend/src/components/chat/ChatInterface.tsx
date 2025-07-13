@@ -14,6 +14,7 @@ import { Copy, Check } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizableSplitter } from "@/components/ResizableSplitter";
 import { DevControls } from "@/components/DevControls";
+import { useSmoothScroll } from "@/hooks/useSmoothScroll";
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
@@ -45,6 +46,12 @@ export function ChatInterface() {
   const shouldAutoScrollRef = useRef(true);
   const isUserScrollingRef = useRef(false);
   const lastScrollTopRef = useRef(0);
+
+  // Initialize smooth scroll with lerp for buttery smoothness
+  const { smoothScrollToBottom, cancelScroll } = useSmoothScroll({
+    lerp: true,
+    lerpFactor: 0.002, // Lower = smoother but more laggy, higher = snappier
+  });
 
   // Define a type for the code block payload for clarity
   interface CodeBlockPayload {
@@ -186,13 +193,10 @@ export function ChatInterface() {
         "[data-radix-scroll-area-viewport]"
       ) as HTMLElement;
       if (scrollableElement) {
-        scrollableElement.scrollTo({
-          top: scrollableElement.scrollHeight,
-          behavior: "smooth",
-        });
+        smoothScrollToBottom(scrollableElement);
       }
     }
-  }, []);
+  }, [smoothScrollToBottom]);
 
   const isAtBottom = useCallback(() => {
     const scrollArea = scrollAreaRef.current;
@@ -215,9 +219,11 @@ export function ChatInterface() {
 
       // Only disable autoscroll if user scrolls UP (more than 5px)
       // Downward scrolling or small movements keep autoscroll enabled
-      if (scrollDirection < -5) {
+      if (scrollDirection < 0) {
         shouldAutoScrollRef.current = false;
         isUserScrollingRef.current = true;
+        // Cancel any ongoing smooth scroll when user manually scrolls
+        cancelScroll();
       } else if (isAtBottom()) {
         // Re-enable autoscroll when at bottom
         shouldAutoScrollRef.current = true;
@@ -226,7 +232,7 @@ export function ChatInterface() {
 
       lastScrollTopRef.current = currentScrollTop;
     },
-    [isAtBottom]
+    [isAtBottom, cancelScroll]
   );
 
   const handleScrollStart = useCallback(() => {
@@ -364,15 +370,15 @@ export function ChatInterface() {
   );
 
   // Dev controls helpers
-  const handleDevAddMessage = (role: 'user' | 'assistant', content: string) => {
+  const handleDevAddMessage = (role: "user" | "assistant", content: string) => {
     const newMessage: Message = {
       id: generateMessageId(),
       role,
       content,
       timestamp: new Date(),
-      model: role === 'user' ? 'user' : 'dev-assistant'
+      model: role === "user" ? "user" : "dev-assistant",
     };
-    setMessages(prev => [...prev, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
   };
 
   const handleDevClearMessages = () => {
@@ -486,9 +492,9 @@ export function ChatInterface() {
           onWidthChange={setLeftPanelWidth}
         />
       </div>
-      
+
       {/* Development Controls */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === "development" && (
         <DevControls
           isTyping={isTyping}
           isThinking={isThinking}

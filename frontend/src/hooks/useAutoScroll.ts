@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
+import { useSmoothScroll } from "./useSmoothScroll";
 
 /**
  * Scrolls to bottom whenever `dep` changes, but
@@ -7,6 +8,11 @@ import { useEffect, useRef, useCallback } from "react";
 export function useAutoScroll<T>(dep: T) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const freeze = useRef(false);
+  
+  const { smoothScrollToBottom } = useSmoothScroll({
+    lerp: true,
+    lerpFactor: 0.08
+  });
 
   const handleScroll = useCallback(() => {
     const el = wrapperRef.current;
@@ -18,8 +24,10 @@ export function useAutoScroll<T>(dep: T) {
   useEffect(() => {
     if (freeze.current) return;
     const el = wrapperRef.current;
-    el?.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [dep]);
+    if (el) {
+      smoothScrollToBottom(el);
+    }
+  }, [dep, smoothScrollToBottom]);
 
   return { wrapperRef, handleScroll };
 }
