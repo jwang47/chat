@@ -3,10 +3,9 @@ import {
   PanelLeftOpen,
   PanelLeftClose,
   SquarePen,
-  Code,
-  TestTube,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useChat } from "@/contexts/ChatContext";
 
 import {
   Sidebar,
@@ -21,26 +20,36 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-// Menu items.
-const items = [
-  {
-    title: "New Chat",
-    url: "/",
-    icon: SquarePen,
-    highlightIfActive: false,
-  },
-  {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
-    highlightIfActive: true,
-  },
-];
-
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { newChat } = useChat();
   const isCollapsed = state === "collapsed";
+
+  const handleNewChat = () => {
+    newChat();
+    if (location.pathname !== "/") {
+      navigate("/");
+    }
+  };
+
+  const menuItems = [
+    {
+      title: "New Chat",
+      icon: SquarePen,
+      onClick: handleNewChat,
+      highlightIfActive: false,
+      url: "/",
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      onClick: () => navigate("/settings"),
+      highlightIfActive: true,
+      url: "/settings",
+    },
+  ];
 
   return (
     <Sidebar collapsible="icon">
@@ -70,19 +79,17 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
+                    onClick={item.onClick}
                     tooltip={item.title}
                     isActive={
                       item.highlightIfActive && location.pathname === item.url
                     }
                   >
-                    <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

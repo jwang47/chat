@@ -4,7 +4,6 @@ import { MessageInput } from "@/components/chat/MessageInput";
 import { LlmService, type LlmMessage } from "@/lib/llmService";
 import type { Message, ExpandedCodeBlock } from "@/types/chat";
 import { motion } from "motion/react";
-import { mockMessages } from "@/data/mockChat";
 import { ModelSelector } from "@/components/ModelSelector";
 import { getDefaultModel, getModelById, type ModelInfo } from "@/lib/models";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -15,14 +14,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ResizableSplitter } from "@/components/ResizableSplitter";
 import { DevControls } from "@/components/DevControls";
 import { useSmoothScroll } from "@/hooks/useSmoothScroll";
+import { useChat } from "@/contexts/ChatContext";
 
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>(mockMessages);
-  const [isTyping, setIsTyping] = useState(false);
-  const [isThinking, setIsThinking] = useState(false);
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
-    null
-  );
+  const {
+    messages,
+    setMessages,
+    isTyping,
+    setIsTyping,
+    isThinking,
+    setIsThinking,
+    streamingMessageId,
+    setStreamingMessageId,
+  } = useChat();
   const [, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>(
     () => getDefaultModel().id
