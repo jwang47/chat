@@ -26,7 +26,8 @@ export function useChatScroll(options?: UseChatScrollOptions) {
     ) as HTMLElement;
     if (!scrollableElement) return true;
     const { scrollTop, scrollHeight, clientHeight } = scrollableElement;
-    return scrollTop + clientHeight >= scrollHeight - 10;
+    // Use a small threshold (5px) to account for sub-pixel rendering
+    return scrollTop + clientHeight >= scrollHeight - 5;
   }, []);
 
   const scrollToBottom = useCallback(
@@ -60,11 +61,16 @@ export function useChatScroll(options?: UseChatScrollOptions) {
 
       onUserScroll(currentScrollTop);
 
+      // Break autoscroll immediately when user scrolls up any amount
       if (scrollDirection < 0) {
+        console.log("🔼 User scrolled up - breaking autoscroll");
         shouldAutoScrollRef.current = false;
         isUserScrollingRef.current = true;
         cancelScroll();
-      } else if (isAtBottom()) {
+      } 
+      // Re-enable autoscroll only when user reaches the bottom
+      else if (isAtBottom()) {
+        console.log("🔽 User at bottom - enabling autoscroll");
         shouldAutoScrollRef.current = true;
         isUserScrollingRef.current = false;
       }
