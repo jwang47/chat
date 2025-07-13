@@ -1,6 +1,7 @@
 import React, { useMemo, type JSX } from "react";
 import { marked, type Token } from "marked";
 import DOMPurify from "dompurify";
+import { Blockquote } from "@radix-ui/themes";
 import { useCodeBlockManager } from "../../hooks/useCodeBlockManager";
 import { CodeBlock } from "./CodeBlock";
 
@@ -127,7 +128,7 @@ const renderToken = (
 
     case "blockquote":
       return (
-        <blockquote key={generateKey("blockquote")}>
+        <Blockquote key={generateKey("blockquote")}>
           {token.tokens?.map((t, i) => (
             <React.Fragment key={`${generateKey("bq-frag")}-${i}`}>
               {renderToken(
@@ -139,7 +140,7 @@ const renderToken = (
               )}
             </React.Fragment>
           ))}
-        </blockquote>
+        </Blockquote>
       );
 
     case "html": {

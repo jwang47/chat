@@ -2,6 +2,8 @@ import { OpenRouterService, type OpenRouterMessage } from "./openrouter";
 import { GeminiService, type GeminiMessage } from "./gemini";
 import { getModelById } from "./models";
 
+const DEFAULT_SYSTEM_INSTRUCTION =
+  "Use Markdown markdown format to format your response, but reserve ``` for code blocks only.";
 export interface LlmMessage {
   role: "user" | "assistant" | "system";
   content: string;
@@ -75,7 +77,7 @@ export class LlmService {
         onComplete,
         onError,
         modelName,
-        "Please answer in Markdown format."
+        DEFAULT_SYSTEM_INSTRUCTION
       );
     } else {
       onError(new Error(`Unsupported provider: ${provider}`));
