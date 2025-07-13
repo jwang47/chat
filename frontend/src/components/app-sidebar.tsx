@@ -128,23 +128,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         
-        {conversations.length > 0 && (
+        {conversations.length > 0 && !isCollapsed && (
           <SidebarGroup>
             <SidebarGroupLabel>Recent Conversations</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {conversations.map((conversation) => (
                   <SidebarMenuItem key={conversation.id}>
-                    <SidebarMenuButton
-                      onClick={() => handleLoadConversation(conversation.id)}
-                      tooltip={conversation.title}
-                      isActive={currentConversationId === conversation.id}
-                      className="group justify-between pr-2"
-                    >
-                      <div className="flex items-center">
+                    <div className="group flex items-center justify-between pr-2">
+                      <SidebarMenuButton
+                        onClick={() => handleLoadConversation(conversation.id)}
+                        tooltip={conversation.title}
+                        isActive={currentConversationId === conversation.id}
+                        className="flex-1"
+                      >
                         <MessageSquare className="w-4 h-4" />
                         <span className="truncate">{conversation.title}</span>
-                      </div>
+                      </SidebarMenuButton>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -155,7 +155,7 @@ export function AppSidebar() {
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
-                    </SidebarMenuButton>
+                    </div>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>

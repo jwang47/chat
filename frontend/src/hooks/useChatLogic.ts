@@ -31,6 +31,7 @@ export function useChatLogic({
   } = useChat();
   const [error, setError] = useState<string | null>(null);
   const messageIdCounter = useRef(0);
+  const savedAssistantMessages = useRef(new Set<string>());
 
   const generateMessageId = useCallback(() => {
     messageIdCounter.current += 1;
@@ -53,26 +54,31 @@ export function useChatLogic({
 
       // Handle conversation creation and persistence
       let conversationId = currentConversationId;
+      console.log("👤 Adding user message, current conversation ID:", conversationId);
       
       // If no current conversation, create a new one
       if (!conversationId) {
         try {
+          console.log("🆕 Creating new conversation...");
           conversationId = await historyService.createConversation();
+          console.log("✅ New conversation created with ID:", conversationId);
           setCurrentConversationId(conversationId);
           await refreshConversations();
         } catch (error) {
-          console.error("Failed to create conversation:", error);
-          return userMessage;
+          console.error("❌ Failed to create conversation:", error);
+          return { userMessage, conversationId: null };
         }
       }
 
       // Save the user message to the database
       try {
+        console.log("💾 Saving user message to conversation:", conversationId);
         const historyMessage = historyService.convertFromMessage(userMessage, conversationId);
         await historyService.addMessage(historyMessage);
         await refreshConversations(); // Refresh to update timestamps
+        console.log("✅ User message saved successfully");
       } catch (error) {
-        console.error("Failed to save user message:", error);
+        console.error("❌ Failed to save user message:", error);
       }
 
       // Instant scroll to show user message
@@ -81,14 +87,14 @@ export function useChatLogic({
         scrollToBottom(true);
       }, 50);
 
-      return userMessage;
+      return { userMessage, conversationId };
     },
     [generateMessageId, selectedModel, setMessages, scrollToBottom, currentConversationId, setCurrentConversationId, refreshConversations]
   );
 
   // Phase 2: Add assistant message and start streaming
   const startAssistantResponse = useCallback(
-    (userMessage: Message) => {
+    (userMessage: Message, conversationId: string) => {
       const assistantMessage: Message = {
         id: generateMessageId(),
         role: "assistant",
@@ -117,7 +123,7 @@ export function useChatLogic({
         })
       );
 
-      return { assistantMessage, llmMessages };
+      return { assistantMessage, llmMessages, conversationId };
     },
     [
       generateMessageId,
@@ -141,12 +147,18 @@ export function useChatLogic({
       shouldAutoScrollRef.current = true;
 
       // Phase 1: Add user message with instant scroll
-      const userMessage = await addUserMessage(content);
+      const { userMessage, conversationId } = await addUserMessage(content);
+
+      // Ensure we have a valid conversation ID before proceeding
+      if (!conversationId) {
+        console.error("❌ No conversation ID available, cannot start assistant response");
+        return;
+      }
 
       // Phase 2: Add assistant message and start streaming (after delay)
       setTimeout(() => {
         const { assistantMessage, llmMessages } =
-          startAssistantResponse(userMessage);
+          startAssistantResponse(userMessage, conversationId);
 
         LlmService.streamChatCompletion(selectedModel, llmMessages, {
           onChunk: (chunk: string) => {
@@ -172,28 +184,44 @@ export function useChatLogic({
             setIsThinking(false);
             setStreamingMessageId(null);
             
-            // Update the assistant message to not be streaming
-            let finalAssistantMessage: Message | null = null;
-            setMessages((current) =>
-              current.map((msg) => {
+            console.log("🎯 onComplete triggered, using conversation ID:", conversationId);
+            
+            // Update the assistant message to not be streaming and save to DB
+            setMessages((current) => {
+              const updatedMessages = current.map((msg) => {
                 if (msg.id === assistantMessage.id) {
-                  finalAssistantMessage = { ...msg, isStreaming: false };
-                  return finalAssistantMessage;
+                  const finalMessage = { ...msg, isStreaming: false };
+                  
+                  // Only save if we haven't saved this message before
+                  if (!savedAssistantMessages.current.has(finalMessage.id)) {
+                    savedAssistantMessages.current.add(finalMessage.id);
+                    
+                    // Save immediately after state update
+                    setTimeout(async () => {
+                      try {
+                        console.log("🤖 Saving assistant message:", {
+                          messageId: finalMessage.id,
+                          conversationId: conversationId,
+                          contentLength: finalMessage.content.length
+                        });
+                        const historyMessage = historyService.convertFromMessage(finalMessage, conversationId);
+                        await historyService.addMessage(historyMessage);
+                        await refreshConversations();
+                      } catch (error) {
+                        console.error("❌ Failed to save assistant message:", error);
+                      }
+                    }, 0);
+                  } else {
+                    console.log("⏭️ Skipping duplicate save for assistant message:", finalMessage.id);
+                  }
+                  
+                  return finalMessage;
                 }
                 return msg;
-              })
-            );
-
-            // Save the completed assistant message to the database
-            if (finalAssistantMessage && currentConversationId) {
-              try {
-                const historyMessage = historyService.convertFromMessage(finalAssistantMessage, currentConversationId);
-                await historyService.addMessage(historyMessage);
-                await refreshConversations(); // Refresh to update timestamps
-              } catch (error) {
-                console.error("Failed to save assistant message:", error);
-              }
-            }
+              });
+              
+              return updatedMessages;
+            });
           },
           onError: (err: Error) => {
             setError(err.message);

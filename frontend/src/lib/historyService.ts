@@ -36,14 +36,24 @@ export const historyService = {
   // CRUD for Conversations
   createConversation: async (title?: string): Promise<string> => {
     const now = Date.now();
+    const defaultTitle = title || new Date().toLocaleString('en-US', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+    
     const conversation: Conversation = {
       id: crypto.randomUUID(),
-      title: title || `Chat from ${new Date().toLocaleString()}`,
+      title: defaultTitle,
       createdAt: now,
       updatedAt: now,
     };
     
+    console.log("📝 Creating new conversation:", conversation);
     await db.conversations.add(conversation);
+    console.log("✅ Conversation created successfully");
     return conversation.id;
   },
 
@@ -56,7 +66,9 @@ export const historyService = {
   },
 
   updateConversationTimestamp: async (id: string): Promise<void> => {
+    console.log("🕒 Updating conversation timestamp for:", id);
     await db.conversations.update(id, { updatedAt: Date.now() });
+    console.log("✅ Conversation timestamp updated");
   },
 
   updateConversationTitle: async (id: string, title: string): Promise<void> => {
@@ -64,10 +76,12 @@ export const historyService = {
   },
 
   deleteConversation: async (id: string): Promise<void> => {
+    console.log("🗑️ Deleting conversation:", id);
     // Delete all messages for this conversation first
     await db.messages.where("conversationId").equals(id).delete();
     // Then delete the conversation
     await db.conversations.delete(id);
+    console.log("✅ Conversation deleted successfully");
   },
 
   // CRUD for Messages
@@ -77,7 +91,14 @@ export const historyService = {
       id: crypto.randomUUID(),
     };
     
+    console.log("💬 Adding message to conversation:", message.conversationId, {
+      role: message.role,
+      contentLength: message.content.length,
+      model: message.model
+    });
+    
     await db.messages.add(messageWithId);
+    console.log("✅ Message added successfully:", messageWithId.id);
     
     // Update the conversation's timestamp
     await historyService.updateConversationTimestamp(message.conversationId);
@@ -88,10 +109,13 @@ export const historyService = {
   getMessagesForConversation: async (
     conversationId: string
   ): Promise<HistoryMessage[]> => {
-    return await db.messages
+    console.log("📖 Loading messages for conversation:", conversationId);
+    const messages = await db.messages
       .where("conversationId")
       .equals(conversationId)
       .sortBy("timestamp");
+    console.log("✅ Loaded", messages.length, "messages");
+    return messages;
   },
 
   // Search functionality (for Phase 2)

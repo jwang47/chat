@@ -147,7 +147,7 @@ The `handleSendMessage` function will be updated:
 
 1.  When a user sends a message, check if `currentConversationId` is `null`.
 2.  **If `null` (New Chat):**
-    a. Call `historyService.createConversation()` with a default title (e.g., "Chat from " + new Date().toLocaleString()).
+    a. Call `historyService.createConversation()` with a default title (e.g., 7/13 12:58PM).
     b. Get the new `conversationId` back.
     c. Update the `currentConversationId` in the `ChatContext`.
     d. Call `historyService.addMessage()` with the user's message and the new `conversationId`.
