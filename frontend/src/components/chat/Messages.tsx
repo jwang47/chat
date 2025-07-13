@@ -74,7 +74,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
     // Initialize smooth scroll for fallback methods
     const { smoothScrollToBottom, smoothScrollTo } = useSmoothScroll({
       lerp: true,
-      lerpFactor: 0.08
+      lerpFactor: 0.002
     });
 
     // Create items including typing indicator (thinking is handled per-message)

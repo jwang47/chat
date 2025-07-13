@@ -48,9 +48,9 @@ export function ChatInterface() {
   const lastScrollTopRef = useRef(0);
 
   // Initialize smooth scroll with lerp for buttery smoothness
-  const { smoothScrollToBottom, cancelScroll } = useSmoothScroll({
+  const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll({
     lerp: true,
-    lerpFactor: 0.002, // Lower = smoother but more laggy, higher = snappier
+    lerpFactor: 0.0015, // Lower = smoother but more laggy, higher = snappier
   });
 
   // Define a type for the code block payload for clarity
@@ -217,22 +217,34 @@ export function ChatInterface() {
       const currentScrollTop = target.scrollTop;
       const scrollDirection = currentScrollTop - lastScrollTopRef.current;
 
+      // Notify smooth scroll hook about user interaction
+      onUserScroll(currentScrollTop);
+
+      console.log("📜 Scroll event:", {
+        currentScrollTop,
+        lastScrollTop: lastScrollTopRef.current,
+        scrollDirection,
+        isAtBottom: isAtBottom(),
+      });
+
       // Only disable autoscroll if user scrolls UP (more than 5px)
       // Downward scrolling or small movements keep autoscroll enabled
-      if (scrollDirection < 0) {
+      if (scrollDirection < -5) {
+        console.log("⬆️ User scrolled up - disabling autoscroll");
         shouldAutoScrollRef.current = false;
         isUserScrollingRef.current = true;
         // Cancel any ongoing smooth scroll when user manually scrolls
         cancelScroll();
       } else if (isAtBottom()) {
         // Re-enable autoscroll when at bottom
+        console.log("⬇️ At bottom - enabling autoscroll");
         shouldAutoScrollRef.current = true;
         isUserScrollingRef.current = false;
       }
 
       lastScrollTopRef.current = currentScrollTop;
     },
-    [isAtBottom, cancelScroll]
+    [isAtBottom, cancelScroll, onUserScroll]
   );
 
   const handleScrollStart = useCallback(() => {

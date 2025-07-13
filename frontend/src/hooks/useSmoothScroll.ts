@@ -19,10 +19,19 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
   const targetScrollTop = useRef<number>(0);
   const currentScrollTop = useRef<number>(0);
   const isAnimating = useRef<boolean>(false);
+  const lastUserScrollTime = useRef<number>(0);
+  const lastProgrammaticScrollTop = useRef<number>(-1);
 
   const smoothScrollTo = useCallback((element: HTMLElement, target: number) => {
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
+    }
+
+    // Check if user scrolled recently (within 100ms) - if so, don't start animation
+    const now = performance.now();
+    if (now - lastUserScrollTime.current < 100) {
+      console.log('🚫 Skipping smooth scroll - user recently scrolled');
+      return;
     }
 
     if (lerp) {
@@ -30,17 +39,34 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
       targetScrollTop.current = target;
       currentScrollTop.current = element.scrollTop;
       isAnimating.current = true;
+      
+      console.log('🚀 Starting lerp animation', { from: currentScrollTop.current, to: target, factor: lerpFactor });
 
       const lerpAnimate = () => {
+        // Check if user scrolled during animation
+        if (now - lastUserScrollTime.current < 50 && performance.now() - now > 50) {
+          console.log('🛑 Cancelling lerp - user scrolled during animation');
+          isAnimating.current = false;
+          lastProgrammaticScrollTop.current = -1;
+          return;
+        }
+
         const diff = targetScrollTop.current - currentScrollTop.current;
         
         if (Math.abs(diff) < 0.5) {
+          lastProgrammaticScrollTop.current = targetScrollTop.current;
           element.scrollTop = targetScrollTop.current;
           isAnimating.current = false;
+          console.log('✅ Lerp animation complete');
+          // Clear the programmatic scroll tracking after a delay
+          setTimeout(() => {
+            lastProgrammaticScrollTop.current = -1;
+          }, 50);
           return;
         }
 
         currentScrollTop.current += diff * lerpFactor;
+        lastProgrammaticScrollTop.current = currentScrollTop.current;
         element.scrollTop = currentScrollTop.current;
         
         if (isAnimating.current) {
@@ -76,6 +102,7 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
   }, [smoothScrollTo]);
 
   const cancelScroll = useCallback(() => {
+    console.log('🔥 Cancel scroll called');
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
@@ -83,10 +110,26 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
     isAnimating.current = false;
   }, []);
 
+  const onUserScroll = useCallback((currentScrollTop: number) => {
+    // Check if this scroll position matches our programmatic scroll
+    if (Math.abs(currentScrollTop - lastProgrammaticScrollTop.current) < 1) {
+      console.log('🤖 Ignoring programmatic scroll at', currentScrollTop);
+      return;
+    }
+    
+    lastUserScrollTime.current = performance.now();
+    console.log('👆 User scroll detected at', lastUserScrollTime.current, 'position:', currentScrollTop);
+    if (isAnimating.current) {
+      console.log('🛑 Cancelling animation due to user scroll');
+      cancelScroll();
+    }
+  }, [cancelScroll]);
+
   return {
     smoothScrollTo,
     smoothScrollToBottom,
     cancelScroll,
+    onUserScroll,
     isAnimating: () => isAnimating.current
   };
 }
