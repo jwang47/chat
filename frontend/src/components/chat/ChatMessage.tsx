@@ -2,6 +2,7 @@ import type { Message, ExpandedCodeBlock } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import { MarkedRenderer } from "./MarkedRenderer";
 import { IncrementalRenderer } from "./IncrementalRenderer";
+import { ThinkingIndicator } from "./ThinkingIndicator";
 import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
@@ -12,6 +13,7 @@ const COLLAPSE_THRESHOLD_LINES = 8;
 interface ChatMessageProps {
   message: Message;
   disableAnimations?: boolean;
+  showThinking?: boolean;
   onCollapseToggle?: (
     isCollapsed: boolean,
     element: HTMLElement | null
@@ -29,6 +31,7 @@ interface ChatMessageProps {
 
 export const ChatMessage = memo(function ChatMessage({
   message,
+  showThinking,
   globalExpandedState,
   onGlobalCodeBlockToggle,
 }: ChatMessageProps) {
@@ -92,24 +95,29 @@ export const ChatMessage = memo(function ChatMessage({
           <div className="whitespace-pre-wrap">{message.content}</div>
         )
       ) : (
-        // Use IncrementalRenderer for streaming, MarkedRenderer for static content
-        message.isStreaming ? (
-          <IncrementalRenderer
-            content={message.content}
-            messageId={message.id}
-            isStreaming={true}
-            globalExpandedState={globalExpandedState}
-            onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
-            wordsPerSecond={12}
-          />
+        // Show thinking indicator if model is thinking
+        showThinking ? (
+          <ThinkingIndicator />
         ) : (
-          <MarkedRenderer
-            content={message.content}
-            messageId={message.id}
-            isStreaming={false}
-            globalExpandedState={globalExpandedState}
-            onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
-          />
+          // Use IncrementalRenderer for streaming, MarkedRenderer for static content
+          message.isStreaming ? (
+            <IncrementalRenderer
+              content={message.content}
+              messageId={message.id}
+              isStreaming={true}
+              globalExpandedState={globalExpandedState}
+              onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
+              wordsPerSecond={12}
+            />
+          ) : (
+            <MarkedRenderer
+              content={message.content}
+              messageId={message.id}
+              isStreaming={false}
+              globalExpandedState={globalExpandedState}
+              onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
+            />
+          )
         )
       )}
     </div>

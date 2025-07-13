@@ -235,15 +235,9 @@ export function ChatInterface() {
 
   // Auto-scroll effect
   useEffect(() => {
-    console.log(
-      "🚀 Auto-scroll effect triggered, shouldAutoScroll:",
-      shouldAutoScrollRef.current
-    );
     if (shouldAutoScrollRef.current) {
-      console.log("🚀 Scheduling auto-scroll");
       // Use a more reliable approach for scrolling
       const timeoutId = setTimeout(() => {
-        console.log("🚀 Executing scrollToBottom");
         scrollToBottom();
       }, 100); // Small delay to ensure content is rendered
 
@@ -313,13 +307,9 @@ export function ChatInterface() {
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
       const currentModel = getModelById(selectedModel);
-      console.log("🤔 Current model:", currentModel);
-      console.log("🤔 Supports thinking:", currentModel?.supportsThinking);
       if (currentModel?.supportsThinking) {
-        console.log("🤔 Setting isThinking to true");
         setIsThinking(true);
       } else {
-        console.log("🤔 Setting isTyping to true");
         setIsTyping(true);
       }
       setStreamingMessageId(assistantMessage.id);

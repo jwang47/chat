@@ -33,9 +33,9 @@ export function DevControls({
   setIsTyping,
   setIsThinking,
   setStreamingMessageId,
-  setMessages,
+  setMessages: _setMessages,
   onAddMessage,
-  onStartStreaming,
+  onStartStreaming: _onStartStreaming,
   onClearMessages
 }: DevControlsProps) {
   const [isOpen, setIsOpen] = useState(false);

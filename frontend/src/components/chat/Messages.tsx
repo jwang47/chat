@@ -6,7 +6,6 @@ import {
   useMemo,
 } from "react";
 import { ChatMessage } from "./ChatMessage";
-import { ThinkingIndicator } from "./ThinkingIndicator";
 import { motion } from "motion/react";
 
 import type { Message } from "@/types/chat";
@@ -50,10 +49,6 @@ interface TypingIndicatorMessage extends Message {
   type: "typing";
 }
 
-// Thinking indicator message type
-interface ThinkingIndicatorMessage extends Message {
-  type: "thinking";
-}
 
 export const Messages = forwardRef<MessagesRef, MessagesProps>(
   (
@@ -75,26 +70,12 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
     const wrapperRef = useRef<HTMLDivElement>(null);
     const handleAutoScroll = () => {};
 
-    // Create items including typing/thinking indicators
+    // Create items including typing indicator (thinking is handled per-message)
     const items = useMemo(() => {
-      console.log('📝 Messages component - isThinking:', isThinking, 'isTyping:', isTyping, 'streamingMessageId:', streamingMessageId);
       const allItems = [...messages];
 
-      // Add thinking indicator as a virtual message if needed
-      if (isThinking) {
-        console.log('📝 Adding thinking indicator');
-        allItems.push({
-          id: "thinking-indicator",
-          role: "assistant",
-          content: "",
-          timestamp: new Date(),
-          model: "thinking",
-          type: "thinking",
-        } as ThinkingIndicatorMessage);
-      }
-      // Add typing indicator as a virtual message if needed
-      else if (isTyping && !streamingMessageId) {
-        console.log('📝 Adding typing indicator');
+      // Add typing indicator as a virtual message if needed (only for non-streaming typing)
+      if (isTyping && !streamingMessageId) {
         allItems.push({
           id: "typing-indicator",
           role: "assistant",
@@ -228,12 +209,12 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
           <div className="flex flex-col w-full max-w-[960px] mx-auto">
             <div className="flex flex-col gap-4 min-w-0">
               {items.map((message) => {
-                if ((message as ThinkingIndicatorMessage).type === "thinking") {
-                  return <ThinkingIndicator key={message.id} />;
-                }
                 if ((message as TypingIndicatorMessage).type === "typing") {
                   return <TypingIndicator key={message.id} />;
                 }
+
+                // Check if this message should show thinking indicator
+                const showThinking = isThinking && streamingMessageId === message.id && !message.content;
 
                 return (
                   <ChatMessage
@@ -241,6 +222,7 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
                     message={message}
                     globalExpandedState={globalExpandedState}
                     onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
+                    showThinking={showThinking}
                   />
                 );
               })}

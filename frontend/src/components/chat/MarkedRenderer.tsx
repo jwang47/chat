@@ -1,9 +1,8 @@
-import React, { useMemo, useRef, type JSX } from "react";
-import { marked, type Token } from "marked";
+import React, { useMemo, type JSX } from "react";
+import { marked, type Token, type Tokens } from "marked";
 import DOMPurify from "dompurify";
 import { useCodeBlockManager } from "../../hooks/useCodeBlockManager";
 import { CodeBlock } from "./CodeBlock";
-import type { ExpandedCodeBlock } from "@/types/chat";
 
 // Global counter for unique keys
 let globalTokenCounter = 0;
@@ -31,11 +30,20 @@ const renderToken = (
 
     case "paragraph":
       return (
-        <p key={generateKey("p")} className="mb-4 last:mb-0 whitespace-pre-line">
+        <p
+          key={generateKey("p")}
+          className="mb-4 last:mb-0 whitespace-pre-line"
+        >
           {/* Paragraphs can contain other tokens like 'strong', 'em', etc. */}
           {token.tokens
             ? token.tokens.map((t, i) =>
-                renderToken(t, manager, codeBlockCounter, messageId, tokenIndex * 1000 + i)
+                renderToken(
+                  t,
+                  manager,
+                  codeBlockCounter,
+                  messageId,
+                  tokenIndex * 1000 + i
+                )
               )
             : token.text}
         </p>
@@ -71,8 +79,14 @@ const renderToken = (
               : "list-disc list-outside mb-4 ml-6"
           }
         >
-          {token.items.map((item: Token, i) =>
-            renderToken(item, manager, codeBlockCounter, messageId, tokenIndex * 1000 + i)
+          {token.items.map((item: Token, i: number) =>
+            renderToken(
+              item,
+              manager,
+              codeBlockCounter,
+              messageId,
+              tokenIndex * 1000 + i
+            )
           )}
         </ListTag>
       );
@@ -81,7 +95,13 @@ const renderToken = (
       return (
         <li key={generateKey("li")}>
           {token.tokens?.map((t, i) =>
-            renderToken(t, manager, codeBlockCounter, messageId, tokenIndex * 1000 + i)
+            renderToken(
+              t,
+              manager,
+              codeBlockCounter,
+              messageId,
+              tokenIndex * 1000 + i
+            )
           )}
         </li>
       );
@@ -107,7 +127,13 @@ const renderToken = (
         <blockquote key={generateKey("blockquote")}>
           {token.tokens?.map((t, i) => (
             <React.Fragment key={`${generateKey("bq-frag")}-${i}`}>
-              {renderToken(t, manager, codeBlockCounter, messageId, tokenIndex * 1000 + i)}
+              {renderToken(
+                t,
+                manager,
+                codeBlockCounter,
+                messageId,
+                tokenIndex * 1000 + i
+              )}
             </React.Fragment>
           ))}
         </blockquote>
@@ -140,7 +166,10 @@ const renderToken = (
           } else if (part === "</center>") {
             if (isInsideCenter) {
               elements.push(
-                <div key={`${generateKey("center")}-${elementIndex++}`} className="text-center">
+                <div
+                  key={`${generateKey("center")}-${elementIndex++}`}
+                  className="text-center"
+                >
                   {centerContent.trim()}
                 </div>
               );
@@ -152,25 +181,37 @@ const renderToken = (
           } else if (part.trim()) {
             // Content outside center tags - check if it contains markdown that should be parsed
             const trimmedPart = part.trim();
-            
+
             // Split by lines and check if any line starts with '>'
-            const lines = trimmedPart.split('\n');
-            const hasBlockquote = lines.some(line => line.trim().startsWith('>'));
-            
+            const lines = trimmedPart.split("\n");
+            const hasBlockquote = lines.some((line) =>
+              line.trim().startsWith(">")
+            );
+
             if (hasBlockquote) {
               // This contains markdown blockquote - parse it as markdown
               const markdownTokens = marked.lexer(trimmedPart);
               markdownTokens.forEach((mdToken, mdIndex) => {
                 elements.push(
-                  <React.Fragment key={`${generateKey("md")}-${elementIndex++}-${mdIndex}`}>
-                    {renderToken(mdToken, manager, codeBlockCounter, messageId, 0)}
+                  <React.Fragment
+                    key={`${generateKey("md")}-${elementIndex++}-${mdIndex}`}
+                  >
+                    {renderToken(
+                      mdToken,
+                      manager,
+                      codeBlockCounter,
+                      messageId,
+                      0
+                    )}
                   </React.Fragment>
                 );
               });
             } else {
               // Regular content outside center tags
               elements.push(
-                <span key={`${generateKey("span")}-${elementIndex++}`}>{part}</span>
+                <span key={`${generateKey("span")}-${elementIndex++}`}>
+                  {part}
+                </span>
               );
             }
           }
@@ -179,14 +220,19 @@ const renderToken = (
         // Handle case where center tag wasn't closed
         if (isInsideCenter && centerContent.trim()) {
           elements.push(
-            <div key={`${generateKey("center-unclosed")}-${elementIndex++}`} className="text-center">
+            <div
+              key={`${generateKey("center-unclosed")}-${elementIndex++}`}
+              className="text-center"
+            >
               {centerContent.trim()}
             </div>
           );
         }
 
         return elements.length > 1 ? (
-          <React.Fragment key={generateKey("html-frag")}>{elements}</React.Fragment>
+          <React.Fragment key={generateKey("html-frag")}>
+            {elements}
+          </React.Fragment>
         ) : (
           elements[0] || null
         );
@@ -206,35 +252,54 @@ const renderToken = (
           <React.Fragment key={generateKey("text-frag")}>
             {token.tokens.map((t, index) => (
               <React.Fragment key={`${generateKey("text-nested")}-${index}`}>
-                {renderToken(t, manager, codeBlockCounter, messageId, tokenIndex * 1000 + index)}
+                {renderToken(
+                  t,
+                  manager,
+                  codeBlockCounter,
+                  messageId,
+                  tokenIndex * 1000 + index
+                )}
               </React.Fragment>
             ))}
           </React.Fragment>
         );
       }
-      
-      return <React.Fragment key={generateKey("text")}>{token.text}</React.Fragment>;
+
+      return (
+        <React.Fragment key={generateKey("text")}>{token.text}</React.Fragment>
+      );
 
     case "space":
       return null; // Ignore space tokens, layout is handled by CSS
 
     case "table":
       return (
-        <table key={generateKey("table")} className="border-collapse border border-border mb-4">
+        <table
+          key={generateKey("table")}
+          className="border-collapse border border-border mb-4"
+        >
           <thead>
             <tr>
-              {token.header?.map((headerCell, index) => (
-                <th key={index} className="border border-border px-2 py-1 font-semibold">
-                  {headerCell.text}
-                </th>
-              ))}
+              {token.header?.map(
+                (headerCell: Tokens.Table.header, index: number) => (
+                  <th
+                    key={index}
+                    className="border border-border px-2 py-1 font-semibold"
+                  >
+                    {headerCell.text}
+                  </th>
+                )
+              )}
             </tr>
           </thead>
           <tbody>
-            {token.rows?.map((row, rowIndex) => (
+            {token.rows?.map((row: Tokens.Table.row, rowIndex: number) => (
               <tr key={rowIndex}>
-                {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="border border-border px-2 py-1">
+                {row.map((cell: Tokens.Table.cell, cellIndex: number) => (
+                  <td
+                    key={cellIndex}
+                    className="border border-border px-2 py-1"
+                  >
                     {cell.text}
                   </td>
                 ))}
@@ -281,7 +346,6 @@ function handleIncompleteCodeBlocksForLexer(content: string): string {
 export function MarkedRenderer({
   content,
   messageId,
-  isStreaming = false,
   globalExpandedState,
   onGlobalCodeBlockToggle,
 }: MarkedRendererProps) {
@@ -296,28 +360,30 @@ export function MarkedRenderer({
     // Handle incomplete code blocks first, then let marked parse naturally
     // Don't sanitize the entire content here as it breaks markdown syntax like blockquotes
     let processedContent = handleIncompleteCodeBlocksForLexer(content);
-    
+
     // Pre-process content to handle mixed center tags and markdown
     // Split content by center tags and process each part separately
-    if (processedContent.includes('<center>')) {
+    if (processedContent.includes("<center>")) {
       const parts = processedContent.split(/(<\/?center[^>]*>)/);
       const processedParts: string[] = [];
-      
+
       for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
-        
+
         if (part.match(/<\/?center[^>]*>/)) {
           // Keep center tags as-is
           processedParts.push(part);
         } else if (part.trim()) {
           // For content between center tags, check if it has markdown that needs preservation
-          const lines = part.split('\n');
-          const hasBlockquote = lines.some(line => line.trim().startsWith('>'));
-          
+          const lines = part.split("\n");
+          const hasBlockquote = lines.some((line) =>
+            line.trim().startsWith(">")
+          );
+
           if (hasBlockquote) {
             // Temporarily replace center tags in this part to prevent HTML parsing
             // This allows markdown parsing to work properly
-            processedParts.push('\n\n' + part.trim() + '\n\n');
+            processedParts.push("\n\n" + part.trim() + "\n\n");
           } else {
             processedParts.push(part);
           }
@@ -325,10 +391,10 @@ export function MarkedRenderer({
           processedParts.push(part);
         }
       }
-      
-      processedContent = processedParts.join('');
+
+      processedContent = processedParts.join("");
     }
-    
+
     return marked.lexer(processedContent);
   }, [content]);
 
