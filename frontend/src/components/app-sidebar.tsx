@@ -3,6 +3,7 @@ import {
   PanelLeftOpen,
   PanelLeftClose,
   SquarePen,
+  Palette,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useChat } from "@/contexts/ChatContext";
@@ -41,6 +42,13 @@ export function AppSidebar() {
       onClick: handleNewChat,
       highlightIfActive: false,
       url: "/",
+    },
+    {
+      title: "Components",
+      icon: Palette,
+      onClick: () => navigate("/components"),
+      highlightIfActive: true,
+      url: "/components",
     },
     {
       title: "Settings",
