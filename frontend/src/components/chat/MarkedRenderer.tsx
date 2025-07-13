@@ -71,8 +71,8 @@ const renderToken = (
               : "list-disc list-outside mb-4 ml-6"
           }
         >
-          {token.items.map((item: Token) =>
-            renderToken(item, manager, codeBlockCounter, messageId)
+          {token.items.map((item: Token, i) =>
+            renderToken(item, manager, codeBlockCounter, messageId, tokenIndex * 1000 + i)
           )}
         </ListTag>
       );
@@ -163,7 +163,7 @@ const renderToken = (
               markdownTokens.forEach((mdToken, mdIndex) => {
                 elements.push(
                   <React.Fragment key={`${generateKey("md")}-${elementIndex++}-${mdIndex}`}>
-                    {renderToken(mdToken, manager, codeBlockCounter, messageId)}
+                    {renderToken(mdToken, manager, codeBlockCounter, messageId, 0)}
                   </React.Fragment>
                 );
               });
@@ -212,6 +212,7 @@ const renderToken = (
           </React.Fragment>
         );
       }
+      
       return <React.Fragment key={generateKey("text")}>{token.text}</React.Fragment>;
 
     case "space":
@@ -256,6 +257,7 @@ const renderToken = (
 interface MarkedRendererProps {
   content: string;
   messageId: string;
+  isStreaming?: boolean;
   globalExpandedState?: {
     messageId: string | null;
     blockIndex: number | null;
@@ -279,6 +281,7 @@ function handleIncompleteCodeBlocksForLexer(content: string): string {
 export function MarkedRenderer({
   content,
   messageId,
+  isStreaming = false,
   globalExpandedState,
   onGlobalCodeBlockToggle,
 }: MarkedRendererProps) {

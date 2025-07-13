@@ -1,6 +1,7 @@
 import type { Message, ExpandedCodeBlock } from "@/types/chat";
 import { cn } from "@/lib/utils";
 import { MarkedRenderer } from "./MarkedRenderer";
+import { IncrementalRenderer } from "./IncrementalRenderer";
 import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
@@ -91,13 +92,25 @@ export const ChatMessage = memo(function ChatMessage({
           <div className="whitespace-pre-wrap">{message.content}</div>
         )
       ) : (
-        // Use our new React-based Marked renderer
-        <MarkedRenderer
-          content={message.content}
-          messageId={message.id}
-          globalExpandedState={globalExpandedState}
-          onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
-        />
+        // Use IncrementalRenderer for streaming, MarkedRenderer for static content
+        message.isStreaming ? (
+          <IncrementalRenderer
+            content={message.content}
+            messageId={message.id}
+            isStreaming={true}
+            globalExpandedState={globalExpandedState}
+            onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
+            wordsPerSecond={12}
+          />
+        ) : (
+          <MarkedRenderer
+            content={message.content}
+            messageId={message.id}
+            isStreaming={false}
+            globalExpandedState={globalExpandedState}
+            onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
+          />
+        )
       )}
     </div>
   );
