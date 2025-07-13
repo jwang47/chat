@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Messages, type MessagesRef } from "./Messages";
 import { MessageInput } from "./MessageInput";
 import { LlmService, type LlmMessage } from "@/lib/llmService";
@@ -57,14 +57,52 @@ export function ChatInterface() {
 
   const handleGlobalCodeBlockToggle = useCallback(
     (messageId: string, blockIndex: number, payload: CodeBlockPayload) => {
+      // Temporarily disable auto-scroll during code block operations
+      shouldAutoScrollRef.current = false;
+      
+      // Preserve scroll position by maintaining distance from bottom
+      const scrollArea = scrollAreaRef.current;
+      const scrollableElement = scrollArea?.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      ) as HTMLElement;
+      const currentScrollTop = scrollableElement?.scrollTop || 0;
+      const scrollHeight = scrollableElement?.scrollHeight || 0;
+      const clientHeight = scrollableElement?.clientHeight || 0;
+      const distanceFromBottom = scrollHeight - currentScrollTop - clientHeight;
+      
       setGlobalExpandedState((prev) => {
         // If clicking the same block, collapse it
         if (prev.messageId === messageId && prev.blockIndex === blockIndex) {
           setHasExpandedCodeBlock(false);
           setExpandedCodeBlock(null);
+          
+          // Restore scroll position after DOM update
+          const restorePosition = () => {
+            const currentScrollArea = scrollAreaRef.current;
+            const currentScrollableElement = currentScrollArea?.querySelector(
+              "[data-radix-scroll-area-viewport]"
+            ) as HTMLElement;
+            
+            if (currentScrollableElement) {
+              const newScrollHeight = currentScrollableElement.scrollHeight;
+              const newClientHeight = currentScrollableElement.clientHeight;
+              
+              // If dimensions are still 0, retry
+              if (newScrollHeight === 0 || newClientHeight === 0) {
+                setTimeout(restorePosition, 50);
+                return;
+              }
+              
+              const targetScrollTop = newScrollHeight - distanceFromBottom - newClientHeight;
+              currentScrollableElement.scrollTop = Math.max(0, targetScrollTop);
+            }
+          };
+          
+          setTimeout(restorePosition, 100);
           return { messageId: null, blockIndex: null };
         }
-        // Otherwise, expand the new block (replacing any currently expanded one)
+        
+        // Otherwise, expand the new block
         const newExpandedBlock: ExpandedCodeBlock = {
           messageId,
           blockIndex,
@@ -72,6 +110,30 @@ export function ChatInterface() {
         };
         setHasExpandedCodeBlock(true);
         setExpandedCodeBlock(newExpandedBlock);
+        
+        // Restore scroll position after DOM update
+        const restorePosition = () => {
+          const currentScrollArea = scrollAreaRef.current;
+          const currentScrollableElement = currentScrollArea?.querySelector(
+            "[data-radix-scroll-area-viewport]"
+          ) as HTMLElement;
+          
+          if (currentScrollableElement) {
+            const newScrollHeight = currentScrollableElement.scrollHeight;
+            const newClientHeight = currentScrollableElement.clientHeight;
+            
+            // If dimensions are still 0, retry
+            if (newScrollHeight === 0 || newClientHeight === 0) {
+              setTimeout(restorePosition, 50);
+              return;
+            }
+            
+            const targetScrollTop = newScrollHeight - distanceFromBottom - newClientHeight;
+            currentScrollableElement.scrollTop = Math.max(0, targetScrollTop);
+          }
+        };
+        
+        setTimeout(restorePosition, 100);
         return { messageId, blockIndex };
       });
     },
@@ -97,12 +159,14 @@ export function ChatInterface() {
   }, []);
 
   const scrollToBottom = useCallback(() => {
+    console.log('📜 scrollToBottom called');
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
       const scrollableElement = scrollArea.querySelector(
         "[data-radix-scroll-area-viewport]"
       ) as HTMLElement;
       if (scrollableElement) {
+        console.log('📜 Scrolling to bottom, height:', scrollableElement.scrollHeight);
         scrollableElement.scrollTo({
           top: scrollableElement.scrollHeight,
           behavior: "smooth",
@@ -152,15 +216,18 @@ export function ChatInterface() {
 
   // Auto-scroll effect
   useEffect(() => {
+    console.log('🚀 Auto-scroll effect triggered, shouldAutoScroll:', shouldAutoScrollRef.current);
     if (shouldAutoScrollRef.current) {
+      console.log('🚀 Scheduling auto-scroll');
       // Use a more reliable approach for scrolling
       const timeoutId = setTimeout(() => {
+        console.log('🚀 Executing scrollToBottom');
         scrollToBottom();
       }, 100); // Small delay to ensure content is rendered
 
       return () => clearTimeout(timeoutId);
     }
-  }, [messages, scrollToBottom]);
+  }, [messages]);
 
   // Attach scroll listener to the correct element
   useEffect(() => {
