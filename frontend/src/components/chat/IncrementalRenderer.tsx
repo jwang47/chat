@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MarkedRenderer } from './MarkedRenderer';
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { MarkedRenderer } from "./MarkedRenderer";
 
 interface IncrementalRendererProps {
   content: string;
@@ -12,7 +12,7 @@ interface IncrementalRendererProps {
   onGlobalCodeBlockToggle?: (
     messageId: string,
     blockIndex: number,
-    payload: any
+    payload: unknown
   ) => void;
   wordsPerSecond?: number;
 }
@@ -23,13 +23,15 @@ export function IncrementalRenderer({
   isStreaming,
   globalExpandedState,
   onGlobalCodeBlockToggle,
-  wordsPerSecond = 8
+  wordsPerSecond = 8,
 }: IncrementalRendererProps) {
-  const [displayedContent, setDisplayedContent] = useState('');
+  const [displayedContent, setDisplayedContent] = useState("");
   const [visibleWords, setVisibleWords] = useState(0);
-  const lastContentRef = useRef('');
+  const lastContentRef = useRef("");
   const timeoutRef = useRef<NodeJS.Timeout>();
-  
+  const lastUpdateTimeRef = useRef<number>(Date.now());
+  const streamingSpeedRef = useRef<number>(wordsPerSecond);
+
   // Split content into words while preserving whitespace
   const words = useMemo(() => {
     return content.split(/(\s+)/);
@@ -40,10 +42,32 @@ export function IncrementalRenderer({
     if (content.length < lastContentRef.current.length) {
       // Content got shorter, probably new message
       setVisibleWords(0);
-      setDisplayedContent('');
+      setDisplayedContent("");
+      lastUpdateTimeRef.current = Date.now();
+      streamingSpeedRef.current = wordsPerSecond;
+    } else if (content.length > lastContentRef.current.length && isStreaming) {
+      // New content arrived, calculate streaming speed
+      const now = Date.now();
+      const timeDiff = now - lastUpdateTimeRef.current;
+      const newWords =
+        content.split(/(\s+)/).length -
+        lastContentRef.current.split(/(\s+)/).length;
+
+      if (timeDiff > 0 && newWords > 0) {
+        const actualWordsPerSecond = (newWords / timeDiff) * 1000;
+        // Match actual streaming speed more closely
+        streamingSpeedRef.current = Math.max(
+          actualWordsPerSecond * 0.9,
+          wordsPerSecond
+        );
+        console.log(
+          `Adjusted streaming speed: ${streamingSpeedRef.current} wps (from ${actualWordsPerSecond} actual)`
+        );
+      }
+      lastUpdateTimeRef.current = now;
     }
     lastContentRef.current = content;
-  }, [content]);
+  }, [content, isStreaming, wordsPerSecond]);
 
   // Handle incremental word reveal
   useEffect(() => {
@@ -54,32 +78,38 @@ export function IncrementalRenderer({
       return;
     }
 
-    // Clear existing timeout
+    // Clear existing timeout to restart with new speed
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
 
     const revealNextWord = () => {
-      setVisibleWords(prev => {
+      setVisibleWords((prev) => {
         const next = prev + 1;
-        
+
         if (next <= words.length) {
-          setDisplayedContent(words.slice(0, next).join(''));
-          
+          setDisplayedContent(words.slice(0, next).join(""));
+
           // Schedule next word if there are more
           if (next < words.length) {
-            timeoutRef.current = setTimeout(revealNextWord, 1000 / wordsPerSecond);
+            timeoutRef.current = setTimeout(
+              revealNextWord,
+              1000 / streamingSpeedRef.current
+            );
           }
         }
-        
+
         return next;
       });
     };
 
-    // Only start revealing if we have new content to show
+    // Continue revealing if we have more content to show
     if (visibleWords < words.length) {
-      // Small delay before starting to reveal
-      timeoutRef.current = setTimeout(revealNextWord, 50);
+      // Use current speed immediately
+      timeoutRef.current = setTimeout(
+        revealNextWord,
+        1000 / streamingSpeedRef.current
+      );
     }
 
     return () => {
@@ -87,7 +117,7 @@ export function IncrementalRenderer({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [content, isStreaming, words, visibleWords, wordsPerSecond]);
+  }, [content, isStreaming, words, visibleWords, streamingSpeedRef.current]);
 
   // Use displayed content for rendering to avoid re-parsing on every chunk
   return (
@@ -100,7 +130,7 @@ export function IncrementalRenderer({
         onGlobalCodeBlockToggle={onGlobalCodeBlockToggle}
       />
       {isStreaming && visibleWords < words.length && (
-        <span className="animate-pulse opacity-70 ml-1">▊</span>
+        <span className="animate-pulse opacity-70 ml-1 mt-5 mb-5">▊</span>
       )}
     </div>
   );
