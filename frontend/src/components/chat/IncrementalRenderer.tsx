@@ -60,7 +60,7 @@ export function IncrementalRenderer({
           actualWordsPerSecond * 0.9,
           wordsPerSecond
         );
-        console.log(
+        console.debug(
           `Adjusted streaming speed: ${streamingSpeedRef.current} wps (from ${actualWordsPerSecond} actual)`
         );
       }

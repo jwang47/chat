@@ -99,7 +99,7 @@ export class GeminiService {
 
       const decoder = new TextDecoder();
       let buffer = "";
-      let previousContent = "";
+      let fullContent = "";
 
       try {
         while (true) {
@@ -122,28 +122,10 @@ export class GeminiService {
 
               try {
                 const parsed: GeminiStreamResponse = JSON.parse(data);
-                const fullContent =
+                const chunkContent =
                   parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                
-                if (fullContent) {
-                  // Only send content if it's actually new
-                  if (fullContent !== previousContent) {
-                    if (fullContent.length > previousContent.length && fullContent.startsWith(previousContent)) {
-                      // Incremental content - send only the new part
-                      const newChunk = fullContent.slice(previousContent.length);
-                      if (newChunk.trim()) { // Only send non-whitespace chunks
-                        console.log('Sending new chunk:', JSON.stringify(newChunk));
-                        onChunk(newChunk);
-                      }
-                    } else {
-                      // Non-incremental or completely different content
-                      console.log('Sending full content (non-incremental):', JSON.stringify(fullContent));
-                      onChunk(fullContent);
-                    }
-                    previousContent = fullContent;
-                  }
-                  // If fullContent === previousContent, we skip it (no duplicate sending)
-                }
+                onChunk(chunkContent);
+                fullContent += chunkContent || "";
               } catch (e) {
                 // Ignore invalid JSON chunks
                 console.warn("Failed to parse streaming chunk:", e);
@@ -153,7 +135,7 @@ export class GeminiService {
         }
 
         onComplete();
-        console.log("Streaming complete: ", previousContent); // Log the complete parsed content
+        console.log("Streaming complete: ", fullContent);
       } finally {
         reader.cancel();
       }
