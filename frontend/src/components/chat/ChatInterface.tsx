@@ -160,7 +160,7 @@ export function ChatInterface() {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [messages, hasExpandedCodeBlock, scrollToBottom]);
+  }, [messages, scrollToBottom]);
 
   // Attach scroll listener to the correct element
   useEffect(() => {
@@ -267,7 +267,7 @@ export function ChatInterface() {
       </div>
       <ScrollArea
         ref={scrollAreaRef}
-        className="h-screen overflow-y-auto p-4 pt-16 pb-20"
+        className="h-screen overflow-y-auto p-4 pt-16 pb-24"
         onTouchStart={handleScrollStart}
         onMouseDown={handleScrollStart}
       >
