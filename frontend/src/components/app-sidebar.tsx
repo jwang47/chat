@@ -609,7 +609,14 @@ export function AppSidebar() {
       {/* Resize Handle - invisible but functional */}
       {!isCollapsed && (
         <div
-          className="absolute top-0 right-0 w-1 h-full cursor-col-resize"
+          className="absolute top-0 right-0 w-2 h-full cursor-col-resize"
+          onMouseDown={handleMouseDown}
+        />
+      )}
+      {/* Extended resize area for easier grabbing */}
+      {!isCollapsed && (
+        <div
+          className="absolute top-0 -right-2 w-4 h-full cursor-col-resize"
           onMouseDown={handleMouseDown}
         />
       )}

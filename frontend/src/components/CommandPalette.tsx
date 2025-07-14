@@ -110,7 +110,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                 <CommandItem
                   key={conversation.id}
                   onSelect={() => handleLoadConversation(conversation.id)}
-                  value={`${conversation.title || ""} ${displayTitle}`}
+                  value={`${conversation.title || ""} ${displayTitle} ${conversation.id}`}
                 >
                   <span className="truncate">{displayTitle}</span>
                 </CommandItem>
@@ -136,7 +136,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                 <CommandItem
                   key={conversation.id}
                   onSelect={() => handleLoadConversation(conversation.id)}
-                  value={`${conversation.title || ""} ${displayTitle}`}
+                  value={`${conversation.title || ""} ${displayTitle} ${conversation.id}`}
                 >
                   <span className="truncate">{displayTitle}</span>
                 </CommandItem>
