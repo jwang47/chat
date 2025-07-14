@@ -1,26 +1,46 @@
 import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 
-// Use HashRouter for Electron, BrowserRouter for web
-const Router = typeof window !== 'undefined' && window.electronAPI?.isElectron ? HashRouter : BrowserRouter;
+// Use HashRouter for Tauri, BrowserRouter for web
+const Router =
+  typeof window !== "undefined" && window.__TAURI__ !== undefined
+    ? HashRouter
+    : BrowserRouter;
 import { Layout } from "@/components/Layout";
-import { ChatInterface } from "@/pages/ChatInterface";
-import { Settings } from "./pages/Settings";
-import ComponentShowcase from "./pages/ComponentShowcase";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { Theme } from "@radix-ui/themes";
 
+// Lazy load pages for better performance
+const ChatInterface = lazy(() =>
+  import("@/pages/ChatInterface").then((module) => ({
+    default: module.ChatInterface,
+  }))
+);
+const Settings = lazy(() =>
+  import("./pages/Settings").then((module) => ({ default: module.Settings }))
+);
+const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
+
 function App() {
   return (
-    <Theme>
+    <Theme accentColor="gray" grayColor="gray" radius="medium" scaling="100%">
       <Router>
         <ChatProvider>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<ChatInterface />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="components" element={<ComponentShowcase />} />
-            </Route>
-          </Routes>
+          <Suspense
+            fallback={
+              <div className="bg-background h-screen w-screen flex items-center justify-center">
+                Loading...
+              </div>
+            }
+          >
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<ChatInterface />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="showcase" element={<ComponentShowcase />} />
+              </Route>
+            </Routes>
+          </Suspense>
         </ChatProvider>
       </Router>
     </Theme>

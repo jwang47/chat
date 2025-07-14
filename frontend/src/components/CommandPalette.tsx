@@ -1,16 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Home, Settings } from "lucide-react";
 import {
   CommandDialog,
-  CommandInput,
-  CommandList,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
-  CommandShortcut,
+  CommandList,
+  CommandSeparator,
 } from "@/components/ui/command";
-import { useChat } from "@/contexts/ChatContext";
+import { listen } from "@tauri-apps/api/event";
 
 interface CommandPaletteProps {
   onNewChat?: () => void;
@@ -19,156 +18,105 @@ interface CommandPaletteProps {
 export function CommandPalette({ onNewChat }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { conversations, loadConversation } = useChat();
 
-  const handleNewChat = useCallback(() => {
+  const handleNewChat = () => {
     if (onNewChat) {
       onNewChat();
-    } else {
-      navigate("/");
     }
     setOpen(false);
-  }, [onNewChat, navigate]);
+  };
 
-  const handleNavigateToSettings = useCallback(() => {
-    navigate("/settings");
+  const handleNavigate = (path: string) => {
+    navigate(path);
     setOpen(false);
-  }, [navigate]);
-
-  const handleNavigateToHome = useCallback(() => {
-    navigate("/");
-    setOpen(false);
-  }, [navigate]);
-
-  const handleLoadConversation = useCallback(
-    async (conversationId: string) => {
-      await loadConversation(conversationId);
-      navigate("/");
-      setOpen(false);
-    },
-    [loadConversation, navigate]
-  );
+  };
 
   useEffect(() => {
-    // Electron keyboard shortcut handler
-    const handleElectronShortcut = (shortcut: string) => {
-      if (shortcut === 'command-palette') {
-        setOpen((open) => !open);
-      } else if (shortcut === 'new-chat') {
-        handleNewChat();
+    let unlisten: (() => void) | undefined;
+
+    const setupListeners = async () => {
+      // Check if running in Tauri
+      const isTauri =
+        typeof window !== "undefined" && window.__TAURI__ !== undefined;
+
+      if (isTauri) {
+        // Listen for Tauri keyboard shortcuts
+        try {
+          unlisten = await listen<string>("keyboard-shortcut", (event) => {
+            const shortcut = event.payload;
+            if (shortcut === "toggle-window") {
+              handleNewChat();
+            } else if (shortcut === "open-settings") {
+              handleNavigate("/settings");
+            }
+          });
+        } catch (error) {
+          console.error("Failed to set up Tauri shortcut listeners:", error);
+        }
       }
     };
 
-    // Regular DOM keyboard event handler (fallback for web or if Electron shortcuts fail)
+    const handleTauriShortcut = (shortcut: string) => {
+      if (shortcut === "toggle-window") {
+        handleNewChat();
+      } else if (shortcut === "open-settings") {
+        handleNavigate("/settings");
+      }
+    };
+
     const down = (e: KeyboardEvent) => {
-      // Only handle if not in Electron or as fallback
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
       }
-      // For new chat, only handle if not in Electron (since Electron has global shortcut)
-      if (e.key === "o" && (e.metaKey || e.ctrlKey) && e.shiftKey && !window.electronAPI?.isElectron) {
+      // For new chat, only handle if not in Tauri (since Tauri has global shortcut)
+      if (
+        e.key === "o" &&
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        !window.__TAURI__
+      ) {
         e.preventDefault();
         handleNewChat();
       }
     };
 
-    // Register Electron shortcuts if available
-    if (window.electronAPI?.onKeyboardShortcut) {
-      window.electronAPI.onKeyboardShortcut(handleElectronShortcut);
-    }
-    
+    setupListeners();
+
     // Always register DOM listener as fallback
     document.addEventListener("keydown", down);
 
     return () => {
       document.removeEventListener("keydown", down);
-      // Clean up Electron listeners
-      if (window.electronAPI?.removeKeyboardShortcutListeners) {
-        window.electronAPI.removeKeyboardShortcutListeners();
+      // Clean up Tauri listeners
+      if (unlisten) {
+        unlisten();
       }
     };
-  }, [handleNewChat]);
+  }, [navigate, onNewChat]);
 
   return (
-    <CommandDialog
-      open={open}
-      onOpenChange={setOpen}
-      title="Command Palette"
-      description="Search for commands and actions"
-    >
+    <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Actions">
           <CommandItem onSelect={handleNewChat}>
-            <Plus className="mr-2 h-4 w-4" />
             <span>New Chat</span>
-            <CommandShortcut>⌘⇧O</CommandShortcut>
           </CommandItem>
         </CommandGroup>
+        <CommandSeparator />
         <CommandGroup heading="Navigation">
-          <CommandItem onSelect={handleNavigateToHome}>
-            <Home className="mr-2 h-4 w-4" />
-            <span>Go to Chat</span>
+          <CommandItem onSelect={() => handleNavigate("/")}>
+            <span>Chat</span>
           </CommandItem>
-          <CommandItem onSelect={handleNavigateToSettings}>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Go to Settings</span>
+          <CommandItem onSelect={() => handleNavigate("/settings")}>
+            <span>Settings</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleNavigate("/showcase")}>
+            <span>Component Showcase</span>
           </CommandItem>
         </CommandGroup>
-        {/* Pinned Conversations */}
-        {conversations.some(c => c.isPinned) && (
-          <CommandGroup heading="Pinned">
-            {conversations.filter(c => c.isPinned).slice(0, 5).map((conversation) => {
-              const displayTitle =
-                conversation.title ||
-                new Date(conversation.createdAt).toLocaleString("en-US", {
-                  month: "numeric",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                });
-
-              return (
-                <CommandItem
-                  key={conversation.id}
-                  onSelect={() => handleLoadConversation(conversation.id)}
-                  value={`${conversation.title || ""} ${displayTitle} ${conversation.id}`}
-                >
-                  <span className="truncate">{displayTitle}</span>
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        )}
-        {/* History (Regular Conversations) */}
-        {conversations.some(c => !c.isPinned) && (
-          <CommandGroup heading="History">
-            {conversations.filter(c => !c.isPinned).slice(0, 10).map((conversation) => {
-              const displayTitle =
-                conversation.title ||
-                new Date(conversation.createdAt).toLocaleString("en-US", {
-                  month: "numeric",
-                  day: "numeric",
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                });
-
-              return (
-                <CommandItem
-                  key={conversation.id}
-                  onSelect={() => handleLoadConversation(conversation.id)}
-                  value={`${conversation.title || ""} ${displayTitle} ${conversation.id}`}
-                >
-                  <span className="truncate">{displayTitle}</span>
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        )}
       </CommandList>
     </CommandDialog>
   );

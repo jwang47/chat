@@ -1,3 +1,5 @@
+import TauriApiKeyStorage from "./tauriApiKeyStorage";
+
 export interface ApiKeys {
   openrouter?: string;
   gemini?: string;
@@ -5,147 +7,100 @@ export interface ApiKeys {
 
 export type ApiKeyProvider = keyof ApiKeys;
 
-class ApiKeyStorage {
+export interface IApiKeyStorage {
+  getApiKey(provider: ApiKeyProvider): Promise<string | null>;
+  setApiKey(provider: ApiKeyProvider, apiKey: string): Promise<boolean>;
+  getAllApiKeys(): Promise<ApiKeys>;
+  setApiKeys(apiKeys: ApiKeys): Promise<boolean>;
+  removeApiKey(provider: ApiKeyProvider): Promise<boolean>;
+  clearAllApiKeys(): Promise<boolean>;
+  hasAnyApiKey(): Promise<boolean>;
+  hasApiKey(provider: ApiKeyProvider): Promise<boolean>;
+}
 
-  /**
-   * Check if running in Electron
-   */
-  private static isElectron(): boolean {
-    return typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
+class ApiKeyStorage implements IApiKeyStorage {
+  private static instance: ApiKeyStorage;
+  private storage: IApiKeyStorage;
+
+  constructor() {
+    // Use Tauri as the default storage implementation
+    this.storage = TauriApiKeyStorage;
   }
 
-  /**
-   * Get a specific API key from secure storage (Electron only)
-   */
+  private static getInstance(): ApiKeyStorage {
+    if (!ApiKeyStorage.instance) {
+      ApiKeyStorage.instance = new ApiKeyStorage();
+    }
+    return ApiKeyStorage.instance;
+  }
+
+  // Instance methods implementing the interface
+  async getApiKey(provider: ApiKeyProvider): Promise<string | null> {
+    return this.storage.getApiKey(provider);
+  }
+
+  async setApiKey(provider: ApiKeyProvider, apiKey: string): Promise<boolean> {
+    return this.storage.setApiKey(provider, apiKey);
+  }
+
+  async getAllApiKeys(): Promise<ApiKeys> {
+    return this.storage.getAllApiKeys();
+  }
+
+  async setApiKeys(apiKeys: ApiKeys): Promise<boolean> {
+    return this.storage.setApiKeys(apiKeys);
+  }
+
+  async removeApiKey(provider: ApiKeyProvider): Promise<boolean> {
+    return this.storage.removeApiKey(provider);
+  }
+
+  async clearAllApiKeys(): Promise<boolean> {
+    return this.storage.clearAllApiKeys();
+  }
+
+  async hasAnyApiKey(): Promise<boolean> {
+    return this.storage.hasAnyApiKey();
+  }
+
+  async hasApiKey(provider: ApiKeyProvider): Promise<boolean> {
+    return this.storage.hasApiKey(provider);
+  }
+
+  // Static methods for backward compatibility
   static async getApiKey(provider: ApiKeyProvider): Promise<string | null> {
-    try {
-      if (!this.isElectron() || !window.electronAPI) {
-        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
-      }
-      
-      return await window.electronAPI.credentials.getApiKey(provider);
-    } catch (error) {
-      console.error(`Error getting ${provider} API key:`, error);
-      throw error;
-    }
+    return ApiKeyStorage.getInstance().getApiKey(provider);
   }
 
-  /**
-   * Set a specific API key in secure storage (Electron only)
-   */
-  static async setApiKey(provider: ApiKeyProvider, apiKey: string): Promise<boolean> {
-    try {
-      if (!this.isElectron() || !window.electronAPI) {
-        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
-      }
-      
-      return await window.electronAPI.credentials.setApiKey(provider, apiKey);
-    } catch (error) {
-      console.error(`Error setting ${provider} API key:`, error);
-      throw error;
-    }
+  static async setApiKey(
+    provider: ApiKeyProvider,
+    apiKey: string
+  ): Promise<boolean> {
+    return ApiKeyStorage.getInstance().setApiKey(provider, apiKey);
   }
 
-  /**
-   * Get all API keys from secure storage (Electron only)
-   */
   static async getAllApiKeys(): Promise<ApiKeys> {
-    try {
-      if (!this.isElectron() || !window.electronAPI) {
-        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
-      }
-      
-      return await window.electronAPI.credentials.getAllApiKeys();
-    } catch (error) {
-      console.error("Error getting all API keys:", error);
-      throw error;
-    }
+    return ApiKeyStorage.getInstance().getAllApiKeys();
   }
 
-  /**
-   * Set multiple API keys at once
-   */
   static async setApiKeys(apiKeys: ApiKeys): Promise<boolean> {
-    try {
-      let success = true;
-
-      if (apiKeys.openrouter !== undefined) {
-        success = (await this.setApiKey("openrouter", apiKeys.openrouter)) && success;
-      }
-
-      if (apiKeys.gemini !== undefined) {
-        success = (await this.setApiKey("gemini", apiKeys.gemini)) && success;
-      }
-
-      return success;
-    } catch (error) {
-      console.error("Error setting API keys:", error);
-      return false;
-    }
+    return ApiKeyStorage.getInstance().setApiKeys(apiKeys);
   }
 
-  /**
-   * Remove a specific API key from secure storage (Electron only)
-   */
   static async removeApiKey(provider: ApiKeyProvider): Promise<boolean> {
-    try {
-      if (!this.isElectron() || !window.electronAPI) {
-        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
-      }
-      
-      return await window.electronAPI.credentials.removeApiKey(provider);
-    } catch (error) {
-      console.error(`Error removing ${provider} API key:`, error);
-      throw error;
-    }
+    return ApiKeyStorage.getInstance().removeApiKey(provider);
   }
 
-  /**
-   * Remove all API keys from secure storage (Electron only)
-   */
   static async clearAllApiKeys(): Promise<boolean> {
-    try {
-      if (!this.isElectron() || !window.electronAPI) {
-        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
-      }
-      
-      return await window.electronAPI.credentials.clearAllApiKeys();
-    } catch (error) {
-      console.error("Error clearing API keys:", error);
-      throw error;
-    }
+    return ApiKeyStorage.getInstance().clearAllApiKeys();
   }
 
-  /**
-   * Check if any API key is available (Electron only)
-   */
   static async hasAnyApiKey(): Promise<boolean> {
-    try {
-      if (!this.isElectron() || !window.electronAPI) {
-        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
-      }
-      
-      return await window.electronAPI.credentials.hasAnyApiKey();
-    } catch (error) {
-      console.error("Error checking for API keys:", error);
-      throw error;
-    }
+    return ApiKeyStorage.getInstance().hasAnyApiKey();
   }
 
-  /**
-   * Check if a specific API key is available (Electron only)
-   */
   static async hasApiKey(provider: ApiKeyProvider): Promise<boolean> {
-    try {
-      if (!this.isElectron() || !window.electronAPI) {
-        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
-      }
-      
-      return await window.electronAPI.credentials.hasApiKey(provider);
-    } catch (error) {
-      console.error(`Error checking for ${provider} API key:`, error);
-      throw error;
-    }
+    return ApiKeyStorage.getInstance().hasApiKey(provider);
   }
 }
 

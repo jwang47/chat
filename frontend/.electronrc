@@ -1,0 +1,12 @@
+{
+  "build": {
+    "beforeBuild": "npm run build:stats",
+    "compression": "maximum",
+    "removePackageScripts": true,
+    "removePackageKeywords": true,
+    "buildDependenciesFromSource": false,
+    "nodeGypRebuild": false,
+    "npmRebuild": false,
+    "buildVersion": "1.0.0"
+  }
+} 

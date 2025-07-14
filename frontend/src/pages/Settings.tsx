@@ -1,40 +1,34 @@
 import { useState, useEffect } from "react";
-import { Card } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
 import ApiKeyStorage from "@/lib/apiKeyStorage";
 
 export function Settings() {
-  const [openRouterApiKey, setOpenRouterApiKey] = useState("");
-  const [geminiApiKey, setGeminiApiKey] = useState("");
+  const [openrouterKey, setOpenrouterKey] = useState("");
+  const [geminiKey, setGeminiKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
-  const [isElectron, setIsElectron] = useState(false);
+  const [isTauri, setIsTauri] = useState(false);
 
   useEffect(() => {
-    // Check if running in Electron and load API keys
-    const electronDetected = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
-    setIsElectron(electronDetected);
-    
+    // Check if running in Tauri and load API keys
+    const tauriDetected =
+      typeof window !== "undefined" && window.__TAURI__ !== undefined;
+    setIsTauri(tauriDetected);
+
     const loadApiKeys = async () => {
-      if (!electronDetected) return;
-      
+      if (!tauriDetected) return;
+
       try {
         const apiKeys = await ApiKeyStorage.getAllApiKeys();
 
         if (apiKeys.openrouter) {
-          setOpenRouterApiKey(apiKeys.openrouter);
+          setOpenrouterKey(apiKeys.openrouter);
         }
+
         if (apiKeys.gemini) {
-          setGeminiApiKey(apiKeys.gemini);
+          setGeminiKey(apiKeys.gemini);
         }
       } catch (error) {
         console.error("Error loading API keys:", error);
-        if (error instanceof Error && error.message.includes('desktop app')) {
-          setSaveMessage("Please use the desktop app for secure API key storage.");
-        } else {
-          setSaveMessage("Error loading API keys.");
-        }
       }
     };
 
@@ -42,175 +36,162 @@ export function Settings() {
   }, []);
 
   const handleSave = async () => {
+    if (!isTauri) {
+      setSaveMessage("API key storage is only available in the desktop app.");
+      setTimeout(() => setSaveMessage(""), 3000);
+      return;
+    }
+
     setIsLoading(true);
     setSaveMessage("");
 
     try {
       const success = await ApiKeyStorage.setApiKeys({
-        openrouter: openRouterApiKey,
-        gemini: geminiApiKey,
+        openrouter: openrouterKey || undefined,
+        gemini: geminiKey || undefined,
       });
 
       if (success) {
         setSaveMessage("API keys saved successfully!");
       } else {
-        setSaveMessage("Error saving API keys. Please try again.");
+        setSaveMessage("Failed to save some API keys.");
       }
     } catch (error) {
       console.error("Error saving API keys:", error);
-      if (error instanceof Error && error.message.includes('desktop app')) {
-        setSaveMessage("Please use the desktop app for secure API key storage.");
-      } else {
-        setSaveMessage("Error saving API keys. Please try again.");
-      }
+      setSaveMessage("Error saving API keys. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => setSaveMessage(""), 3000);
     }
-
-    setIsLoading(false);
-    // Clear message after 3 seconds
-    setTimeout(() => setSaveMessage(""), 3000);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       handleSave();
     }
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground mb-2">
-          Settings
-        </h1>
-        <p className="text-muted-foreground">
-          Configure your API keys to enable chat functionality with different AI
-          providers.
-        </p>
-      </div>
+    <div className="container mx-auto p-6 max-w-2xl">
+      <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-      <Card className="p-6">
-        <div className="space-y-6">
-          <div>
-            <label
-              htmlFor="openrouter-api-key"
-              className="block text-sm font-medium text-foreground mb-2"
-            >
-              OpenRouter API Key
-            </label>
-            <Input
-              id="openrouter-api-key"
-              type="password"
-              placeholder="Enter your OpenRouter API key"
-              value={openRouterApiKey}
-              onChange={(e) => setOpenRouterApiKey(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="w-full"
-              disabled={!isElectron}
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              Access to multiple AI models through OpenRouter's unified API.
-            </p>
-          </div>
+      <div className="space-y-6">
+        <div className="bg-card p-6 rounded-lg border">
+          <h2 className="text-lg font-semibold mb-4">API Keys</h2>
 
-          <div>
-            <label
-              htmlFor="gemini-api-key"
-              className="block text-sm font-medium text-foreground mb-2"
-            >
-              Gemini API Key
-            </label>
-            <Input
-              id="gemini-api-key"
-              type="password"
-              placeholder="Enter your Gemini API key"
-              value={geminiApiKey}
-              onChange={(e) => setGeminiApiKey(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="w-full"
-              disabled={!isElectron}
-            />
-            <p className="text-xs text-muted-foreground mt-2">
-              Direct access to Google's Gemini AI models.
-            </p>
-          </div>
+          {!isTauri && (
+            <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-md">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                Secure API key storage is only available in the desktop app.
+                Your keys will not be saved in the web version.
+              </p>
+            </div>
+          )}
 
-          <div className="pt-2">
-            <p className="text-xs text-muted-foreground mb-4">
-              {typeof window !== 'undefined' && window.electronAPI?.isElectron 
-                ? "Your API keys are stored securely using your operating system's credential store and are encrypted."
-                : "⚠️ For security, API key storage is only available in the desktop app. Please download and use the Electron version."
-              }
-            </p>
-
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={handleSave}
-                disabled={isLoading || !isElectron}
-                className="min-w-[100px]"
+          <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="openrouter"
+                className="block text-sm font-medium mb-2"
               >
-                {isLoading ? "Saving..." : "Save"}
-              </Button>
-
-              {saveMessage && (
-                <span
-                  className={`text-sm ${
-                    saveMessage.includes("Error")
-                      ? "text-destructive"
-                      : "text-green-600"
-                  }`}
+                OpenRouter API Key
+              </label>
+              <input
+                id="openrouter"
+                type="password"
+                value={openrouterKey}
+                onChange={(e) => setOpenrouterKey(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Enter your OpenRouter API key"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                disabled={!isTauri}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Get your API key from{" "}
+                <a
+                  href="https://openrouter.ai/keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
                 >
-                  {saveMessage}
-                </span>
-              )}
+                  OpenRouter
+                </a>
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="gemini"
+                className="block text-sm font-medium mb-2"
+              >
+                Google Gemini API Key
+              </label>
+              <input
+                id="gemini"
+                type="password"
+                value={geminiKey}
+                onChange={(e) => setGeminiKey(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Enter your Gemini API key"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                disabled={!isTauri}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Get your API key from{" "}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  Google AI Studio
+                </a>
+              </p>
             </div>
           </div>
+
+          <div className="mt-6 flex items-center gap-4">
+            <button
+              onClick={handleSave}
+              disabled={isLoading || !isTauri}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "Saving..." : "Save API Keys"}
+            </button>
+
+            {saveMessage && (
+              <span
+                className={`text-sm ${
+                  saveMessage.includes("Error") ||
+                  saveMessage.includes("Failed")
+                    ? "text-red-600"
+                    : "text-green-600"
+                }`}
+              >
+                {saveMessage}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4 text-xs text-gray-500">
+            <p>💡 Tip: Press Cmd/Ctrl + Enter to save quickly</p>
+            {isTauri && (
+              <p className="mt-1">
+                🔒 Your API keys are stored securely in your system's credential
+                store
+              </p>
+            )}
+          </div>
         </div>
-      </Card>
 
-      <div className="mt-6 space-y-4">
-        <Card className="p-4">
-          <h3 className="text-sm font-medium text-foreground mb-2">
-            How to get your OpenRouter API Key:
-          </h3>
-          <ol className="text-sm text-muted-foreground space-y-1">
-            <li>
-              1. Visit{" "}
-              <a
-                href="https://openrouter.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                openrouter.ai
-              </a>
-            </li>
-            <li>2. Sign up or log in to your account</li>
-            <li>3. Go to the API Keys section in your dashboard</li>
-            <li>4. Create a new API key and copy it here</li>
-          </ol>
-        </Card>
-
-        <Card className="p-4">
-          <h3 className="text-sm font-medium text-foreground mb-2">
-            How to get your Gemini API Key:
-          </h3>
-          <ol className="text-sm text-muted-foreground space-y-1">
-            <li>
-              1. Visit{" "}
-              <a
-                href="https://aistudio.google.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                Google AI Studio
-              </a>
-            </li>
-            <li>2. Sign in with your Google account</li>
-            <li>3. Click "Get API key" in the left sidebar</li>
-            <li>4. Create a new API key and copy it here</li>
-          </ol>
-        </Card>
+        <div className="bg-card p-6 rounded-lg border">
+          <h2 className="text-lg font-semibold mb-4">About</h2>
+          <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <p>Chat Application</p>
+            <p>Version: 1.0.0</p>
+            <p>Built with Tauri + React + TypeScript</p>
+          </div>
+        </div>
       </div>
     </div>
   );
