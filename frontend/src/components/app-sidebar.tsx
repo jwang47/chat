@@ -412,13 +412,8 @@ export function AppSidebar() {
                                 }
                               `}
                             >
-                              <MessageSquare className={`absolute left-2 top-2 w-4 h-4 ${
-                                currentConversationId === conversation.id
-                                  ? ""
-                                  : "opacity-70 group-hover/menu-item:opacity-100"
-                              }`} />
                               {conversation.isPinned && (
-                                <Pin className={`absolute left-7 top-2 w-3 h-3 text-amber-500 ${
+                                <Pin className={`absolute left-2 top-2 w-4 h-4 text-amber-500 ${
                                   currentConversationId === conversation.id
                                     ? ""
                                     : "opacity-70 group-hover/menu-item:opacity-100"
@@ -426,7 +421,7 @@ export function AppSidebar() {
                               )}
                               <span
                                 className={`${
-                                  conversation.isPinned ? "pl-11" : "pl-8"
+                                  conversation.isPinned ? "pl-8" : "pl-2"
                                 } pr-8 truncate`}
                               >
                                 {displayTitle}

@@ -111,9 +111,8 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                   onSelect={() => handleLoadConversation(conversation.id)}
                   value={`${conversation.title || ""} ${displayTitle}`}
                 >
-                  <MessageSquare className="mr-2 h-4 w-4" />
                   {conversation.isPinned && (
-                    <Pin className="mr-1 h-3 w-3 text-amber-500" />
+                    <Pin className="mr-2 h-4 w-4 text-amber-500" />
                   )}
                   <span className="truncate">{displayTitle}</span>
                 </CommandItem>
