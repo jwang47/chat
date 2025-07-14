@@ -47,7 +47,7 @@ export class GeminiService {
     model: string = this.DEFAULT_MODEL,
     systemInstruction?: string
   ): Promise<void> {
-    const apiKey = ApiKeyStorage.getApiKey("gemini");
+    const apiKey = await ApiKeyStorage.getApiKey("gemini");
 
     if (!apiKey) {
       onError(
@@ -175,8 +175,8 @@ export class GeminiService {
   /**
    * Check if Gemini API key is available
    */
-  static hasApiKey(): boolean {
-    return ApiKeyStorage.hasApiKey("gemini");
+  static async hasApiKey(): Promise<boolean> {
+    return await ApiKeyStorage.hasApiKey("gemini");
   }
 
   /**

@@ -12,10 +12,22 @@ class ApiKeyStorage {
   } as const;
 
   /**
-   * Get a specific API key from localStorage
+   * Check if running in Electron
    */
-  static getApiKey(provider: ApiKeyProvider): string | null {
+  private static isElectron(): boolean {
+    return typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
+  }
+
+  /**
+   * Get a specific API key from secure storage or localStorage fallback
+   */
+  static async getApiKey(provider: ApiKeyProvider): Promise<string | null> {
     try {
+      if (this.isElectron() && window.electronAPI) {
+        return await window.electronAPI.credentials.getApiKey(provider);
+      }
+      
+      // Fallback to localStorage for web version
       const key = this.STORAGE_KEYS[provider];
       return localStorage.getItem(key);
     } catch (error) {
@@ -25,10 +37,15 @@ class ApiKeyStorage {
   }
 
   /**
-   * Set a specific API key in localStorage
+   * Set a specific API key in secure storage or localStorage fallback
    */
-  static setApiKey(provider: ApiKeyProvider, apiKey: string): boolean {
+  static async setApiKey(provider: ApiKeyProvider, apiKey: string): Promise<boolean> {
     try {
+      if (this.isElectron() && window.electronAPI) {
+        return await window.electronAPI.credentials.setApiKey(provider, apiKey);
+      }
+      
+      // Fallback to localStorage for web version
       const key = this.STORAGE_KEYS[provider];
       if (apiKey.trim()) {
         localStorage.setItem(key, apiKey.trim());
@@ -43,28 +60,38 @@ class ApiKeyStorage {
   }
 
   /**
-   * Get all API keys from localStorage
+   * Get all API keys from secure storage or localStorage fallback
    */
-  static getAllApiKeys(): ApiKeys {
-    return {
-      openrouter: this.getApiKey("openrouter") || undefined,
-      gemini: this.getApiKey("gemini") || undefined,
-    };
+  static async getAllApiKeys(): Promise<ApiKeys> {
+    try {
+      if (this.isElectron() && window.electronAPI) {
+        return await window.electronAPI.credentials.getAllApiKeys();
+      }
+      
+      // Fallback to localStorage for web version
+      return {
+        openrouter: (await this.getApiKey("openrouter")) || undefined,
+        gemini: (await this.getApiKey("gemini")) || undefined,
+      };
+    } catch (error) {
+      console.error("Error getting all API keys:", error);
+      return {};
+    }
   }
 
   /**
    * Set multiple API keys at once
    */
-  static setApiKeys(apiKeys: ApiKeys): boolean {
+  static async setApiKeys(apiKeys: ApiKeys): Promise<boolean> {
     try {
       let success = true;
 
       if (apiKeys.openrouter !== undefined) {
-        success = this.setApiKey("openrouter", apiKeys.openrouter) && success;
+        success = (await this.setApiKey("openrouter", apiKeys.openrouter)) && success;
       }
 
       if (apiKeys.gemini !== undefined) {
-        success = this.setApiKey("gemini", apiKeys.gemini) && success;
+        success = (await this.setApiKey("gemini", apiKeys.gemini)) && success;
       }
 
       return success;
@@ -75,10 +102,15 @@ class ApiKeyStorage {
   }
 
   /**
-   * Remove a specific API key from localStorage
+   * Remove a specific API key from secure storage or localStorage fallback
    */
-  static removeApiKey(provider: ApiKeyProvider): boolean {
+  static async removeApiKey(provider: ApiKeyProvider): Promise<boolean> {
     try {
+      if (this.isElectron() && window.electronAPI) {
+        return await window.electronAPI.credentials.removeApiKey(provider);
+      }
+      
+      // Fallback to localStorage for web version
       const key = this.STORAGE_KEYS[provider];
       localStorage.removeItem(key);
       return true;
@@ -89,10 +121,15 @@ class ApiKeyStorage {
   }
 
   /**
-   * Remove all API keys from localStorage
+   * Remove all API keys from secure storage or localStorage fallback
    */
-  static clearAllApiKeys(): boolean {
+  static async clearAllApiKeys(): Promise<boolean> {
     try {
+      if (this.isElectron() && window.electronAPI) {
+        return await window.electronAPI.credentials.clearAllApiKeys();
+      }
+      
+      // Fallback to localStorage for web version
       Object.values(this.STORAGE_KEYS).forEach((key) => {
         localStorage.removeItem(key);
       });
@@ -106,16 +143,36 @@ class ApiKeyStorage {
   /**
    * Check if any API key is available
    */
-  static hasAnyApiKey(): boolean {
-    const keys = this.getAllApiKeys();
-    return !!(keys.openrouter || keys.gemini);
+  static async hasAnyApiKey(): Promise<boolean> {
+    try {
+      if (this.isElectron() && window.electronAPI) {
+        return await window.electronAPI.credentials.hasAnyApiKey();
+      }
+      
+      // Fallback to localStorage for web version
+      const keys = await this.getAllApiKeys();
+      return !!(keys.openrouter || keys.gemini);
+    } catch (error) {
+      console.error("Error checking for API keys:", error);
+      return false;
+    }
   }
 
   /**
    * Check if a specific API key is available
    */
-  static hasApiKey(provider: ApiKeyProvider): boolean {
-    return !!this.getApiKey(provider);
+  static async hasApiKey(provider: ApiKeyProvider): Promise<boolean> {
+    try {
+      if (this.isElectron() && window.electronAPI) {
+        return await window.electronAPI.credentials.hasApiKey(provider);
+      }
+      
+      // Fallback to localStorage for web version
+      return !!(await this.getApiKey(provider));
+    } catch (error) {
+      console.error(`Error checking for ${provider} API key:`, error);
+      return false;
+    }
   }
 }
 

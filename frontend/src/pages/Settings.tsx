@@ -11,29 +11,43 @@ export function Settings() {
   const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
-    // Load API keys from localStorage on component mount
-    const apiKeys = ApiKeyStorage.getAllApiKeys();
+    // Load API keys from secure storage on component mount
+    const loadApiKeys = async () => {
+      try {
+        const apiKeys = await ApiKeyStorage.getAllApiKeys();
 
-    if (apiKeys.openrouter) {
-      setOpenRouterApiKey(apiKeys.openrouter);
-    }
-    if (apiKeys.gemini) {
-      setGeminiApiKey(apiKeys.gemini);
-    }
+        if (apiKeys.openrouter) {
+          setOpenRouterApiKey(apiKeys.openrouter);
+        }
+        if (apiKeys.gemini) {
+          setGeminiApiKey(apiKeys.gemini);
+        }
+      } catch (error) {
+        console.error("Error loading API keys:", error);
+        setSaveMessage("Error loading API keys.");
+      }
+    };
+
+    loadApiKeys();
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsLoading(true);
     setSaveMessage("");
 
-    const success = ApiKeyStorage.setApiKeys({
-      openrouter: openRouterApiKey,
-      gemini: geminiApiKey,
-    });
+    try {
+      const success = await ApiKeyStorage.setApiKeys({
+        openrouter: openRouterApiKey,
+        gemini: geminiApiKey,
+      });
 
-    if (success) {
-      setSaveMessage("API keys saved successfully!");
-    } else {
+      if (success) {
+        setSaveMessage("API keys saved successfully!");
+      } else {
+        setSaveMessage("Error saving API keys. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving API keys:", error);
       setSaveMessage("Error saving API keys. Please try again.");
     }
 
@@ -106,8 +120,10 @@ export function Settings() {
 
           <div className="pt-2">
             <p className="text-xs text-muted-foreground mb-4">
-              Your API keys are stored locally in your browser and never sent to
-              our servers.
+              {typeof window !== 'undefined' && window.electronAPI?.isElectron 
+                ? "Your API keys are stored securely using your operating system's credential store and are encrypted."
+                : "Your API keys are stored locally in your browser and never sent to our servers."
+              }
             </p>
 
             <div className="flex items-center gap-4">

@@ -27,7 +27,7 @@ export class OpenRouterService {
     onError: (error: Error) => void,
     model: string = this.DEFAULT_MODEL
   ): Promise<void> {
-    const apiKey = ApiKeyStorage.getApiKey("openrouter");
+    const apiKey = await ApiKeyStorage.getApiKey("openrouter");
 
     if (!apiKey) {
       onError(
@@ -117,8 +117,8 @@ export class OpenRouterService {
   /**
    * Check if OpenRouter API key is available
    */
-  static hasApiKey(): boolean {
-    return ApiKeyStorage.hasApiKey("openrouter");
+  static async hasApiKey(): Promise<boolean> {
+    return await ApiKeyStorage.hasApiKey("openrouter");
   }
 
   /**

@@ -87,10 +87,10 @@ export class LlmService {
   /**
    * Check if API key is available for the given provider
    */
-  private static hasApiKey(provider: "openrouter" | "gemini"): boolean {
+  private static async hasApiKey(provider: "openrouter" | "gemini"): Promise<boolean> {
     return provider === "openrouter"
-      ? OpenRouterService.hasApiKey()
-      : GeminiService.hasApiKey();
+      ? await OpenRouterService.hasApiKey()
+      : await GeminiService.hasApiKey();
   }
 
   /**
@@ -103,7 +103,11 @@ export class LlmService {
   /**
    * Check if any API key is available
    */
-  static hasAnyApiKey(): boolean {
-    return OpenRouterService.hasApiKey() || GeminiService.hasApiKey();
+  static async hasAnyApiKey(): Promise<boolean> {
+    const [openrouterHasKey, geminiHasKey] = await Promise.all([
+      OpenRouterService.hasApiKey(),
+      GeminiService.hasApiKey()
+    ]);
+    return openrouterHasKey || geminiHasKey;
   }
 }

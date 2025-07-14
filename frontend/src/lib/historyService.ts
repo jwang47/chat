@@ -216,7 +216,7 @@ export const historyService = {
 
       // Call Gemini to generate a title
       const ApiKeyStorage = (await import('./apiKeyStorage')).default;
-      const apiKey = ApiKeyStorage.getApiKey("gemini");
+      const apiKey = await ApiKeyStorage.getApiKey("gemini");
       
       if (!apiKey) {
         console.error("❌ No Gemini API key found for title generation");
