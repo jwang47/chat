@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import ApiKeyStorage from "@/lib/apiKeyStorage";
+import { getName } from "@tauri-apps/api/app";
 
 export function Settings() {
   const [openrouterKey, setOpenrouterKey] = useState("");
@@ -9,12 +10,27 @@ export function Settings() {
   const [isTauri, setIsTauri] = useState(false);
 
   useEffect(() => {
-    // Check if running in Tauri and load API keys
-    const tauriDetected =
-      typeof window !== "undefined" && window.__TAURI__ !== undefined;
-    setIsTauri(tauriDetected);
+    // Check if running in Tauri using a more robust method
+    const checkTauriAndLoadKeys = async () => {
+      let tauriDetected = false;
 
-    const loadApiKeys = async () => {
+      try {
+        // Try to call a Tauri API function
+        await getName();
+        tauriDetected = true;
+        console.log("Tauri detection: SUCCESS - Using Tauri API");
+      } catch (error) {
+        // If Tauri API fails, fall back to window.__TAURI__ check
+        tauriDetected =
+          typeof window !== "undefined" && window.__TAURI__ !== undefined;
+        console.log(
+          "Tauri detection: FALLBACK - Using window.__TAURI__:",
+          tauriDetected
+        );
+      }
+
+      setIsTauri(tauriDetected);
+
       if (!tauriDetected) return;
 
       try {
@@ -32,7 +48,7 @@ export function Settings() {
       }
     };
 
-    loadApiKeys();
+    checkTauriAndLoadKeys();
   }, []);
 
   const handleSave = async () => {

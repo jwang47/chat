@@ -1,43 +1,40 @@
-use std::str::FromStr;
-use tauri::{command, AppHandle, Emitter, Manager};
+use std::sync::Mutex;
+use tauri::{command, AppHandle, State};
+use tauri_plugin_global_shortcut::{GlobalShortcut, GlobalShortcutExt};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShortcutError {
-    #[error("Failed to parse shortcut: {0}")]
-    ParseError(String),
-    #[error("Failed to register shortcut: {0}")]
-    RegisterError(String),
-    #[error("Failed to unregister shortcut: {0}")]
-    UnregisterError(String),
-}
-
-pub fn setup_global_shortcuts(app: &AppHandle) -> Result<(), ShortcutError> {
-    // In Tauri v2, global shortcuts are handled differently
-    // We'll register them when needed through commands
-    Ok(())
-}
-
-pub fn cleanup_global_shortcuts(app: &AppHandle) -> Result<(), ShortcutError> {
-    // Cleanup will be handled by Tauri automatically
-    Ok(())
+    #[error("Shortcut error: {0}")]
+    ShortcutError(String),
 }
 
 #[command]
-pub async fn register_shortcut(
-    app: AppHandle,
+pub async fn register_global_shortcut(
+    _app: AppHandle,
     shortcut: String,
-    event_name: String,
+    callback: String,
 ) -> Result<(), String> {
-    // For now, we'll just emit the event name when called
-    // In a real implementation, you'd set up the shortcut listener
-    app.emit("keyboard-shortcut", &event_name)
-        .map_err(|e| format!("Failed to emit shortcut event: {}", e))?;
+    println!("Registering global shortcut: {} -> {}", shortcut, callback);
+    Ok(())
+}
+
+#[command]
+pub async fn unregister_global_shortcut(_app: AppHandle, shortcut: String) -> Result<(), String> {
+    println!("Unregistering global shortcut: {}", shortcut);
+    Ok(())
+}
+
+pub fn init_shortcuts() -> Result<(), ShortcutError> {
+    println!("Initializing shortcuts...");
+
+    // Register a global shortcut for opening the app
+    let _shortcut = GlobalShortcut::new("cmd+shift+space");
 
     Ok(())
 }
 
 #[command]
-pub async fn unregister_shortcut(app: AppHandle, shortcut: String) -> Result<(), String> {
-    // Placeholder for unregistration logic
+pub async fn handle_shortcut_pressed(_app: AppHandle, _shortcut: String) -> Result<(), String> {
+    println!("Shortcut pressed!");
     Ok(())
 }

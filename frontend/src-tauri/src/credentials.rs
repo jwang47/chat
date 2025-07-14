@@ -1,7 +1,6 @@
 use keyring::{Entry, Error as KeyringError};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use tauri::{command, AppHandle, Manager, State};
+use tauri::{command, State};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiKeys {
@@ -30,7 +29,21 @@ impl CredentialStore {
 
     fn get_entry(&self, provider: &str) -> Result<Entry, CredentialError> {
         let username = format!("{}-api-key", provider);
-        Entry::new(&self.service_name, &username).map_err(CredentialError::Keyring)
+        println!(
+            "Creating keyring entry for service: '{}', username: '{}'",
+            self.service_name, username
+        );
+
+        match Entry::new(&self.service_name, &username) {
+            Ok(entry) => {
+                println!("Successfully created keyring entry for {}", provider);
+                Ok(entry)
+            }
+            Err(e) => {
+                eprintln!("Failed to create keyring entry for {}: {:?}", provider, e);
+                Err(CredentialError::Keyring(e))
+            }
+        }
     }
 
     pub fn get_credential(&self, provider: &str) -> Result<Option<String>, CredentialError> {
@@ -93,10 +106,32 @@ pub async fn set_api_key(
     value: String,
     store: State<'_, CredentialStore>,
 ) -> Result<bool, String> {
-    store
-        .set_credential(&provider, &value)
-        .map(|_| true)
-        .map_err(|e| e.to_string())
+    println!("Attempting to save API key for provider: {}", provider);
+
+    match store.set_credential(&provider, &value) {
+        Ok(_) => {
+            println!("Successfully saved API key for provider: {}", provider);
+            Ok(true)
+        }
+        Err(e) => {
+            eprintln!("Failed to save API key for provider {}: {}", provider, e);
+
+            // Log more details about the error
+            match &e {
+                CredentialError::Keyring(keyring_error) => {
+                    eprintln!("Keyring error details: {:?}", keyring_error);
+                }
+                CredentialError::ProviderNotFound(p) => {
+                    eprintln!("Provider not found: {}", p);
+                }
+                CredentialError::Serialization(s) => {
+                    eprintln!("Serialization error: {}", s);
+                }
+            }
+
+            Err(e.to_string())
+        }
+    }
 }
 
 #[command]

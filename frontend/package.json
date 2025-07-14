@@ -13,9 +13,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
-    "build:analyze": "npm run build && npx vite-bundle-analyzer dist",
-    "build:stats": "npm run build -- --mode production --logLevel info"
+    "test:coverage": "vitest --coverage"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",

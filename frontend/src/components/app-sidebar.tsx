@@ -270,13 +270,17 @@ export function AppSidebar() {
       highlightIfActive: false,
       url: "/",
     },
-    ...(import.meta.env.DEV ? [{
-      title: "Components",
-      icon: Palette,
-      onClick: () => navigate("/components"),
-      highlightIfActive: true,
-      url: "/components",
-    }] : []),
+    ...(import.meta.env.DEV
+      ? [
+          {
+            title: "Components",
+            icon: Palette,
+            onClick: () => navigate("/components"),
+            highlightIfActive: true,
+            url: "/components",
+          },
+        ]
+      : []),
     {
       title: "Settings",
       icon: Settings,
@@ -306,9 +310,7 @@ export function AppSidebar() {
         {/* Header */}
         <div className="flex flex-col gap-2 p-2">
           <div className="flex items-center">
-            <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium">
-              C
-            </div>
+            <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium"></div>
           </div>
         </div>
 
@@ -333,11 +335,14 @@ export function AppSidebar() {
                         }
                       `}
                     >
-                      <item.icon className={`absolute left-2 top-2 w-4 h-4 ${
-                        item.highlightIfActive && location.pathname === item.url
-                          ? ""
-                          : "opacity-70 group-hover:opacity-100"
-                      }`} />
+                      <item.icon
+                        className={`absolute left-2 top-2 w-4 h-4 ${
+                          item.highlightIfActive &&
+                          location.pathname === item.url
+                            ? ""
+                            : "opacity-70 group-hover:opacity-100"
+                        }`}
+                      />
                       {!isCollapsed && (
                         <span className="pl-8 truncate">{item.title}</span>
                       )}
@@ -349,31 +354,36 @@ export function AppSidebar() {
           </div>
 
           {/* Pinned Conversations */}
-          {conversations.some(c => c.isPinned) && !isCollapsed && (
+          {conversations.some((c) => c.isPinned) && !isCollapsed && (
             <div className="relative flex w-full min-w-0 flex-col p-2">
               <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium">
                 Pinned
               </div>
               <div className="w-full text-sm">
                 <ul className="flex w-full min-w-0 flex-col gap-1">
-                  {conversations.filter(c => c.isPinned).map((conversation) => {
-                    const displayTitle =
-                      conversation.title ||
-                      new Date(conversation.createdAt).toLocaleString("en-US", {
-                        month: "numeric",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      });
+                  {conversations
+                    .filter((c) => c.isPinned)
+                    .map((conversation) => {
+                      const displayTitle =
+                        conversation.title ||
+                        new Date(conversation.createdAt).toLocaleString(
+                          "en-US",
+                          {
+                            month: "numeric",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        );
 
-                    return (
-                      <li
-                        key={conversation.id}
-                        className="group/menu-item relative"
-                      >
-                        <div
-                          className={`
+                      return (
+                        <li
+                          key={conversation.id}
+                          className="group/menu-item relative"
+                        >
+                          <div
+                            className={`
                           relative rounded-md transition-colors group-hover/menu-item:bg-sidebar-accent group-hover/menu-item:text-sidebar-accent-foreground
                           ${
                             currentConversationId === conversation.id
@@ -381,28 +391,32 @@ export function AppSidebar() {
                               : "text-sidebar-foreground/70 group-hover/menu-item:text-sidebar-accent-foreground"
                           }
                         `}
-                        >
-                          {renamingId === conversation.id ? (
-                            <div className="relative flex w-full h-8 items-center">
-                              <input
-                                type="text"
-                                value={renameValue}
-                                onChange={(e) => setRenameValue(e.target.value)}
-                                onKeyDown={(e) =>
-                                  handleRenameKeyDown(e, conversation.id)
+                          >
+                            {renamingId === conversation.id ? (
+                              <div className="relative flex w-full h-8 items-center">
+                                <input
+                                  type="text"
+                                  value={renameValue}
+                                  onChange={(e) =>
+                                    setRenameValue(e.target.value)
+                                  }
+                                  onKeyDown={(e) =>
+                                    handleRenameKeyDown(e, conversation.id)
+                                  }
+                                  onBlur={() =>
+                                    handleSaveRename(conversation.id)
+                                  }
+                                  className="pl-2 pr-8 w-full h-full bg-transparent text-sm outline-none border border-border rounded"
+                                  autoFocus
+                                />
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  handleLoadConversation(conversation.id)
                                 }
-                                onBlur={() => handleSaveRename(conversation.id)}
-                                className="pl-2 pr-8 w-full h-full bg-transparent text-sm outline-none border border-border rounded"
-                                autoFocus
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                handleLoadConversation(conversation.id)
-                              }
-                              title={displayTitle}
-                              className={`
+                                title={displayTitle}
+                                className={`
                                 relative flex w-full h-8 items-center overflow-hidden text-left text-sm outline-hidden transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50
                                 ${
                                   currentConversationId === conversation.id
@@ -410,93 +424,98 @@ export function AppSidebar() {
                                     : ""
                                 }
                               `}
-                            >
-                              <span className="pl-2 pr-8 truncate">
-                                {displayTitle}
-                              </span>
-                            </button>
-                          )}
+                              >
+                                <span className="pl-2 pr-8 truncate">
+                                  {displayTitle}
+                                </span>
+                              </button>
+                            )}
 
-                          {/* Dropdown Menu Button */}
-                          {renamingId !== conversation.id && (
-                            <button
-                              onClick={(e) =>
-                                toggleDropdown(conversation.id, e)
-                              }
-                              className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/menu-item:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
-                              title="More options"
-                            >
-                              <MoreVertical className="w-3 h-3" />
-                            </button>
-                          )}
+                            {/* Dropdown Menu Button */}
+                            {renamingId !== conversation.id && (
+                              <button
+                                onClick={(e) =>
+                                  toggleDropdown(conversation.id, e)
+                                }
+                                className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/menu-item:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
+                                title="More options"
+                              >
+                                <MoreVertical className="w-3 h-3" />
+                              </button>
+                            )}
 
-                          {/* Dropdown Menu */}
-                          {activeDropdown === conversation.id && (
-                            <div className="absolute top-8 right-0 z-50 bg-popover border border-border rounded-md shadow-lg py-1 min-w-32">
-                              <button
-                                onClick={() =>
-                                  handleRenameConversation(conversation.id)
-                                }
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                                Rename
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handlePinConversation(conversation.id)
-                                }
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
-                              >
-                                <Pin className="w-3 h-3" />
-                                Unpin
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleDeleteConversation(conversation.id)
-                                }
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-destructive hover:text-destructive-foreground text-left"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
+                            {/* Dropdown Menu */}
+                            {activeDropdown === conversation.id && (
+                              <div className="absolute top-8 right-0 z-50 bg-popover border border-border rounded-md shadow-lg py-1 min-w-32">
+                                <button
+                                  onClick={() =>
+                                    handleRenameConversation(conversation.id)
+                                  }
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  Rename
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handlePinConversation(conversation.id)
+                                  }
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                                >
+                                  <Pin className="w-3 h-3" />
+                                  Unpin
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteConversation(conversation.id)
+                                  }
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-destructive hover:text-destructive-foreground text-left"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
                 </ul>
               </div>
             </div>
           )}
 
           {/* History (Regular Conversations) */}
-          {conversations.some(c => !c.isPinned) && !isCollapsed && (
+          {conversations.some((c) => !c.isPinned) && !isCollapsed && (
             <div className="relative flex w-full min-w-0 flex-col p-2">
               <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium">
                 History
               </div>
               <div className="w-full text-sm">
                 <ul className="flex w-full min-w-0 flex-col gap-1">
-                  {conversations.filter(c => !c.isPinned).map((conversation) => {
-                    const displayTitle =
-                      conversation.title ||
-                      new Date(conversation.createdAt).toLocaleString("en-US", {
-                        month: "numeric",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      });
+                  {conversations
+                    .filter((c) => !c.isPinned)
+                    .map((conversation) => {
+                      const displayTitle =
+                        conversation.title ||
+                        new Date(conversation.createdAt).toLocaleString(
+                          "en-US",
+                          {
+                            month: "numeric",
+                            day: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        );
 
-                    return (
-                      <li
-                        key={conversation.id}
-                        className="group/menu-item relative"
-                      >
-                        <div
-                          className={`
+                      return (
+                        <li
+                          key={conversation.id}
+                          className="group/menu-item relative"
+                        >
+                          <div
+                            className={`
                           relative rounded-md transition-colors group-hover/menu-item:bg-sidebar-accent group-hover/menu-item:text-sidebar-accent-foreground
                           ${
                             currentConversationId === conversation.id
@@ -504,28 +523,32 @@ export function AppSidebar() {
                               : "text-sidebar-foreground/70 group-hover/menu-item:text-sidebar-accent-foreground"
                           }
                         `}
-                        >
-                          {renamingId === conversation.id ? (
-                            <div className="relative flex w-full h-8 items-center">
-                              <input
-                                type="text"
-                                value={renameValue}
-                                onChange={(e) => setRenameValue(e.target.value)}
-                                onKeyDown={(e) =>
-                                  handleRenameKeyDown(e, conversation.id)
+                          >
+                            {renamingId === conversation.id ? (
+                              <div className="relative flex w-full h-8 items-center">
+                                <input
+                                  type="text"
+                                  value={renameValue}
+                                  onChange={(e) =>
+                                    setRenameValue(e.target.value)
+                                  }
+                                  onKeyDown={(e) =>
+                                    handleRenameKeyDown(e, conversation.id)
+                                  }
+                                  onBlur={() =>
+                                    handleSaveRename(conversation.id)
+                                  }
+                                  className="pl-2 pr-8 w-full h-full bg-transparent text-sm outline-none border border-border rounded"
+                                  autoFocus
+                                />
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  handleLoadConversation(conversation.id)
                                 }
-                                onBlur={() => handleSaveRename(conversation.id)}
-                                className="pl-2 pr-8 w-full h-full bg-transparent text-sm outline-none border border-border rounded"
-                                autoFocus
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                handleLoadConversation(conversation.id)
-                              }
-                              title={displayTitle}
-                              className={`
+                                title={displayTitle}
+                                className={`
                                 relative flex w-full h-8 items-center overflow-hidden text-left text-sm outline-hidden transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50
                                 ${
                                   currentConversationId === conversation.id
@@ -533,62 +556,62 @@ export function AppSidebar() {
                                     : ""
                                 }
                               `}
-                            >
-                              <span className="pl-2 pr-8 truncate">
-                                {displayTitle}
-                              </span>
-                            </button>
-                          )}
+                              >
+                                <span className="pl-2 pr-8 truncate">
+                                  {displayTitle}
+                                </span>
+                              </button>
+                            )}
 
-                          {/* Dropdown Menu Button */}
-                          {renamingId !== conversation.id && (
-                            <button
-                              onClick={(e) =>
-                                toggleDropdown(conversation.id, e)
-                              }
-                              className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/menu-item:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
-                              title="More options"
-                            >
-                              <MoreVertical className="w-3 h-3" />
-                            </button>
-                          )}
+                            {/* Dropdown Menu Button */}
+                            {renamingId !== conversation.id && (
+                              <button
+                                onClick={(e) =>
+                                  toggleDropdown(conversation.id, e)
+                                }
+                                className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/menu-item:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
+                                title="More options"
+                              >
+                                <MoreVertical className="w-3 h-3" />
+                              </button>
+                            )}
 
-                          {/* Dropdown Menu */}
-                          {activeDropdown === conversation.id && (
-                            <div className="absolute top-8 right-0 z-50 bg-popover border border-border rounded-md shadow-lg py-1 min-w-32">
-                              <button
-                                onClick={() =>
-                                  handleRenameConversation(conversation.id)
-                                }
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                                Rename
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handlePinConversation(conversation.id)
-                                }
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
-                              >
-                                <Pin className="w-3 h-3" />
-                                Pin
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleDeleteConversation(conversation.id)
-                                }
-                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-destructive hover:text-destructive-foreground text-left"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
+                            {/* Dropdown Menu */}
+                            {activeDropdown === conversation.id && (
+                              <div className="absolute top-8 right-0 z-50 bg-popover border border-border rounded-md shadow-lg py-1 min-w-32">
+                                <button
+                                  onClick={() =>
+                                    handleRenameConversation(conversation.id)
+                                  }
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  Rename
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handlePinConversation(conversation.id)
+                                  }
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                                >
+                                  <Pin className="w-3 h-3" />
+                                  Pin
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteConversation(conversation.id)
+                                  }
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-destructive hover:text-destructive-foreground text-left"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
                 </ul>
               </div>
             </div>

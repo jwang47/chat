@@ -38,9 +38,21 @@ class TauriApiKeyStorage implements IApiKeyStorage {
         );
       }
 
-      return await invoke<boolean>("set_api_key", { provider, value: apiKey });
+      console.log(`Attempting to save ${provider} API key...`);
+      const result = await invoke<boolean>("set_api_key", {
+        provider,
+        value: apiKey,
+      });
+      console.log(`${provider} API key save result:`, result);
+      return result;
     } catch (error) {
       console.error(`Error setting ${provider} API key:`, error);
+      console.error(`Error details:`, {
+        provider,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorType: typeof error,
+        isTauri: TauriApiKeyStorage.isTauri(),
+      });
       throw error;
     }
   }
@@ -69,14 +81,50 @@ class TauriApiKeyStorage implements IApiKeyStorage {
   async setApiKeys(apiKeys: ApiKeys): Promise<boolean> {
     try {
       let success = true;
+      const results: { provider: string; success: boolean; error?: string }[] =
+        [];
 
       if (apiKeys.openrouter !== undefined) {
-        success =
-          (await this.setApiKey("openrouter", apiKeys.openrouter)) && success;
+        try {
+          const result = await this.setApiKey("openrouter", apiKeys.openrouter);
+          results.push({ provider: "openrouter", success: result });
+          success = result && success;
+        } catch (error) {
+          console.error("Failed to save OpenRouter API key:", error);
+          results.push({
+            provider: "openrouter",
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          success = false;
+        }
       }
 
       if (apiKeys.gemini !== undefined) {
-        success = (await this.setApiKey("gemini", apiKeys.gemini)) && success;
+        try {
+          const result = await this.setApiKey("gemini", apiKeys.gemini);
+          results.push({ provider: "gemini", success: result });
+          success = result && success;
+        } catch (error) {
+          console.error("Failed to save Gemini API key:", error);
+          results.push({
+            provider: "gemini",
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          success = false;
+        }
+      }
+
+      // Log detailed results for debugging
+      console.log("API key save results:", results);
+
+      if (!success) {
+        const failedProviders = results.filter((r) => !r.success);
+        console.error(
+          "Failed to save API keys for providers:",
+          failedProviders
+        );
       }
 
       return success;

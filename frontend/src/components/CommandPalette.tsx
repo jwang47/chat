@@ -56,14 +56,6 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
       }
     };
 
-    const handleTauriShortcut = (shortcut: string) => {
-      if (shortcut === "toggle-window") {
-        handleNewChat();
-      } else if (shortcut === "open-settings") {
-        handleNavigate("/settings");
-      }
-    };
-
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
