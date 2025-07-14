@@ -409,7 +409,7 @@ export function AppSidebar() {
                               `}
                             >
                               {conversation.isPinned && (
-                                <Pin className="absolute left-2 top-2 w-4 h-4 text-amber-500" />
+                                <Pin className="absolute left-2 top-2 w-4 h-4 text-amber-300" />
                               )}
                               <span
                                 className={`${
