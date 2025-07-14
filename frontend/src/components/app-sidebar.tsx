@@ -2,7 +2,6 @@ import {
   Settings,
   SquarePen,
   Palette,
-  MessageSquare,
   Trash2,
   MoreVertical,
   Edit3,
@@ -271,13 +270,13 @@ export function AppSidebar() {
       highlightIfActive: false,
       url: "/",
     },
-    {
+    ...(import.meta.env.DEV ? [{
       title: "Components",
       icon: Palette,
       onClick: () => navigate("/components"),
       highlightIfActive: true,
       url: "/components",
-    },
+    }] : []),
     {
       title: "Settings",
       icon: Settings,
