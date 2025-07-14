@@ -158,7 +158,7 @@ function createWindow() {
     if (isDev) {
         console.log('Loading development URL: http://localhost:5173');
         mainWindow.loadURL('http://localhost:5173');
-        mainWindow.webContents.openDevTools();
+        // Dev tools removed - can be opened manually with Cmd+Option+I
         // Show immediately in dev mode for debugging
         mainWindow.show();
     }

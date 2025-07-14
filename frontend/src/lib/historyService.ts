@@ -11,7 +11,7 @@ export interface Conversation {
 }
 
 // Extend the Message type from chat.ts to include conversationId
-export interface HistoryMessage extends Omit<Message, 'timestamp'> {
+export interface HistoryMessage extends Omit<Message, "timestamp"> {
   conversationId: string;
   timestamp: number; // Store as number for IndexedDB
 }
@@ -41,17 +41,15 @@ export const historyService = {
   // CRUD for Conversations
   createConversation: async (title?: string): Promise<string> => {
     const now = Date.now();
-    
+
     const conversation: Conversation = {
       id: crypto.randomUUID(),
       title: title || "", // Empty title by default
       createdAt: now,
       updatedAt: now,
     };
-    
-    console.log("📝 Creating new conversation:", conversation);
+
     await db.conversations.add(conversation);
-    console.log("✅ Conversation created successfully");
     return conversation.id;
   },
 
@@ -61,7 +59,7 @@ export const historyService = {
       .reverse()
       .limit(limit * 2) // Get more to account for sorting
       .toArray();
-    
+
     // Sort: pinned conversations first (by updatedAt), then unpinned (by updatedAt)
     const sorted = conversations.sort((a, b) => {
       // If pin status differs, pinned comes first
@@ -71,35 +69,30 @@ export const historyService = {
       // If pin status is same, sort by updatedAt (newer first)
       return b.updatedAt - a.updatedAt;
     });
-    
+
     return sorted.slice(0, limit);
   },
 
   updateConversationTimestamp: async (id: string): Promise<void> => {
-    console.log("🕒 Updating conversation timestamp for:", id);
     await db.conversations.update(id, { updatedAt: Date.now() });
-    console.log("✅ Conversation timestamp updated");
   },
 
   updateConversationTitle: async (id: string, title: string): Promise<void> => {
-    console.log("✏️ Updating conversation title:", id, "->", title);
     await db.conversations.update(id, { title, updatedAt: Date.now() });
-    console.log("✅ Conversation title updated");
   },
 
-  updateConversationPin: async (id: string, isPinned: boolean): Promise<void> => {
-    console.log("📌 Updating conversation pin status:", id, "->", isPinned);
+  updateConversationPin: async (
+    id: string,
+    isPinned: boolean
+  ): Promise<void> => {
     await db.conversations.update(id, { isPinned, updatedAt: Date.now() });
-    console.log("✅ Conversation pin status updated");
   },
 
   deleteConversation: async (id: string): Promise<void> => {
-    console.log("🗑️ Deleting conversation:", id);
     // Delete all messages for this conversation first
     await db.messages.where("conversationId").equals(id).delete();
     // Then delete the conversation
     await db.conversations.delete(id);
-    console.log("✅ Conversation deleted successfully");
   },
 
   // CRUD for Messages
@@ -108,38 +101,31 @@ export const historyService = {
       ...message,
       id: crypto.randomUUID(),
     };
-    
-    console.log("💬 Adding message to conversation:", message.conversationId, {
-      role: message.role,
-      contentLength: message.content.length,
-      model: message.model
-    });
-    
+
     await db.messages.add(messageWithId);
-    console.log("✅ Message added successfully:", messageWithId.id);
-    
+
     // Update the conversation's timestamp
     await historyService.updateConversationTimestamp(message.conversationId);
-    
+
     return messageWithId.id;
   },
 
   getMessagesForConversation: async (
     conversationId: string
   ): Promise<HistoryMessage[]> => {
-    console.log("📖 Loading messages for conversation:", conversationId);
     const messages = await db.messages
       .where("conversationId")
       .equals(conversationId)
       .sortBy("timestamp");
-    console.log("✅ Loaded", messages.length, "messages");
     return messages;
   },
 
   // Search functionality (for Phase 2)
-  searchMessages: async (query: string): Promise<{ conversation: Conversation; message: HistoryMessage }[]> => {
+  searchMessages: async (
+    query: string
+  ): Promise<{ conversation: Conversation; message: HistoryMessage }[]> => {
     const messages = await db.messages
-      .filter(message => 
+      .filter((message) =>
         message.content.toLowerCase().includes(query.toLowerCase())
       )
       .toArray();
@@ -166,7 +152,10 @@ export const historyService = {
   }),
 
   // Helper to convert Message to HistoryMessage for storage
-  convertFromMessage: (message: Message, conversationId: string): Omit<HistoryMessage, 'id'> => ({
+  convertFromMessage: (
+    message: Message,
+    conversationId: string
+  ): Omit<HistoryMessage, "id"> => ({
     role: message.role,
     content: message.content,
     timestamp: message.timestamp.getTime(),
@@ -178,82 +167,94 @@ export const historyService = {
   // Generate a better title for a conversation using AI
   generateConversationTitle: async (conversationId: string): Promise<void> => {
     try {
-      console.log("🏷️ Generating title for conversation:", conversationId);
-      
       // Check if the conversation already has a custom title
       const conversation = await db.conversations.get(conversationId);
       if (!conversation) {
-        console.log("❌ Conversation not found");
+        console.warn("❌ Conversation not found");
         return;
       }
-      
+
       // If title is not empty, skip generation
       if (conversation.title && conversation.title.trim().length > 0) {
-        console.log("⏭️ Conversation already has a custom title:", conversation.title);
+        console.warn(
+          "⏭️ Conversation already has a custom title:",
+          conversation.title
+        );
         return;
       }
-      
+
       // Get the first user message from the conversation
       const messages = await db.messages
         .where("conversationId")
         .equals(conversationId)
         .sortBy("timestamp");
-      
+
       if (messages.length < 1) {
-        console.log("⏭️ No messages found for title generation");
+        console.warn("⏭️ No messages found for title generation");
         return;
       }
 
       // Get the first user message
-      const firstUserMessage = messages.find(msg => msg.role === 'user');
+      const firstUserMessage = messages.find((msg) => msg.role === "user");
       if (!firstUserMessage) {
-        console.log("⏭️ No user message found for title generation");
         return;
       }
-      
+
       // Use just the first user message for title generation
       const conversationText = firstUserMessage.content;
 
       // Call Gemini to generate a title
-      const ApiKeyStorage = (await import('./apiKeyStorage')).default;
+      const ApiKeyStorage = (await import("./apiKeyStorage")).default;
       const apiKey = await ApiKeyStorage.getApiKey("gemini");
-      
+
       if (!apiKey) {
         console.error("❌ No Gemini API key found for title generation");
         return;
       }
 
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent', {
-        method: 'POST',
-        headers: {
-          'x-goog-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `Generate a concise 2-4 word title for a conversation that starts with this user message. Just return the title, nothing else:\n\n"${conversationText}"`
-            }]
-          }],
-          generationConfig: {
-            maxOutputTokens: 20,
-            temperature: 0.3,
-          }
-        })
-      });
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite-preview-06-17:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "x-goog-api-key": apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `Generate a concise 2-4 word title for a conversation that starts with this user message. Just return the title, nothing else:\n\n"${conversationText}"`,
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              maxOutputTokens: 20,
+              temperature: 0.3,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) {
-        console.error("❌ Failed to generate title, API response:", response.status);
+        console.error(
+          "❌ Failed to generate title, API response:",
+          response.status
+        );
         return;
       }
 
       const data = await response.json();
-      const generatedTitle = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      
+      const generatedTitle =
+        data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
       if (generatedTitle && generatedTitle.length > 0) {
-        console.log("✨ Generated title:", generatedTitle);
-        await historyService.updateConversationTitle(conversationId, generatedTitle);
-        console.log("✅ Title updated successfully");
+        await historyService.updateConversationTitle(
+          conversationId,
+          generatedTitle
+        );
       } else {
         console.warn("⚠️ No valid title generated");
       }

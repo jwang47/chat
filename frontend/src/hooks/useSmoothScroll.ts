@@ -35,7 +35,6 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
       // Check if user scrolled recently (within 100ms) - if so, don't start animation
       const now = performance.now();
       if (now - lastUserScrollTime.current < 100) {
-        console.debug("🚫 Skipping smooth scroll - user recently scrolled");
         return;
       }
 
@@ -45,11 +44,6 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         currentScrollTop.current = element.scrollTop;
         isAnimating.current = true;
 
-        console.debug("🚀 Starting lerp animation", {
-          from: currentScrollTop.current,
-          to: target,
-          factor: lerpFactor,
-        });
 
         const lerpAnimate = (timestamp: number) => {
           // Check if user scrolled during animation
@@ -57,9 +51,6 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
             now - lastUserScrollTime.current < 50 &&
             performance.now() - now > 50
           ) {
-            console.debug(
-              "🛑 Cancelling lerp - user scrolled during animation"
-            );
             isAnimating.current = false;
             lastProgrammaticScrollTop.current = -1;
             return;
@@ -73,11 +64,10 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
 
           const diff = targetScrollTop.current - currentScrollTop.current;
 
-          if (Math.abs(diff) < 0.5) {
+          if (Math.abs(diff) < 1) {
             lastProgrammaticScrollTop.current = targetScrollTop.current;
             element.scrollTop = targetScrollTop.current;
             isAnimating.current = false;
-            console.debug("✅ Lerp animation complete");
             // Clear the programmatic scroll tracking after a longer delay to prevent false positives
             setTimeout(() => {
               lastProgrammaticScrollTop.current = -1;
@@ -91,22 +81,12 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
           // Calculate desired scroll distance
           let scrollDistance = diff * lerpFactor;
 
-          console.debug("📊 Scroll calculation:", {
-            diff,
-            lerpFactor,
-            desiredDistance: scrollDistance,
-            maxScrollThisFrame,
-            deltaTime,
-          });
+          // Removed excessive logging for performance
 
           // Limit the scroll distance to maxScrollThisFrame
           if (Math.abs(scrollDistance) > maxScrollThisFrame) {
             scrollDistance = Math.sign(scrollDistance) * maxScrollThisFrame;
-            console.debug("🚦 Limiting scroll speed:", {
-              desired: diff * lerpFactor,
-              limited: scrollDistance,
-              maxThisFrame: maxScrollThisFrame,
-            });
+            // Speed limited to maxScrollThisFrame
           }
 
           currentScrollTop.current += scrollDistance;
@@ -151,7 +131,6 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
   );
 
   const cancelScroll = useCallback(() => {
-    console.debug("🔥 Cancel scroll called");
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
@@ -163,17 +142,12 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
     (currentScrollTop: number) => {
       // Ignore scroll events during instant scrolling
       if (isInstantScrolling.current) {
-        console.debug(
-          "⚡ Ignoring scroll during instant scroll at",
-          currentScrollTop
-        );
         return;
       }
 
       // Check if this scroll position matches our programmatic scroll with higher tolerance
       // Use 3 pixels to account for sub-pixel rendering and floating point precision
       if (Math.abs(currentScrollTop - lastProgrammaticScrollTop.current) < 3) {
-        console.debug("🤖 Ignoring programmatic scroll at", currentScrollTop);
         return;
       }
 
@@ -186,24 +160,12 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         // If scroll is in the same direction as animation and within reasonable range
         if (Math.sign(scrollDirection) === Math.sign(animationDirection) && 
             Math.abs(scrollDirection) < 10) {
-          console.debug("🤖 Ignoring scroll during animation - same direction", {
-            current: currentScrollTop,
-            last: lastProgrammaticScrollTop.current,
-            target: targetScrollTop.current
-          });
           return;
         }
       }
 
       lastUserScrollTime.current = performance.now();
-      console.debug(
-        "👆 User scroll detected at",
-        lastUserScrollTime.current,
-        "position:",
-        currentScrollTop
-      );
       if (isAnimating.current) {
-        console.debug("🛑 Cancelling animation due to user scroll");
         cancelScroll();
       }
     },

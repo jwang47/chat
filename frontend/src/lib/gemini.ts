@@ -77,9 +77,11 @@ export class GeminiService {
           },
           body: JSON.stringify({
             contents,
-            systemInstruction: systemInstruction ? {
-              parts: [{ text: systemInstruction }]
-            } : undefined,
+            systemInstruction: systemInstruction
+              ? {
+                  parts: [{ text: systemInstruction }],
+                }
+              : undefined,
             generationConfig: {
               maxOutputTokens: 8192,
               thinkingConfig: {
@@ -139,7 +141,7 @@ export class GeminiService {
         }
 
         onComplete();
-        console.log("Streaming complete: ", fullContent);
+        // console.log("Streaming complete: ", fullContent);
       } finally {
         reader.cancel();
       }
