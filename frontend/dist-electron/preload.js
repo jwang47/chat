@@ -17,4 +17,11 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     // Platform detection
     isElectron: true,
     platform: process.platform,
+    // Keyboard shortcuts
+    onKeyboardShortcut: (callback) => {
+        electron_1.ipcRenderer.on('keyboard-shortcut', (_, shortcut) => callback(shortcut));
+    },
+    removeKeyboardShortcutListeners: () => {
+        electron_1.ipcRenderer.removeAllListeners('keyboard-shortcut');
+    },
 });

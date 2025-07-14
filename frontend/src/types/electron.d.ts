@@ -21,6 +21,8 @@ declare global {
       credentials: CredentialsAPI;
       isElectron: boolean;
       platform: string;
+      onKeyboardShortcut: (callback: (shortcut: string) => void) => void;
+      removeKeyboardShortcutListeners: () => void;
     };
   }
 }

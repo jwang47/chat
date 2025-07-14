@@ -156,23 +156,39 @@ function createWindow() {
     });
     // Load the app
     if (isDev) {
+        console.log('Loading development URL: http://localhost:5173');
         mainWindow.loadURL('http://localhost:5173');
         mainWindow.webContents.openDevTools();
         // Show immediately in dev mode for debugging
         mainWindow.show();
     }
     else {
-        mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+        const indexPath = path.join(__dirname, '../dist/index.html');
+        console.log('Loading production file:', indexPath);
+        mainWindow.loadFile(indexPath);
     }
     mainWindow.once('ready-to-show', () => {
         if (!isDev) {
             mainWindow.show();
         }
     });
-    // Add error handling for load failures
-    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-        console.error('Failed to load page:', errorCode, errorDescription);
+    // Add comprehensive error handling
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+        console.error('Failed to load page:', {
+            errorCode,
+            errorDescription,
+            url: validatedURL
+        });
         mainWindow.show(); // Show window anyway so user can see the error
+    });
+    mainWindow.webContents.on('dom-ready', () => {
+        console.log('DOM is ready');
+    });
+    mainWindow.webContents.on('did-finish-load', () => {
+        console.log('Page finished loading');
+    });
+    mainWindow.webContents.on('did-start-loading', () => {
+        console.log('Page started loading');
     });
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -181,13 +197,31 @@ function createWindow() {
 // App event handlers
 electron_1.app.whenReady().then(() => {
     createWindow();
+    // Register global shortcuts
+    registerGlobalShortcuts();
     electron_1.app.on('activate', () => {
         if (electron_1.BrowserWindow.getAllWindows().length === 0) {
             createWindow();
         }
     });
 });
+function registerGlobalShortcuts() {
+    // Register Cmd+Shift+O for new chat (only when app is focused)
+    electron_1.globalShortcut.register('CommandOrControl+Shift+O', () => {
+        if (mainWindow && mainWindow.isFocused()) {
+            mainWindow.webContents.send('keyboard-shortcut', 'new-chat');
+        }
+    });
+    // Register Cmd+K for command palette (only when app is focused)
+    electron_1.globalShortcut.register('CommandOrControl+K', () => {
+        if (mainWindow && mainWindow.isFocused()) {
+            mainWindow.webContents.send('keyboard-shortcut', 'command-palette');
+        }
+    });
+}
 electron_1.app.on('window-all-closed', () => {
+    // Unregister all shortcuts when app is closing
+    electron_1.globalShortcut.unregisterAll();
     if (process.platform !== 'darwin') {
         electron_1.app.quit();
     }

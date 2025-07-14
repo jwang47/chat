@@ -38,6 +38,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Platform detection
   isElectron: true,
   platform: process.platform,
+  
+  // Keyboard shortcuts
+  onKeyboardShortcut: (callback: (shortcut: string) => void) => {
+    ipcRenderer.on('keyboard-shortcut', (_, shortcut) => callback(shortcut));
+  },
+  
+  removeKeyboardShortcutListeners: () => {
+    ipcRenderer.removeAllListeners('keyboard-shortcut');
+  },
 });
 
 // Type definitions for the exposed API
@@ -47,6 +56,8 @@ declare global {
       credentials: typeof credentialsAPI;
       isElectron: boolean;
       platform: string;
+      onKeyboardShortcut: (callback: (shortcut: string) => void) => void;
+      removeKeyboardShortcutListeners: () => void;
     };
   }
 }

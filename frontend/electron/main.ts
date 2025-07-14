@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, safeStorage } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage, globalShortcut } from 'electron';
 import * as path from 'path';
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -137,13 +137,16 @@ function createWindow(): void {
 
   // Load the app
   if (isDev) {
+    console.log('Loading development URL: http://localhost:5173');
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
     
     // Show immediately in dev mode for debugging
     mainWindow.show();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    console.log('Loading production file:', indexPath);
+    mainWindow.loadFile(indexPath);
   }
 
   mainWindow.once('ready-to-show', () => {
@@ -152,10 +155,26 @@ function createWindow(): void {
     }
   });
   
-  // Add error handling for load failures
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.error('Failed to load page:', errorCode, errorDescription);
+  // Add comprehensive error handling
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('Failed to load page:', {
+      errorCode,
+      errorDescription,
+      url: validatedURL
+    });
     mainWindow.show(); // Show window anyway so user can see the error
+  });
+
+  mainWindow.webContents.on('dom-ready', () => {
+    console.log('DOM is ready');
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('Page finished loading');
+  });
+
+  mainWindow.webContents.on('did-start-loading', () => {
+    console.log('Page started loading');
   });
 
   mainWindow.on('closed', () => {
@@ -167,6 +186,9 @@ function createWindow(): void {
 app.whenReady().then(() => {
   createWindow();
 
+  // Register global shortcuts
+  registerGlobalShortcuts();
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -174,7 +196,26 @@ app.whenReady().then(() => {
   });
 });
 
+function registerGlobalShortcuts() {
+  // Register Cmd+Shift+O for new chat (only when app is focused)
+  globalShortcut.register('CommandOrControl+Shift+O', () => {
+    if (mainWindow && mainWindow.isFocused()) {
+      mainWindow.webContents.send('keyboard-shortcut', 'new-chat');
+    }
+  });
+  
+  // Register Cmd+K for command palette (only when app is focused)
+  globalShortcut.register('CommandOrControl+K', () => {
+    if (mainWindow && mainWindow.isFocused()) {
+      mainWindow.webContents.send('keyboard-shortcut', 'command-palette');
+    }
+  });
+}
+
 app.on('window-all-closed', () => {
+  // Unregister all shortcuts when app is closing
+  globalShortcut.unregisterAll();
+  
   if (process.platform !== 'darwin') {
     app.quit();
   }

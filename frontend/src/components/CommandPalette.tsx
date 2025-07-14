@@ -50,20 +50,45 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
   );
 
   useEffect(() => {
+    // Electron keyboard shortcut handler
+    const handleElectronShortcut = (shortcut: string) => {
+      if (shortcut === 'command-palette') {
+        setOpen((open) => !open);
+      } else if (shortcut === 'new-chat') {
+        handleNewChat();
+      }
+    };
+
+    // Regular DOM keyboard event handler (fallback for web or if Electron shortcuts fail)
     const down = (e: KeyboardEvent) => {
+      // Only handle if not in Electron or as fallback
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((open) => !open);
       }
-      if (e.key === "o" && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+      // For new chat, only handle if not in Electron (since Electron has global shortcut)
+      if (e.key === "o" && (e.metaKey || e.ctrlKey) && e.shiftKey && !window.electronAPI?.isElectron) {
         e.preventDefault();
         handleNewChat();
       }
     };
 
+    // Register Electron shortcuts if available
+    if (window.electronAPI?.onKeyboardShortcut) {
+      window.electronAPI.onKeyboardShortcut(handleElectronShortcut);
+    }
+    
+    // Always register DOM listener as fallback
     document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
-  }, []);
+
+    return () => {
+      document.removeEventListener("keydown", down);
+      // Clean up Electron listeners
+      if (window.electronAPI?.removeKeyboardShortcutListeners) {
+        window.electronAPI.removeKeyboardShortcutListeners();
+      }
+    };
+  }, [handleNewChat]);
 
   return (
     <CommandDialog

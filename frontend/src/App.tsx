@@ -1,4 +1,7 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
+
+// Use HashRouter for Electron, BrowserRouter for web
+const Router = typeof window !== 'undefined' && window.electronAPI?.isElectron ? HashRouter : BrowserRouter;
 import { Layout } from "@/components/Layout";
 import { ChatInterface } from "@/pages/ChatInterface";
 import { Settings } from "./pages/Settings";

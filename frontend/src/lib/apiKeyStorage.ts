@@ -6,10 +6,6 @@ export interface ApiKeys {
 export type ApiKeyProvider = keyof ApiKeys;
 
 class ApiKeyStorage {
-  private static readonly STORAGE_KEYS = {
-    openrouter: "openrouter-api-key",
-    gemini: "gemini-api-key",
-  } as const;
 
   /**
    * Check if running in Electron
