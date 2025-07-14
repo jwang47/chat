@@ -4,6 +4,9 @@ import {
   Palette,
   MessageSquare,
   Trash2,
+  MoreVertical,
+  Edit3,
+  Pin,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -64,6 +67,7 @@ export function AppSidebar() {
 
   const [sidebarState, setSidebarStateLocal] = useState(getStoredSidebarState);
   const [isDragging, setIsDragging] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
@@ -175,10 +179,40 @@ export function AppSidebar() {
       if (currentConversationId === conversationId) {
         newChat();
       }
+      setActiveDropdown(null);
     } catch (error) {
       console.error("Failed to delete conversation:", error);
     }
   };
+
+  const handleRenameConversation = (conversationId: string) => {
+    // TODO: Implement rename functionality
+    console.log("Rename conversation:", conversationId);
+    setActiveDropdown(null);
+  };
+
+  const handlePinConversation = (conversationId: string) => {
+    // TODO: Implement pin functionality
+    console.log("Pin conversation:", conversationId);
+    setActiveDropdown(null);
+  };
+
+  const toggleDropdown = (conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveDropdown(activeDropdown === conversationId ? null : conversationId);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setActiveDropdown(null);
+    };
+    
+    if (activeDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [activeDropdown]);
 
   const menuItems = [
     {
@@ -286,34 +320,67 @@ export function AppSidebar() {
                         key={conversation.id}
                         className="group/menu-item relative"
                       >
-                        <div className="group flex items-center justify-between pr-2">
+                        <div className={`
+                          relative rounded-md transition-colors group-hover/menu-item:bg-sidebar-accent group-hover/menu-item:text-sidebar-accent-foreground
+                          ${
+                            currentConversationId === conversation.id
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : ""
+                          }
+                        `}>
                           <button
                             onClick={() =>
                               handleLoadConversation(conversation.id)
                             }
                             title={displayTitle}
                             className={`
-                              peer/menu-button flex flex-1 items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50
+                              relative flex w-full h-8 items-center overflow-hidden text-left text-sm outline-hidden transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50
                               ${
                                 currentConversationId === conversation.id
-                                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                                  ? "font-medium"
                                   : ""
                               }
                             `}
                           >
-                            <MessageSquare className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{displayTitle}</span>
+                            <MessageSquare className="absolute left-2 top-2 w-4 h-4" />
+                            <span className="pl-8 pr-8 truncate">{displayTitle}</span>
                           </button>
+                          
+                          {/* Dropdown Menu Button */}
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteConversation(conversation.id);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-100 hover:text-red-600 rounded"
-                            title="Delete conversation"
+                            onClick={(e) => toggleDropdown(conversation.id, e)}
+                            className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/menu-item:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
+                            title="More options"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <MoreVertical className="w-3 h-3" />
                           </button>
+
+                          {/* Dropdown Menu */}
+                          {activeDropdown === conversation.id && (
+                            <div className="absolute top-8 right-0 z-50 bg-popover border border-border rounded-md shadow-lg py-1 min-w-32">
+                              <button
+                                onClick={() => handleRenameConversation(conversation.id)}
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                Rename
+                              </button>
+                              <button
+                                onClick={() => handlePinConversation(conversation.id)}
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                              >
+                                <Pin className="w-3 h-3" />
+                                Pin
+                              </button>
+                              <button
+                                onClick={() => handleDeleteConversation(conversation.id)}
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-destructive hover:text-destructive-foreground text-left"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </li>
                     );
