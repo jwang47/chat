@@ -24,6 +24,10 @@ pub struct CredentialStore {
 
 impl CredentialStore {
     pub fn new(service_name: String) -> Self {
+        println!(
+            "Creating CredentialStore with service name: {}",
+            service_name
+        );
         Self { service_name }
     }
 
@@ -41,23 +45,49 @@ impl CredentialStore {
             }
             Err(e) => {
                 eprintln!("Failed to create keyring entry for {}: {:?}", provider, e);
+                eprintln!(
+                    "This might be due to keychain access permissions or service name conflicts"
+                );
                 Err(CredentialError::Keyring(e))
             }
         }
     }
 
     pub fn get_credential(&self, provider: &str) -> Result<Option<String>, CredentialError> {
+        println!("Getting credential for provider: {}", provider);
         let entry = self.get_entry(provider)?;
         match entry.get_password() {
-            Ok(password) => Ok(Some(password)),
-            Err(KeyringError::NoEntry) => Ok(None),
-            Err(e) => Err(CredentialError::Keyring(e)),
+            Ok(password) => {
+                println!("Successfully retrieved credential for {}", provider);
+                Ok(Some(password))
+            }
+            Err(KeyringError::NoEntry) => {
+                println!("No credential found for {}", provider);
+                Ok(None)
+            }
+            Err(e) => {
+                eprintln!("Error retrieving credential for {}: {:?}", provider, e);
+                Err(CredentialError::Keyring(e))
+            }
         }
     }
 
     pub fn set_credential(&self, provider: &str, value: &str) -> Result<(), CredentialError> {
+        println!("Setting credential for provider: {}", provider);
         let entry = self.get_entry(provider)?;
-        entry.set_password(value).map_err(CredentialError::Keyring)
+        match entry.set_password(value) {
+            Ok(_) => {
+                println!("Successfully set credential for {}", provider);
+                Ok(())
+            }
+            Err(e) => {
+                eprintln!("Failed to set credential for {}: {:?}", provider, e);
+                eprintln!(
+                    "This might be due to keychain access permissions or system keyring issues"
+                );
+                Err(CredentialError::Keyring(e))
+            }
+        }
     }
 
     pub fn remove_credential(&self, provider: &str) -> Result<(), CredentialError> {
@@ -169,4 +199,49 @@ pub async fn has_api_key(
 #[command]
 pub async fn has_any_api_key(store: State<'_, CredentialStore>) -> Result<bool, String> {
     store.has_any_credential().map_err(|e| e.to_string())
+}
+
+#[command]
+pub async fn test_keychain_access(store: State<'_, CredentialStore>) -> Result<String, String> {
+    println!("Testing keychain access...");
+
+    // Test creating an entry
+    let test_provider = "test-provider";
+    let test_value = "test-value";
+
+    match store.set_credential(test_provider, test_value) {
+        Ok(_) => {
+            println!("Successfully created test entry");
+
+            // Test reading it back
+            match store.get_credential(test_provider) {
+                Ok(Some(value)) if value == test_value => {
+                    println!("Successfully read back test entry");
+
+                    // Clean up
+                    let _ = store.remove_credential(test_provider);
+                    Ok("Keychain access test passed".to_string())
+                }
+                Ok(Some(value)) => {
+                    let _ = store.remove_credential(test_provider);
+                    Err(format!(
+                        "Value mismatch: expected '{}', got '{}'",
+                        test_value, value
+                    ))
+                }
+                Ok(None) => {
+                    let _ = store.remove_credential(test_provider);
+                    Err("Could not read back test entry".to_string())
+                }
+                Err(e) => {
+                    let _ = store.remove_credential(test_provider);
+                    Err(format!("Error reading test entry: {}", e))
+                }
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to create test entry: {}", e);
+            Err(format!("Keychain access test failed: {}", e))
+        }
+    }
 }

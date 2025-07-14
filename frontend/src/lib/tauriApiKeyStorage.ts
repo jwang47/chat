@@ -1,12 +1,12 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { IApiKeyStorage, ApiKeys, ApiKeyProvider } from "./apiKeyStorage";
 
 class TauriApiKeyStorage implements IApiKeyStorage {
   /**
-   * Check if running in Tauri
+   * Check if running in Tauri using the official API
    */
-  private static isTauri(): boolean {
-    return typeof window !== "undefined" && window.__TAURI__ !== undefined;
+  private static isTauriApp(): boolean {
+    return isTauri();
   }
 
   /**
@@ -14,7 +14,7 @@ class TauriApiKeyStorage implements IApiKeyStorage {
    */
   async getApiKey(provider: ApiKeyProvider): Promise<string | null> {
     try {
-      if (!TauriApiKeyStorage.isTauri()) {
+      if (!TauriApiKeyStorage.isTauriApp()) {
         throw new Error(
           "Secure credential storage is only available in the desktop app. Please use the Tauri version for secure API key storage."
         );
@@ -32,7 +32,7 @@ class TauriApiKeyStorage implements IApiKeyStorage {
    */
   async setApiKey(provider: ApiKeyProvider, apiKey: string): Promise<boolean> {
     try {
-      if (!TauriApiKeyStorage.isTauri()) {
+      if (!TauriApiKeyStorage.isTauriApp()) {
         throw new Error(
           "Secure credential storage is only available in the desktop app. Please use the Tauri version for secure API key storage."
         );
@@ -51,7 +51,7 @@ class TauriApiKeyStorage implements IApiKeyStorage {
         provider,
         errorMessage: error instanceof Error ? error.message : String(error),
         errorType: typeof error,
-        isTauri: TauriApiKeyStorage.isTauri(),
+        isTauri: TauriApiKeyStorage.isTauriApp(),
       });
       throw error;
     }
@@ -62,7 +62,7 @@ class TauriApiKeyStorage implements IApiKeyStorage {
    */
   async getAllApiKeys(): Promise<ApiKeys> {
     try {
-      if (!TauriApiKeyStorage.isTauri()) {
+      if (!TauriApiKeyStorage.isTauriApp()) {
         throw new Error(
           "Secure credential storage is only available in the desktop app. Please use the Tauri version for secure API key storage."
         );
@@ -139,7 +139,7 @@ class TauriApiKeyStorage implements IApiKeyStorage {
    */
   async removeApiKey(provider: ApiKeyProvider): Promise<boolean> {
     try {
-      if (!TauriApiKeyStorage.isTauri()) {
+      if (!TauriApiKeyStorage.isTauriApp()) {
         throw new Error(
           "Secure credential storage is only available in the desktop app. Please use the Tauri version for secure API key storage."
         );
@@ -157,7 +157,7 @@ class TauriApiKeyStorage implements IApiKeyStorage {
    */
   async clearAllApiKeys(): Promise<boolean> {
     try {
-      if (!TauriApiKeyStorage.isTauri()) {
+      if (!TauriApiKeyStorage.isTauriApp()) {
         throw new Error(
           "Secure credential storage is only available in the desktop app. Please use the Tauri version for secure API key storage."
         );
@@ -175,7 +175,7 @@ class TauriApiKeyStorage implements IApiKeyStorage {
    */
   async hasAnyApiKey(): Promise<boolean> {
     try {
-      if (!TauriApiKeyStorage.isTauri()) {
+      if (!TauriApiKeyStorage.isTauriApp()) {
         throw new Error(
           "Secure credential storage is only available in the desktop app. Please use the Tauri version for secure API key storage."
         );
@@ -193,7 +193,7 @@ class TauriApiKeyStorage implements IApiKeyStorage {
    */
   async hasApiKey(provider: ApiKeyProvider): Promise<boolean> {
     try {
-      if (!TauriApiKeyStorage.isTauri()) {
+      if (!TauriApiKeyStorage.isTauriApp()) {
         throw new Error(
           "Secure credential storage is only available in the desktop app. Please use the Tauri version for secure API key storage."
         );

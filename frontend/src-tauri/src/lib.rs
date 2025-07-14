@@ -2,8 +2,7 @@ mod credentials;
 mod shortcuts;
 
 use credentials::CredentialStore;
-use shortcuts::{cleanup_global_shortcuts, setup_global_shortcuts};
-use tauri::Manager;
+use shortcuts::init_shortcuts;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,35 +17,27 @@ pub fn run() {
             credentials::clear_all_api_keys,
             credentials::has_api_key,
             credentials::has_any_api_key,
-            shortcuts::register_shortcut,
-            shortcuts::unregister_shortcut,
+            credentials::test_keychain_access,
+            shortcuts::register_global_shortcut,
+            shortcuts::unregister_global_shortcut,
+            shortcuts::handle_shortcut_pressed,
         ])
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            // Enable logging in both debug and release modes
+            app.handle().plugin(
+                tauri_plugin_log::Builder::default()
+                    .level(log::LevelFilter::Info)
+                    .build(),
+            )?;
 
-            // Setup global shortcuts (placeholder for now)
-            if let Err(e) = setup_global_shortcuts(&app.handle()) {
-                eprintln!("Failed to setup global shortcuts: {}", e);
+            println!("Chat App starting up...");
+
+            // Initialize shortcuts
+            if let Err(e) = init_shortcuts() {
+                eprintln!("Failed to initialize shortcuts: {}", e);
             }
 
             Ok(())
-        })
-        .on_window_event(|window, event| {
-            match event {
-                tauri::WindowEvent::CloseRequested { .. } => {
-                    // Cleanup global shortcuts when window is closed
-                    if let Err(e) = cleanup_global_shortcuts(&window.app_handle()) {
-                        eprintln!("Failed to cleanup global shortcuts: {}", e);
-                    }
-                }
-                _ => {}
-            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

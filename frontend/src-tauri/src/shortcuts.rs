@@ -1,6 +1,4 @@
-use std::sync::Mutex;
-use tauri::{command, AppHandle, State};
-use tauri_plugin_global_shortcut::{GlobalShortcut, GlobalShortcutExt};
+use tauri::{command, AppHandle};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ShortcutError {
@@ -27,8 +25,8 @@ pub async fn unregister_global_shortcut(_app: AppHandle, shortcut: String) -> Re
 pub fn init_shortcuts() -> Result<(), ShortcutError> {
     println!("Initializing shortcuts...");
 
-    // Register a global shortcut for opening the app
-    let _shortcut = GlobalShortcut::new("cmd+shift+space");
+    // TODO: Implement actual shortcut registration when needed
+    // For now, this is just a placeholder
 
     Ok(())
 }

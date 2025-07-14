@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import ApiKeyStorage from "@/lib/apiKeyStorage";
-import { getName } from "@tauri-apps/api/app";
+import { invoke, isTauri as checkIsTauri } from "@tauri-apps/api/core";
 
 export function Settings() {
   const [openrouterKey, setOpenrouterKey] = useState("");
@@ -8,27 +8,13 @@ export function Settings() {
   const [isLoading, setIsLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [isTauri, setIsTauri] = useState(false);
+  const [debugMessage, setDebugMessage] = useState("");
 
   useEffect(() => {
-    // Check if running in Tauri using a more robust method
+    // Check if running in Tauri using the official API
     const checkTauriAndLoadKeys = async () => {
-      let tauriDetected = false;
-
-      try {
-        // Try to call a Tauri API function
-        await getName();
-        tauriDetected = true;
-        console.log("Tauri detection: SUCCESS - Using Tauri API");
-      } catch (error) {
-        // If Tauri API fails, fall back to window.__TAURI__ check
-        tauriDetected =
-          typeof window !== "undefined" && window.__TAURI__ !== undefined;
-        console.log(
-          "Tauri detection: FALLBACK - Using window.__TAURI__:",
-          tauriDetected
-        );
-      }
-
+      const tauriDetected = checkIsTauri();
+      console.log("Tauri detection using official API:", tauriDetected);
       setIsTauri(tauriDetected);
 
       if (!tauriDetected) return;
@@ -85,6 +71,26 @@ export function Settings() {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       handleSave();
     }
+  };
+
+  const testKeychainAccess = async () => {
+    if (!isTauri) {
+      setDebugMessage("Keychain test is only available in the desktop app.");
+      setTimeout(() => setDebugMessage(""), 3000);
+      return;
+    }
+
+    setDebugMessage("Testing keychain access...");
+
+    try {
+      const result = await invoke<string>("test_keychain_access");
+      setDebugMessage(result);
+    } catch (error) {
+      console.error("Keychain test failed:", error);
+      setDebugMessage(`Keychain test failed: ${error}`);
+    }
+
+    setTimeout(() => setDebugMessage(""), 5000);
   };
 
   return (
@@ -199,6 +205,39 @@ export function Settings() {
             )}
           </div>
         </div>
+
+        {isTauri && (
+          <div className="bg-card p-6 rounded-lg border">
+            <h2 className="text-lg font-semibold mb-4">Debug</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Use this to test if the app can access the system keychain.
+            </p>
+
+            <button
+              onClick={testKeychainAccess}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm transition-colors"
+            >
+              Test Keychain Access
+            </button>
+
+            {debugMessage && (
+              <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
+                <p
+                  className={`text-sm ${
+                    debugMessage.includes("failed") ||
+                    debugMessage.includes("error")
+                      ? "text-red-600"
+                      : debugMessage.includes("passed")
+                      ? "text-green-600"
+                      : "text-gray-700 dark:text-gray-300"
+                  }`}
+                >
+                  {debugMessage}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="bg-card p-6 rounded-lg border">
           <h2 className="text-lg font-semibold mb-4">About</h2>
