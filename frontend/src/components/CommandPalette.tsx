@@ -92,9 +92,10 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
             <span>Go to Settings</span>
           </CommandItem>
         </CommandGroup>
-        {conversations.length > 0 && (
-          <CommandGroup heading="History">
-            {conversations.slice(0, 10).map((conversation) => {
+        {/* Pinned Conversations */}
+        {conversations.some(c => c.isPinned) && (
+          <CommandGroup heading="Pinned">
+            {conversations.filter(c => c.isPinned).slice(0, 5).map((conversation) => {
               const displayTitle =
                 conversation.title ||
                 new Date(conversation.createdAt).toLocaleString("en-US", {
@@ -111,9 +112,32 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
                   onSelect={() => handleLoadConversation(conversation.id)}
                   value={`${conversation.title || ""} ${displayTitle}`}
                 >
-                  {conversation.isPinned && (
-                    <Pin className="mr-2 h-4 w-4 text-amber-500" />
-                  )}
+                  <span className="truncate">{displayTitle}</span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        )}
+        {/* History (Regular Conversations) */}
+        {conversations.some(c => !c.isPinned) && (
+          <CommandGroup heading="History">
+            {conversations.filter(c => !c.isPinned).slice(0, 10).map((conversation) => {
+              const displayTitle =
+                conversation.title ||
+                new Date(conversation.createdAt).toLocaleString("en-US", {
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+
+              return (
+                <CommandItem
+                  key={conversation.id}
+                  onSelect={() => handleLoadConversation(conversation.id)}
+                  value={`${conversation.title || ""} ${displayTitle}`}
+                >
                   <span className="truncate">{displayTitle}</span>
                 </CommandItem>
               );

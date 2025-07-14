@@ -349,15 +349,15 @@ export function AppSidebar() {
             </div>
           </div>
 
-          {/* Conversations */}
-          {conversations.length > 0 && !isCollapsed && (
+          {/* Pinned Conversations */}
+          {conversations.some(c => c.isPinned) && !isCollapsed && (
             <div className="relative flex w-full min-w-0 flex-col p-2">
               <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium">
-                History
+                Pinned
               </div>
               <div className="w-full text-sm">
                 <ul className="flex w-full min-w-0 flex-col gap-1">
-                  {conversations.map((conversation) => {
+                  {conversations.filter(c => c.isPinned).map((conversation) => {
                     const displayTitle =
                       conversation.title ||
                       new Date(conversation.createdAt).toLocaleString("en-US", {
@@ -412,18 +412,7 @@ export function AppSidebar() {
                                 }
                               `}
                             >
-                              {conversation.isPinned && (
-                                <Pin className={`absolute left-2 top-2 w-4 h-4 text-amber-500 ${
-                                  currentConversationId === conversation.id
-                                    ? ""
-                                    : "opacity-70 group-hover/menu-item:opacity-100"
-                                }`} />
-                              )}
-                              <span
-                                className={`${
-                                  conversation.isPinned ? "pl-8" : "pl-2"
-                                } pr-8 truncate`}
-                              >
+                              <span className="pl-2 pr-8 truncate">
                                 {displayTitle}
                               </span>
                             </button>
@@ -461,7 +450,130 @@ export function AppSidebar() {
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
                               >
                                 <Pin className="w-3 h-3" />
-                                {conversation.isPinned ? "Unpin" : "Pin"}
+                                Unpin
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleDeleteConversation(conversation.id)
+                                }
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-destructive hover:text-destructive-foreground text-left"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* History (Regular Conversations) */}
+          {conversations.some(c => !c.isPinned) && !isCollapsed && (
+            <div className="relative flex w-full min-w-0 flex-col p-2">
+              <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium">
+                History
+              </div>
+              <div className="w-full text-sm">
+                <ul className="flex w-full min-w-0 flex-col gap-1">
+                  {conversations.filter(c => !c.isPinned).map((conversation) => {
+                    const displayTitle =
+                      conversation.title ||
+                      new Date(conversation.createdAt).toLocaleString("en-US", {
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      });
+
+                    return (
+                      <li
+                        key={conversation.id}
+                        className="group/menu-item relative"
+                      >
+                        <div
+                          className={`
+                          relative rounded-md transition-colors group-hover/menu-item:bg-sidebar-accent group-hover/menu-item:text-sidebar-accent-foreground
+                          ${
+                            currentConversationId === conversation.id
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground/70 group-hover/menu-item:text-sidebar-accent-foreground"
+                          }
+                        `}
+                        >
+                          {renamingId === conversation.id ? (
+                            <div className="relative flex w-full h-8 items-center">
+                              <input
+                                type="text"
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onKeyDown={(e) =>
+                                  handleRenameKeyDown(e, conversation.id)
+                                }
+                                onBlur={() => handleSaveRename(conversation.id)}
+                                className="pl-2 pr-8 w-full h-full bg-transparent text-sm outline-none border border-border rounded"
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                handleLoadConversation(conversation.id)
+                              }
+                              title={displayTitle}
+                              className={`
+                                relative flex w-full h-8 items-center overflow-hidden text-left text-sm outline-hidden transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50
+                                ${
+                                  currentConversationId === conversation.id
+                                    ? "font-medium"
+                                    : ""
+                                }
+                              `}
+                            >
+                              <span className="pl-2 pr-8 truncate">
+                                {displayTitle}
+                              </span>
+                            </button>
+                          )}
+
+                          {/* Dropdown Menu Button */}
+                          {renamingId !== conversation.id && (
+                            <button
+                              onClick={(e) =>
+                                toggleDropdown(conversation.id, e)
+                              }
+                              className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/menu-item:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
+                              title="More options"
+                            >
+                              <MoreVertical className="w-3 h-3" />
+                            </button>
+                          )}
+
+                          {/* Dropdown Menu */}
+                          {activeDropdown === conversation.id && (
+                            <div className="absolute top-8 right-0 z-50 bg-popover border border-border rounded-md shadow-lg py-1 min-w-32">
+                              <button
+                                onClick={() =>
+                                  handleRenameConversation(conversation.id)
+                                }
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                Rename
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handlePinConversation(conversation.id)
+                                }
+                                className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
+                              >
+                                <Pin className="w-3 h-3" />
+                                Pin
                               </button>
                               <button
                                 onClick={() =>
