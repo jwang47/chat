@@ -7,6 +7,7 @@ export interface Conversation {
   title: string;
   createdAt: number;
   updatedAt: number;
+  isPinned?: boolean;
 }
 
 // Extend the Message type from chat.ts to include conversationId
@@ -24,6 +25,10 @@ class ChatHistoryDatabase extends Dexie {
     this.version(1).stores({
       conversations: "id, &updatedAt", // Primary key 'id', index 'updatedAt'
       messages: "id, conversationId, timestamp", // Primary key 'id', index 'conversationId'
+    });
+    this.version(2).stores({
+      conversations: "id, &updatedAt, isPinned", // Add isPinned index
+      messages: "id, conversationId, timestamp",
     });
   }
 }
@@ -51,11 +56,23 @@ export const historyService = {
   },
 
   getRecentConversations: async (limit = 20): Promise<Conversation[]> => {
-    return await db.conversations
+    const conversations = await db.conversations
       .orderBy("updatedAt")
       .reverse()
-      .limit(limit)
+      .limit(limit * 2) // Get more to account for sorting
       .toArray();
+    
+    // Sort: pinned conversations first (by updatedAt), then unpinned (by updatedAt)
+    const sorted = conversations.sort((a, b) => {
+      // If pin status differs, pinned comes first
+      if (a.isPinned !== b.isPinned) {
+        return a.isPinned ? -1 : 1;
+      }
+      // If pin status is same, sort by updatedAt (newer first)
+      return b.updatedAt - a.updatedAt;
+    });
+    
+    return sorted.slice(0, limit);
   },
 
   updateConversationTimestamp: async (id: string): Promise<void> => {
@@ -65,7 +82,15 @@ export const historyService = {
   },
 
   updateConversationTitle: async (id: string, title: string): Promise<void> => {
-    await db.conversations.update(id, { title });
+    console.log("✏️ Updating conversation title:", id, "->", title);
+    await db.conversations.update(id, { title, updatedAt: Date.now() });
+    console.log("✅ Conversation title updated");
+  },
+
+  updateConversationPin: async (id: string, isPinned: boolean): Promise<void> => {
+    console.log("📌 Updating conversation pin status:", id, "->", isPinned);
+    await db.conversations.update(id, { isPinned, updatedAt: Date.now() });
+    console.log("✅ Conversation pin status updated");
   },
 
   deleteConversation: async (id: string): Promise<void> => {

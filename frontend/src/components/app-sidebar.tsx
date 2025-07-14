@@ -68,6 +68,8 @@ export function AppSidebar() {
   const [sidebarState, setSidebarStateLocal] = useState(getStoredSidebarState);
   const [isDragging, setIsDragging] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const sidebarRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
@@ -186,20 +188,67 @@ export function AppSidebar() {
   };
 
   const handleRenameConversation = (conversationId: string) => {
-    // TODO: Implement rename functionality
-    console.log("Rename conversation:", conversationId);
-    setActiveDropdown(null);
+    const conversation = conversations.find((c) => c.id === conversationId);
+    if (conversation) {
+      setRenamingId(conversationId);
+      setRenameValue(conversation.title || "");
+      setActiveDropdown(null);
+    }
   };
 
-  const handlePinConversation = (conversationId: string) => {
-    // TODO: Implement pin functionality
-    console.log("Pin conversation:", conversationId);
-    setActiveDropdown(null);
+  const handlePinConversation = async (conversationId: string) => {
+    try {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (conversation) {
+        await historyService.updateConversationPin(
+          conversationId,
+          !conversation.isPinned
+        );
+        await refreshConversations();
+      }
+      setActiveDropdown(null);
+    } catch (error) {
+      console.error("Failed to update pin status:", error);
+    }
+  };
+
+  const handleSaveRename = async (conversationId: string) => {
+    try {
+      if (renameValue.trim()) {
+        await historyService.updateConversationTitle(
+          conversationId,
+          renameValue.trim()
+        );
+        await refreshConversations();
+      }
+      setRenamingId(null);
+      setRenameValue("");
+    } catch (error) {
+      console.error("Failed to rename conversation:", error);
+    }
+  };
+
+  const handleCancelRename = () => {
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  const handleRenameKeyDown = (
+    e: React.KeyboardEvent,
+    conversationId: string
+  ) => {
+    if (e.key === "Enter") {
+      handleSaveRename(conversationId);
+    } else if (e.key === "Escape") {
+      handleCancelRename();
+    }
   };
 
   const toggleDropdown = (conversationId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveDropdown(activeDropdown === conversationId ? null : conversationId);
+    setActiveDropdown(
+      activeDropdown === conversationId ? null : conversationId
+    );
   };
 
   // Close dropdown when clicking outside
@@ -207,10 +256,10 @@ export function AppSidebar() {
     const handleClickOutside = () => {
       setActiveDropdown(null);
     };
-    
+
     if (activeDropdown) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
     }
   }, [activeDropdown]);
 
@@ -320,60 +369,96 @@ export function AppSidebar() {
                         key={conversation.id}
                         className="group/menu-item relative"
                       >
-                        <div className={`
+                        <div
+                          className={`
                           relative rounded-md transition-colors group-hover/menu-item:bg-sidebar-accent group-hover/menu-item:text-sidebar-accent-foreground
                           ${
                             currentConversationId === conversation.id
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
                               : ""
                           }
-                        `}>
-                          <button
-                            onClick={() =>
-                              handleLoadConversation(conversation.id)
-                            }
-                            title={displayTitle}
-                            className={`
-                              relative flex w-full h-8 items-center overflow-hidden text-left text-sm outline-hidden transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50
-                              ${
-                                currentConversationId === conversation.id
-                                  ? "font-medium"
-                                  : ""
+                        `}
+                        >
+                          {renamingId === conversation.id ? (
+                            <div className="relative flex w-full h-8 items-center">
+                              <input
+                                type="text"
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onKeyDown={(e) =>
+                                  handleRenameKeyDown(e, conversation.id)
+                                }
+                                onBlur={() => handleSaveRename(conversation.id)}
+                                className="pl-2 pr-8 w-full h-full bg-transparent text-sm outline-none border border-border rounded"
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() =>
+                                handleLoadConversation(conversation.id)
                               }
-                            `}
-                          >
-                            <MessageSquare className="absolute left-2 top-2 w-4 h-4" />
-                            <span className="pl-8 pr-8 truncate">{displayTitle}</span>
-                          </button>
-                          
+                              title={displayTitle}
+                              className={`
+                                relative flex w-full h-8 items-center overflow-hidden text-left text-sm outline-hidden transition-colors focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50
+                                ${
+                                  currentConversationId === conversation.id
+                                    ? "font-medium"
+                                    : ""
+                                }
+                              `}
+                            >
+                              {conversation.isPinned && (
+                                <Pin className="absolute left-2 top-2 w-4 h-4 text-amber-500" />
+                              )}
+                              <span
+                                className={`${
+                                  conversation.isPinned ? "pl-8" : "pl-2"
+                                } pr-8 truncate`}
+                              >
+                                {displayTitle}
+                              </span>
+                            </button>
+                          )}
+
                           {/* Dropdown Menu Button */}
-                          <button
-                            onClick={(e) => toggleDropdown(conversation.id, e)}
-                            className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/menu-item:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
-                            title="More options"
-                          >
-                            <MoreVertical className="w-3 h-3" />
-                          </button>
+                          {renamingId !== conversation.id && (
+                            <button
+                              onClick={(e) =>
+                                toggleDropdown(conversation.id, e)
+                              }
+                              className="absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover/menu-item:opacity-100 transition-opacity p-1 hover:bg-accent rounded"
+                              title="More options"
+                            >
+                              <MoreVertical className="w-3 h-3" />
+                            </button>
+                          )}
 
                           {/* Dropdown Menu */}
                           {activeDropdown === conversation.id && (
                             <div className="absolute top-8 right-0 z-50 bg-popover border border-border rounded-md shadow-lg py-1 min-w-32">
                               <button
-                                onClick={() => handleRenameConversation(conversation.id)}
+                                onClick={() =>
+                                  handleRenameConversation(conversation.id)
+                                }
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
                               >
                                 <Edit3 className="w-3 h-3" />
                                 Rename
                               </button>
                               <button
-                                onClick={() => handlePinConversation(conversation.id)}
+                                onClick={() =>
+                                  handlePinConversation(conversation.id)
+                                }
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent text-left"
                               >
                                 <Pin className="w-3 h-3" />
-                                Pin
+                                {conversation.isPinned ? "Unpin" : "Pin"}
                               </button>
                               <button
-                                onClick={() => handleDeleteConversation(conversation.id)}
+                                onClick={() =>
+                                  handleDeleteConversation(conversation.id)
+                                }
                                 className="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-destructive hover:text-destructive-foreground text-left"
                               >
                                 <Trash2 className="w-3 h-3" />
