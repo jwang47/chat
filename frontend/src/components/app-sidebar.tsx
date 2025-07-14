@@ -330,11 +330,15 @@ export function AppSidebar() {
                           item.highlightIfActive &&
                           location.pathname === item.url
                             ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                            : ""
+                            : "text-sidebar-foreground/70 hover:text-sidebar-accent-foreground"
                         }
                       `}
                     >
-                      <item.icon className="absolute left-2 top-2 w-4 h-4" />
+                      <item.icon className={`absolute left-2 top-2 w-4 h-4 ${
+                        item.highlightIfActive && location.pathname === item.url
+                          ? ""
+                          : "opacity-70 group-hover:opacity-100"
+                      }`} />
                       {!isCollapsed && (
                         <span className="pl-8 truncate">{item.title}</span>
                       )}
@@ -375,7 +379,7 @@ export function AppSidebar() {
                           ${
                             currentConversationId === conversation.id
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : ""
+                              : "text-sidebar-foreground/70 group-hover/menu-item:text-sidebar-accent-foreground"
                           }
                         `}
                         >
@@ -408,12 +412,21 @@ export function AppSidebar() {
                                 }
                               `}
                             >
+                              <MessageSquare className={`absolute left-2 top-2 w-4 h-4 ${
+                                currentConversationId === conversation.id
+                                  ? ""
+                                  : "opacity-70 group-hover/menu-item:opacity-100"
+                              }`} />
                               {conversation.isPinned && (
-                                <Pin className="absolute left-2 top-2 w-4 h-4 text-amber-300" />
+                                <Pin className={`absolute left-7 top-2 w-3 h-3 text-amber-500 ${
+                                  currentConversationId === conversation.id
+                                    ? ""
+                                    : "opacity-70 group-hover/menu-item:opacity-100"
+                                }`} />
                               )}
                               <span
                                 className={`${
-                                  conversation.isPinned ? "pl-8" : "pl-2"
+                                  conversation.isPinned ? "pl-11" : "pl-8"
                                 } pr-8 truncate`}
                               >
                                 {displayTitle}
