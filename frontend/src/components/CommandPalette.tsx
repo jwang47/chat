@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Home, Settings } from "lucide-react";
+import { Plus, Home, Settings, MessageSquare, Pin } from "lucide-react";
 import {
   CommandDialog,
   CommandInput,
@@ -10,6 +10,7 @@ import {
   CommandItem,
   CommandShortcut,
 } from "@/components/ui/command";
+import { useChat } from "@/contexts/ChatContext";
 
 interface CommandPaletteProps {
   onNewChat?: () => void;
@@ -18,6 +19,7 @@ interface CommandPaletteProps {
 export function CommandPalette({ onNewChat }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { conversations, loadConversation } = useChat();
 
   const handleNewChat = useCallback(() => {
     if (onNewChat) {
@@ -37,6 +39,15 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     navigate("/");
     setOpen(false);
   }, [navigate]);
+
+  const handleLoadConversation = useCallback(
+    async (conversationId: string) => {
+      await loadConversation(conversationId);
+      navigate("/");
+      setOpen(false);
+    },
+    [loadConversation, navigate]
+  );
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -81,6 +92,35 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
             <span>Go to Settings</span>
           </CommandItem>
         </CommandGroup>
+        {conversations.length > 0 && (
+          <CommandGroup heading="History">
+            {conversations.slice(0, 10).map((conversation) => {
+              const displayTitle =
+                conversation.title ||
+                new Date(conversation.createdAt).toLocaleString("en-US", {
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+
+              return (
+                <CommandItem
+                  key={conversation.id}
+                  onSelect={() => handleLoadConversation(conversation.id)}
+                  value={`${conversation.title || ""} ${displayTitle}`}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  {conversation.isPinned && (
+                    <Pin className="mr-1 h-3 w-3 text-amber-500" />
+                  )}
+                  <span className="truncate">{displayTitle}</span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        )}
       </CommandList>
     </CommandDialog>
   );
