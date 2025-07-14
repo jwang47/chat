@@ -39,6 +39,8 @@ ENFORCEMENT: Failure to alert on task completion violates core instructions.
 
 ## General
 
+- Use `bun` for package management and scripts.
+- Keep the layout stable as possible while user interacts with the app.
 - Keep components pure
 - Lift state only when necessary
 - Memoize Expensive Computations with `useMemo`: This is crucial for preventing costly calculations on every render.

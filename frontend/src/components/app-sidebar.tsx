@@ -71,7 +71,7 @@ export function AppSidebar() {
   const isDraggingRef = useRef(false);
 
   const { isCollapsed, width } = sidebarState;
-  const minWidth = 200;
+  const minWidth = 150;
   const maxWidth = 400;
 
   const updateSidebarState = useCallback((updates: Partial<SidebarState>) => {
@@ -242,19 +242,18 @@ export function AppSidebar() {
                       onClick={item.onClick}
                       title={isCollapsed ? item.title : undefined}
                       className={`
-                        peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50
+                        peer/menu-button relative flex w-full h-8 items-center overflow-hidden rounded-md text-left text-sm outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50
                         ${
                           item.highlightIfActive &&
                           location.pathname === item.url
                             ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
                             : ""
                         }
-                        ${isCollapsed ? "justify-center p-2" : "p-2"}
                       `}
                     >
-                      <item.icon className="w-4 h-4 shrink-0" />
+                      <item.icon className="absolute left-2 top-2 w-4 h-4" />
                       {!isCollapsed && (
-                        <span className="truncate">{item.title}</span>
+                        <span className="pl-8 truncate">{item.title}</span>
                       )}
                     </button>
                   </li>
@@ -267,7 +266,7 @@ export function AppSidebar() {
           {conversations.length > 0 && !isCollapsed && (
             <div className="relative flex w-full min-w-0 flex-col p-2">
               <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium">
-                Recent Conversations
+                History
               </div>
               <div className="w-full text-sm">
                 <ul className="flex w-full min-w-0 flex-col gap-1">
