@@ -38,7 +38,7 @@
     "shortDescription": "AI Chat Application",
     "longDescription": "A modern AI chat application with secure credential storage",
     "macOS": {
-      "entitlements": null,
+      "entitlements": "entitlements.plist",
       "exceptionDomain": "",
       "frameworks": [],
       "providerShortName": null,

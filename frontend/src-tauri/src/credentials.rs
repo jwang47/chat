@@ -56,9 +56,14 @@ impl CredentialStore {
     pub fn get_credential(&self, provider: &str) -> Result<Option<String>, CredentialError> {
         println!("Getting credential for provider: {}", provider);
         let entry = self.get_entry(provider)?;
+        println!("Entry created successfully, attempting to get password...");
         match entry.get_password() {
             Ok(password) => {
-                println!("Successfully retrieved credential for {}", provider);
+                println!(
+                    "Successfully retrieved credential for {} (length: {})",
+                    provider,
+                    password.len()
+                );
                 Ok(Some(password))
             }
             Err(KeyringError::NoEntry) => {
@@ -67,17 +72,45 @@ impl CredentialStore {
             }
             Err(e) => {
                 eprintln!("Error retrieving credential for {}: {:?}", provider, e);
+                eprintln!("This might be due to keychain access permissions or entitlements");
                 Err(CredentialError::Keyring(e))
             }
         }
     }
 
     pub fn set_credential(&self, provider: &str, value: &str) -> Result<(), CredentialError> {
-        println!("Setting credential for provider: {}", provider);
+        println!(
+            "Setting credential for provider: {} (value length: {})",
+            provider,
+            value.len()
+        );
         let entry = self.get_entry(provider)?;
+        println!("Entry created successfully, attempting to set password...");
         match entry.set_password(value) {
             Ok(_) => {
                 println!("Successfully set credential for {}", provider);
+
+                // Immediately try to read it back as a verification
+                println!("Verifying credential was saved correctly...");
+                match entry.get_password() {
+                    Ok(retrieved) => {
+                        if retrieved == value {
+                            println!("✅ Credential verification successful for {}", provider);
+                        } else {
+                            println!(
+                                "⚠️ Credential verification failed - value mismatch for {}",
+                                provider
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        println!(
+                            "⚠️ Credential verification failed - could not retrieve for {}: {:?}",
+                            provider, e
+                        );
+                    }
+                }
+
                 Ok(())
             }
             Err(e) => {
