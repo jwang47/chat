@@ -9,10 +9,16 @@ export function Settings() {
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [isElectron, setIsElectron] = useState(false);
 
   useEffect(() => {
-    // Load API keys from secure storage on component mount
+    // Check if running in Electron and load API keys
+    const electronDetected = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
+    setIsElectron(electronDetected);
+    
     const loadApiKeys = async () => {
+      if (!electronDetected) return;
+      
       try {
         const apiKeys = await ApiKeyStorage.getAllApiKeys();
 
@@ -24,7 +30,11 @@ export function Settings() {
         }
       } catch (error) {
         console.error("Error loading API keys:", error);
-        setSaveMessage("Error loading API keys.");
+        if (error instanceof Error && error.message.includes('desktop app')) {
+          setSaveMessage("Please use the desktop app for secure API key storage.");
+        } else {
+          setSaveMessage("Error loading API keys.");
+        }
       }
     };
 
@@ -48,7 +58,11 @@ export function Settings() {
       }
     } catch (error) {
       console.error("Error saving API keys:", error);
-      setSaveMessage("Error saving API keys. Please try again.");
+      if (error instanceof Error && error.message.includes('desktop app')) {
+        setSaveMessage("Please use the desktop app for secure API key storage.");
+      } else {
+        setSaveMessage("Error saving API keys. Please try again.");
+      }
     }
 
     setIsLoading(false);
@@ -91,6 +105,7 @@ export function Settings() {
               onChange={(e) => setOpenRouterApiKey(e.target.value)}
               onKeyPress={handleKeyPress}
               className="w-full"
+              disabled={!isElectron}
             />
             <p className="text-xs text-muted-foreground mt-2">
               Access to multiple AI models through OpenRouter's unified API.
@@ -112,6 +127,7 @@ export function Settings() {
               onChange={(e) => setGeminiApiKey(e.target.value)}
               onKeyPress={handleKeyPress}
               className="w-full"
+              disabled={!isElectron}
             />
             <p className="text-xs text-muted-foreground mt-2">
               Direct access to Google's Gemini AI models.
@@ -122,14 +138,14 @@ export function Settings() {
             <p className="text-xs text-muted-foreground mb-4">
               {typeof window !== 'undefined' && window.electronAPI?.isElectron 
                 ? "Your API keys are stored securely using your operating system's credential store and are encrypted."
-                : "Your API keys are stored locally in your browser and never sent to our servers."
+                : "⚠️ For security, API key storage is only available in the desktop app. Please download and use the Electron version."
               }
             </p>
 
             <div className="flex items-center gap-4">
               <Button
                 onClick={handleSave}
-                disabled={isLoading}
+                disabled={isLoading || !isElectron}
                 className="min-w-[100px]"
               >
                 {isLoading ? "Saving..." : "Save"}

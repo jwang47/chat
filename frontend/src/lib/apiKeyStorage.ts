@@ -19,63 +19,50 @@ class ApiKeyStorage {
   }
 
   /**
-   * Get a specific API key from secure storage or localStorage fallback
+   * Get a specific API key from secure storage (Electron only)
    */
   static async getApiKey(provider: ApiKeyProvider): Promise<string | null> {
     try {
-      if (this.isElectron() && window.electronAPI) {
-        return await window.electronAPI.credentials.getApiKey(provider);
+      if (!this.isElectron() || !window.electronAPI) {
+        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
       }
       
-      // Fallback to localStorage for web version
-      const key = this.STORAGE_KEYS[provider];
-      return localStorage.getItem(key);
+      return await window.electronAPI.credentials.getApiKey(provider);
     } catch (error) {
       console.error(`Error getting ${provider} API key:`, error);
-      return null;
+      throw error;
     }
   }
 
   /**
-   * Set a specific API key in secure storage or localStorage fallback
+   * Set a specific API key in secure storage (Electron only)
    */
   static async setApiKey(provider: ApiKeyProvider, apiKey: string): Promise<boolean> {
     try {
-      if (this.isElectron() && window.electronAPI) {
-        return await window.electronAPI.credentials.setApiKey(provider, apiKey);
+      if (!this.isElectron() || !window.electronAPI) {
+        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
       }
       
-      // Fallback to localStorage for web version
-      const key = this.STORAGE_KEYS[provider];
-      if (apiKey.trim()) {
-        localStorage.setItem(key, apiKey.trim());
-      } else {
-        localStorage.removeItem(key);
-      }
-      return true;
+      return await window.electronAPI.credentials.setApiKey(provider, apiKey);
     } catch (error) {
       console.error(`Error setting ${provider} API key:`, error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Get all API keys from secure storage or localStorage fallback
+   * Get all API keys from secure storage (Electron only)
    */
   static async getAllApiKeys(): Promise<ApiKeys> {
     try {
-      if (this.isElectron() && window.electronAPI) {
-        return await window.electronAPI.credentials.getAllApiKeys();
+      if (!this.isElectron() || !window.electronAPI) {
+        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
       }
       
-      // Fallback to localStorage for web version
-      return {
-        openrouter: (await this.getApiKey("openrouter")) || undefined,
-        gemini: (await this.getApiKey("gemini")) || undefined,
-      };
+      return await window.electronAPI.credentials.getAllApiKeys();
     } catch (error) {
       console.error("Error getting all API keys:", error);
-      return {};
+      throw error;
     }
   }
 
@@ -102,76 +89,66 @@ class ApiKeyStorage {
   }
 
   /**
-   * Remove a specific API key from secure storage or localStorage fallback
+   * Remove a specific API key from secure storage (Electron only)
    */
   static async removeApiKey(provider: ApiKeyProvider): Promise<boolean> {
     try {
-      if (this.isElectron() && window.electronAPI) {
-        return await window.electronAPI.credentials.removeApiKey(provider);
+      if (!this.isElectron() || !window.electronAPI) {
+        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
       }
       
-      // Fallback to localStorage for web version
-      const key = this.STORAGE_KEYS[provider];
-      localStorage.removeItem(key);
-      return true;
+      return await window.electronAPI.credentials.removeApiKey(provider);
     } catch (error) {
       console.error(`Error removing ${provider} API key:`, error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Remove all API keys from secure storage or localStorage fallback
+   * Remove all API keys from secure storage (Electron only)
    */
   static async clearAllApiKeys(): Promise<boolean> {
     try {
-      if (this.isElectron() && window.electronAPI) {
-        return await window.electronAPI.credentials.clearAllApiKeys();
+      if (!this.isElectron() || !window.electronAPI) {
+        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
       }
       
-      // Fallback to localStorage for web version
-      Object.values(this.STORAGE_KEYS).forEach((key) => {
-        localStorage.removeItem(key);
-      });
-      return true;
+      return await window.electronAPI.credentials.clearAllApiKeys();
     } catch (error) {
       console.error("Error clearing API keys:", error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Check if any API key is available
+   * Check if any API key is available (Electron only)
    */
   static async hasAnyApiKey(): Promise<boolean> {
     try {
-      if (this.isElectron() && window.electronAPI) {
-        return await window.electronAPI.credentials.hasAnyApiKey();
+      if (!this.isElectron() || !window.electronAPI) {
+        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
       }
       
-      // Fallback to localStorage for web version
-      const keys = await this.getAllApiKeys();
-      return !!(keys.openrouter || keys.gemini);
+      return await window.electronAPI.credentials.hasAnyApiKey();
     } catch (error) {
       console.error("Error checking for API keys:", error);
-      return false;
+      throw error;
     }
   }
 
   /**
-   * Check if a specific API key is available
+   * Check if a specific API key is available (Electron only)
    */
   static async hasApiKey(provider: ApiKeyProvider): Promise<boolean> {
     try {
-      if (this.isElectron() && window.electronAPI) {
-        return await window.electronAPI.credentials.hasApiKey(provider);
+      if (!this.isElectron() || !window.electronAPI) {
+        throw new Error('Secure credential storage is only available in the desktop app. Please use the Electron version for secure API key storage.');
       }
       
-      // Fallback to localStorage for web version
-      return !!(await this.getApiKey(provider));
+      return await window.electronAPI.credentials.hasApiKey(provider);
     } catch (error) {
       console.error(`Error checking for ${provider} API key:`, error);
-      return false;
+      throw error;
     }
   }
 }
