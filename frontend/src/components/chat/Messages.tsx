@@ -4,6 +4,7 @@ import {
   useImperativeHandle,
   useCallback,
   useMemo,
+  memo, // Import memo
 } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { motion } from "motion/react";
@@ -51,7 +52,7 @@ interface TypingIndicatorMessage extends Message {
 }
 
 
-export const Messages = forwardRef<MessagesRef, MessagesProps>(
+export const Messages = memo(forwardRef<MessagesRef, MessagesProps>(
   (
     {
       messages,
@@ -237,6 +238,6 @@ export const Messages = forwardRef<MessagesRef, MessagesProps>(
       </div>
     );
   }
-);
+));
 
 Messages.displayName = "Messages";

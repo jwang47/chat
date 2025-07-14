@@ -12,4 +12,7 @@ export default defineConfig({
     },
   },
   base: "./", // Use relative paths for Electron
+  optimizeDeps: {
+    include: ['react', 'react-dom'], // Pre-bundle these dependencies for faster startup
+  },
 });
