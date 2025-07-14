@@ -1,7 +1,5 @@
 import {
   Settings,
-  PanelLeftOpen,
-  PanelLeftClose,
   SquarePen,
   Palette,
   MessageSquare,
@@ -12,18 +10,6 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "motion/react";
 import { useChat } from "@/contexts/ChatContext";
 import { historyService } from "@/lib/historyService";
-
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-} from "@/components/ui/sidebar";
 
 const SIDEBAR_STORAGE_KEY = "sidebar-state";
 const SIDEBAR_WIDTH_STORAGE_KEY = "sidebar-width";
@@ -49,10 +35,16 @@ const getStoredSidebarState = (): SidebarState => {
 const setSidebarState = (state: Partial<SidebarState>) => {
   try {
     if (state.isCollapsed !== undefined) {
-      localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(state.isCollapsed));
+      localStorage.setItem(
+        SIDEBAR_STORAGE_KEY,
+        JSON.stringify(state.isCollapsed)
+      );
     }
     if (state.width !== undefined) {
-      localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, JSON.stringify(state.width));
+      localStorage.setItem(
+        SIDEBAR_WIDTH_STORAGE_KEY,
+        JSON.stringify(state.width)
+      );
     }
   } catch {
     // Ignore storage errors
@@ -62,8 +54,14 @@ const setSidebarState = (state: Partial<SidebarState>) => {
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { newChat, conversations, loadConversation, refreshConversations, currentConversationId } = useChat();
-  
+  const {
+    newChat,
+    conversations,
+    loadConversation,
+    refreshConversations,
+    currentConversationId,
+  } = useChat();
+
   const [sidebarState, setSidebarStateLocal] = useState(getStoredSidebarState);
   const [isDragging, setIsDragging] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -77,7 +75,7 @@ export function AppSidebar() {
   const maxWidth = 400;
 
   const updateSidebarState = useCallback((updates: Partial<SidebarState>) => {
-    setSidebarStateLocal(prev => {
+    setSidebarStateLocal((prev) => {
       const newState = { ...prev, ...updates };
       setSidebarState(updates);
       return newState;
@@ -88,31 +86,40 @@ export function AppSidebar() {
     updateSidebarState({ isCollapsed: !isCollapsed });
   }, [isCollapsed, updateSidebarState]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (isCollapsed) return;
-    
-    e.preventDefault();
-    setIsDragging(true);
-    isDraggingRef.current = true;
-    startXRef.current = e.clientX;
-    startWidthRef.current = width;
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  }, [isCollapsed, width]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (isCollapsed) return;
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDraggingRef.current) return;
+      e.preventDefault();
+      setIsDragging(true);
+      isDraggingRef.current = true;
+      startXRef.current = e.clientX;
+      startWidthRef.current = width;
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    },
+    [isCollapsed, width]
+  );
 
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
 
-    animationFrameRef.current = requestAnimationFrame(() => {
-      const deltaX = e.clientX - startXRef.current;
-      const newWidth = Math.max(minWidth, Math.min(maxWidth, startWidthRef.current + deltaX));
-      updateSidebarState({ width: newWidth });
-    });
-  }, [updateSidebarState]);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
+      animationFrameRef.current = requestAnimationFrame(() => {
+        const deltaX = e.clientX - startXRef.current;
+        const newWidth = Math.max(
+          minWidth,
+          Math.min(maxWidth, startWidthRef.current + deltaX)
+        );
+        updateSidebarState({ width: newWidth });
+      });
+    },
+    [updateSidebarState]
+  );
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -128,7 +135,9 @@ export function AppSidebar() {
 
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener("mousemove", handleMouseMove, { passive: true });
+      document.addEventListener("mousemove", handleMouseMove, {
+        passive: true,
+      });
       document.addEventListener("mouseup", handleMouseUp);
       return () => {
         document.removeEventListener("mousemove", handleMouseMove);
@@ -199,36 +208,25 @@ export function AppSidebar() {
     <div className="relative flex">
       <motion.div
         ref={sidebarRef}
-        className="relative flex flex-col bg-sidebar text-sidebar-foreground border-r border-border h-screen overflow-hidden"
+        className="relative flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-screen overflow-hidden"
         initial={false}
-        animate={{ 
+        animate={{
           width: isCollapsed ? 48 : width,
-          opacity: 1 
+          opacity: 1,
         }}
         transition={{
-          width: isDragging ? { duration: 0 } : { duration: 0.2, ease: "easeOut" },
-          opacity: { duration: 0.2 }
+          width: isDragging
+            ? { duration: 0 }
+            : { duration: 0.2, ease: "easeOut" },
+          opacity: { duration: 0.2 },
         }}
       >
         {/* Header */}
         <div className="flex flex-col gap-2 p-2">
-          <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"}`}>
-            {!isCollapsed && (
-              <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium">
-                Chat
-              </div>
-            )}
-            <button
-              onClick={handleToggleCollapse}
-              className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-sidebar-accent transition-colors"
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {isCollapsed ? (
-                <PanelLeftOpen className="w-4 h-4" />
-              ) : (
-                <PanelLeftClose className="w-4 h-4" />
-              )}
-            </button>
+          <div className="flex items-center">
+            <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium">
+              C
+            </div>
           </div>
         </div>
 
@@ -245,19 +243,26 @@ export function AppSidebar() {
                       title={isCollapsed ? item.title : undefined}
                       className={`
                         peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50
-                        ${item.highlightIfActive && location.pathname === item.url ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : ''}
-                        ${isCollapsed ? 'justify-center p-2' : ''}
+                        ${
+                          item.highlightIfActive &&
+                          location.pathname === item.url
+                            ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                            : ""
+                        }
+                        ${isCollapsed ? "justify-center p-2" : "p-2"}
                       `}
                     >
                       <item.icon className="w-4 h-4 shrink-0" />
-                      {!isCollapsed && <span className="truncate">{item.title}</span>}
+                      {!isCollapsed && (
+                        <span className="truncate">{item.title}</span>
+                      )}
                     </button>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-          
+
           {/* Conversations */}
           {conversations.length > 0 && !isCollapsed && (
             <div className="relative flex w-full min-w-0 flex-col p-2">
@@ -267,23 +272,34 @@ export function AppSidebar() {
               <div className="w-full text-sm">
                 <ul className="flex w-full min-w-0 flex-col gap-1">
                   {conversations.map((conversation) => {
-                    const displayTitle = conversation.title || new Date(conversation.createdAt).toLocaleString('en-US', {
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    });
+                    const displayTitle =
+                      conversation.title ||
+                      new Date(conversation.createdAt).toLocaleString("en-US", {
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      });
 
                     return (
-                      <li key={conversation.id} className="group/menu-item relative">
+                      <li
+                        key={conversation.id}
+                        className="group/menu-item relative"
+                      >
                         <div className="group flex items-center justify-between pr-2">
                           <button
-                            onClick={() => handleLoadConversation(conversation.id)}
+                            onClick={() =>
+                              handleLoadConversation(conversation.id)
+                            }
                             title={displayTitle}
                             className={`
                               peer/menu-button flex flex-1 items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50
-                              ${currentConversationId === conversation.id ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground' : ''}
+                              ${
+                                currentConversationId === conversation.id
+                                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                                  : ""
+                              }
                             `}
                           >
                             <MessageSquare className="w-4 h-4 shrink-0" />
@@ -307,34 +323,24 @@ export function AppSidebar() {
               </div>
             </div>
           )}
+
+          {/* Blank space that can be clicked to collapse/expand */}
+          <div
+            className={`flex-1 ${
+              isCollapsed ? "cursor-e-resize" : "cursor-w-resize"
+            }`}
+            onClick={handleToggleCollapse}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          />
         </div>
       </motion.div>
 
-      {/* Resize Handle */}
+      {/* Resize Handle - invisible but functional */}
       {!isCollapsed && (
-        <motion.div
-          className={`
-            relative w-1 bg-border cursor-col-resize select-none
-            hover:bg-border/80 transition-colors duration-150
-            ${isDragging ? "bg-border/60" : ""}
-          `}
+        <div
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize"
           onMouseDown={handleMouseDown}
-          initial={false}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-        >
-          {/* Hover area for easier grabbing */}
-          <div className="absolute inset-y-0 -left-1 -right-1 w-3" />
-          
-          {/* Visual indicator */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <div className="flex flex-col gap-1">
-              <div className="w-0.5 h-1 bg-muted-foreground/40 rounded-full" />
-              <div className="w-0.5 h-1 bg-muted-foreground/40 rounded-full" />
-              <div className="w-0.5 h-1 bg-muted-foreground/40 rounded-full" />
-            </div>
-          </div>
-        </motion.div>
+        />
       )}
     </div>
   );
