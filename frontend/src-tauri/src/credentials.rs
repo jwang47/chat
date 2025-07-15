@@ -55,45 +55,60 @@ impl CredentialStore {
 
         let username = format!("{}-api-key", provider);
         println!(
-            "Creating keyring entry for service: '{}', username: '{}'",
+            "🔑 Creating keyring entry for service: '{}', username: '{}'",
             self.service_name, username
         );
+        println!("   📝 Note: You mentioned seeing 'Chat Safe Storage' in Keychain");
+        println!("   📝 Expected service name: '{}'", self.service_name);
+        println!("   📝 Expected username: '{}'", username);
 
         match Entry::new(&self.service_name, &username) {
             Ok(entry) => {
-                println!("Successfully created keyring entry for {}", provider);
+                println!("✅ Successfully created keyring entry for {}", provider);
                 Ok(entry)
             }
             Err(e) => {
-                eprintln!("Failed to create keyring entry for {}: {:?}", provider, e);
+                eprintln!("❌ Failed to create keyring entry for {}: {:?}", provider, e);
                 eprintln!(
-                    "This might be due to keychain access permissions or service name conflicts"
+                    "   This might be due to keychain access permissions or service name conflicts"
                 );
+                eprintln!("   Expected service: '{}', username: '{}'", self.service_name, username);
                 Err(CredentialError::Keyring(e))
             }
         }
     }
 
     pub fn get_credential(&self, provider: &str) -> Result<Option<String>, CredentialError> {
-        println!("Getting credential for provider: {}", provider);
+        println!("🔍 Getting credential for provider: {}", provider);
+        println!("   Service: {}", self.service_name);
+        println!("   Username will be: {}-api-key", provider);
+        
         let entry = self.get_entry(provider)?;
-        println!("Entry created successfully, attempting to get password...");
+        println!("✅ Entry created successfully, attempting to get password...");
+        
         match entry.get_password() {
             Ok(password) => {
                 println!(
-                    "Successfully retrieved credential for {} (length: {})",
+                    "✅ Successfully retrieved credential for {} (length: {})",
                     provider,
                     password.len()
                 );
+                println!("   First 10 chars: {:?}", password.chars().take(10).collect::<String>());
                 Ok(Some(password))
             }
             Err(KeyringError::NoEntry) => {
-                println!("No credential found for {}", provider);
+                println!("❌ No credential found for {}", provider);
+                println!("   This means the keyring entry does not exist");
                 Ok(None)
             }
             Err(e) => {
-                eprintln!("Error retrieving credential for {}: {:?}", provider, e);
-                eprintln!("This might be due to keychain access permissions or entitlements");
+                eprintln!("❌ Error retrieving credential for {}: {:?}", provider, e);
+                eprintln!("   Error details: {}", e);
+                eprintln!("   This might be due to keychain access permissions or entitlements");
+                
+                // Try to provide more specific error information
+                eprintln!("   Error type: {:?}", std::mem::discriminant(&e));
+                
                 Err(CredentialError::Keyring(e))
             }
         }
@@ -101,27 +116,38 @@ impl CredentialStore {
 
     pub fn set_credential(&self, provider: &str, value: &str) -> Result<(), CredentialError> {
         println!(
-            "Setting credential for provider: {} (value length: {})",
+            "💾 Setting credential for provider: {} (value length: {})",
             provider,
             value.len()
         );
+        println!("   Service: {}", self.service_name);
+        println!("   Username will be: {}-api-key", provider);
+        println!("   First 10 chars of value: {:?}", value.chars().take(10).collect::<String>());
+        
         let entry = self.get_entry(provider)?;
-        println!("Entry created successfully, attempting to set password...");
+        println!("✅ Entry created successfully, attempting to set password...");
+        
         match entry.set_password(value) {
             Ok(_) => {
-                println!("Successfully set credential for {}", provider);
+                println!("✅ Successfully set credential for {}", provider);
 
                 // Immediately try to read it back as a verification
-                println!("Verifying credential was saved correctly...");
+                println!("🔍 Verifying credential was saved correctly...");
                 match entry.get_password() {
                     Ok(retrieved) => {
+                        println!("✅ Verification retrieval successful (length: {})", retrieved.len());
+                        println!("   First 10 chars retrieved: {:?}", retrieved.chars().take(10).collect::<String>());
+                        
                         if retrieved == value {
-                            println!("✅ Credential verification successful for {}", provider);
+                            println!("✅ Credential verification successful for {} - values match perfectly", provider);
                         } else {
                             println!(
                                 "⚠️ Credential verification failed - value mismatch for {}",
                                 provider
                             );
+                            println!("   Expected length: {}, got length: {}", value.len(), retrieved.len());
+                            println!("   Expected first 10: {:?}", value.chars().take(10).collect::<String>());
+                            println!("   Got first 10: {:?}", retrieved.chars().take(10).collect::<String>());
                         }
                     }
                     Err(e) => {
@@ -129,16 +155,22 @@ impl CredentialStore {
                             "⚠️ Credential verification failed - could not retrieve for {}: {:?}",
                             provider, e
                         );
+                        println!("   Error details: {}", e);
                     }
                 }
 
                 Ok(())
             }
             Err(e) => {
-                eprintln!("Failed to set credential for {}: {:?}", provider, e);
+                eprintln!("❌ Failed to set credential for {}: {:?}", provider, e);
+                eprintln!("   Error details: {}", e);
                 eprintln!(
-                    "This might be due to keychain access permissions or system keyring issues"
+                    "   This might be due to keychain access permissions or system keyring issues"
                 );
+                
+                // Provide more specific error information
+                eprintln!("   Error type: {:?}", std::mem::discriminant(&e));
+                
                 Err(CredentialError::Keyring(e))
             }
         }
@@ -260,45 +292,108 @@ pub async fn has_any_api_key(store: State<'_, CredentialStore>) -> Result<bool, 
 
 #[command]
 pub async fn test_keychain_access(store: State<'_, CredentialStore>) -> Result<String, String> {
-    println!("Testing keychain access...");
+    println!("🔍 Starting comprehensive keychain access test...");
+    println!("Service name: {}", store.service_name);
 
     // Test creating an entry
     let test_provider = "test-provider";
     let test_value = "test-value";
 
+    println!("📝 Phase 1: Testing credential storage...");
     match store.set_credential(test_provider, test_value) {
         Ok(_) => {
-            println!("Successfully created test entry");
+            println!("✅ Phase 1 completed: Credential stored successfully");
 
-            // Test reading it back
+            // Add a small delay to ensure keychain sync
+            println!("⏳ Waiting 100ms for keychain synchronization...");
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+            println!("📖 Phase 2: Testing credential retrieval...");
+            
+            // Try to get the entry details for debugging
+            let entry_result = store.get_entry(test_provider);
+            match &entry_result {
+                Ok(entry) => {
+                    println!("🔑 Entry created successfully for debugging");
+                    println!("   Service: {}", store.service_name);
+                    println!("   Username: {}-api-key", test_provider);
+                    
+                    // Try to get password directly from entry
+                    println!("🔍 Attempting direct password retrieval from entry...");
+                    match entry.get_password() {
+                        Ok(password) => {
+                            println!("✅ Direct retrieval successful: length = {}", password.len());
+                            if password == test_value {
+                                println!("✅ Direct retrieval value matches expected");
+                            } else {
+                                println!("❌ Direct retrieval value mismatch: expected '{}', got '{}'", test_value, password);
+                            }
+                        }
+                        Err(e) => {
+                            println!("❌ Direct retrieval failed: {:?}", e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("❌ Failed to create entry for debugging: {:?}", e);
+                }
+            }
+
+            // Test reading it back through the normal method
             match store.get_credential(test_provider) {
                 Ok(Some(value)) if value == test_value => {
-                    println!("Successfully read back test entry");
+                    println!("✅ Phase 2 completed: Successfully read back test entry");
 
                     // Clean up
-                    let _ = store.remove_credential(test_provider);
-                    Ok("Keychain access test passed".to_string())
+                    println!("🧹 Phase 3: Cleaning up test entry...");
+                    match store.remove_credential(test_provider) {
+                        Ok(_) => println!("✅ Cleanup successful"),
+                        Err(e) => println!("⚠️ Cleanup failed: {}", e),
+                    }
+                    Ok("🎉 Keychain access test passed - all phases successful".to_string())
                 }
                 Ok(Some(value)) => {
+                    println!("❌ Phase 2 failed: Value mismatch");
+                    println!("   Expected: '{}'", test_value);
+                    println!("   Got: '{}'", value);
+                    println!("   Expected length: {}", test_value.len());
+                    println!("   Got length: {}", value.len());
+                    
                     let _ = store.remove_credential(test_provider);
                     Err(format!(
-                        "Value mismatch: expected '{}', got '{}'",
-                        test_value, value
+                        "Value mismatch: expected '{}' (len={}), got '{}' (len={})",
+                        test_value, test_value.len(), value, value.len()
                     ))
                 }
                 Ok(None) => {
+                    println!("❌ Phase 2 failed: Could not read back test entry");
+                    println!("🔍 Debugging: Entry exists but returns None");
+                    
+                    // Additional debugging - try to list what we can find
+                    println!("🔍 Attempting to check if credential exists using has_credential...");
+                    match store.has_credential(test_provider) {
+                        Ok(exists) => println!("   has_credential returned: {}", exists),
+                        Err(e) => println!("   has_credential failed: {}", e),
+                    }
+                    
                     let _ = store.remove_credential(test_provider);
-                    Err("Could not read back test entry".to_string())
+                    Err("Could not read back test entry - entry appears to exist but returns None".to_string())
                 }
                 Err(e) => {
+                    println!("❌ Phase 2 failed: Error reading test entry");
+                    println!("   Error: {}", e);
+                    println!("   Error type: {:?}", e);
+                    
                     let _ = store.remove_credential(test_provider);
                     Err(format!("Error reading test entry: {}", e))
                 }
             }
         }
         Err(e) => {
-            eprintln!("Failed to create test entry: {}", e);
-            Err(format!("Keychain access test failed: {}", e))
+            println!("❌ Phase 1 failed: Could not create test entry");
+            println!("   Error: {}", e);
+            println!("   Error type: {:?}", e);
+            Err(format!("Keychain access test failed during storage: {}", e))
         }
     }
 }
