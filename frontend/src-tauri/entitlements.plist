@@ -4,7 +4,13 @@
 <dict>
     <key>com.apple.security.keychain-access-groups</key>
     <array>
-        <string>$(AppIdentifierPrefix)com.chat.app</string>
+        <string>$(AppIdentifierPrefix)com.chat.app.credentials</string>
+    </array>
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+    <key>com.apple.security.temporary-exception.apple-events</key>
+    <array>
+        <string>com.apple.systemevents</string>
     </array>
 </dict>
 </plist> 

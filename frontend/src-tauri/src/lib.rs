@@ -8,7 +8,7 @@ use shortcuts::init_shortcuts;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::default().build())
-        .manage(CredentialStore::new("com.chat.app".to_string()))
+        .manage(CredentialStore::new("com.chat.app.credentials".to_string()))
         .invoke_handler(tauri::generate_handler![
             credentials::get_api_key,
             credentials::set_api_key,

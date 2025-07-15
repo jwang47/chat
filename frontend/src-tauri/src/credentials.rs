@@ -2,6 +2,13 @@ use keyring::{Entry, Error as KeyringError};
 use serde::{Deserialize, Serialize};
 use tauri::{command, State};
 
+// Credential storage using keyring-rs
+// 
+// Important requirements for macOS/iOS (from keyring-rs documentation):
+// - Service names and usernames cannot be empty (treated as wildcards on lookup)
+// - Proper entitlements are required for keychain access
+// - The data protection keychain is preferred over the file-based keychain
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiKeys {
     pub openrouter: Option<String>,
@@ -16,6 +23,8 @@ pub enum CredentialError {
     ProviderNotFound(String),
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
+    #[error("Invalid provider name: {0}")]
+    InvalidProvider(String),
 }
 
 pub struct CredentialStore {
@@ -24,6 +33,11 @@ pub struct CredentialStore {
 
 impl CredentialStore {
     pub fn new(service_name: String) -> Self {
+        // Ensure service name is not empty (keyring-rs requirement for macOS/iOS)
+        if service_name.is_empty() {
+            panic!("Service name cannot be empty on macOS/iOS");
+        }
+
         println!(
             "Creating CredentialStore with service name: {}",
             service_name
@@ -32,6 +46,13 @@ impl CredentialStore {
     }
 
     fn get_entry(&self, provider: &str) -> Result<Entry, CredentialError> {
+        // Validate provider name is not empty (keyring-rs requirement for macOS/iOS)
+        if provider.is_empty() {
+            return Err(CredentialError::InvalidProvider(
+                "Provider name cannot be empty".to_string(),
+            ));
+        }
+
         let username = format!("{}-api-key", provider);
         println!(
             "Creating keyring entry for service: '{}', username: '{}'",
@@ -189,6 +210,9 @@ pub async fn set_api_key(
                 }
                 CredentialError::Serialization(s) => {
                     eprintln!("Serialization error: {}", s);
+                }
+                CredentialError::InvalidProvider(p) => {
+                    eprintln!("Invalid provider name: {}", p);
                 }
             }
 
