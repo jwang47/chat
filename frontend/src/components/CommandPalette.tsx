@@ -10,6 +10,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { listen } from "@tauri-apps/api/event";
+import { useChat } from "@/contexts/ChatContext";
 
 interface CommandPaletteProps {
   onNewChat?: () => void;
@@ -18,10 +19,14 @@ interface CommandPaletteProps {
 export function CommandPalette({ onNewChat }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { newChat } = useChat();
 
   const handleNewChat = () => {
     if (onNewChat) {
       onNewChat();
+    } else {
+      newChat();
+      navigate("/");
     }
     setOpen(false);
   };
@@ -61,13 +66,13 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
         e.preventDefault();
         setOpen((open) => !open);
       }
-      // For new chat, only handle if not in Tauri (since Tauri has global shortcut)
+      // For new chat shortcut
       if (
         e.key === "o" &&
         (e.metaKey || e.ctrlKey) &&
-        e.shiftKey &&
-        !window.__TAURI__
+        e.shiftKey
       ) {
+        console.log("cmd+shift+o detected, triggering new chat");
         e.preventDefault();
         handleNewChat();
       }

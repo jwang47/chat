@@ -8,7 +8,9 @@ export function Layout() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SidebarProvider>
-        <AppSidebar />
+        <div className="animate-in fade-in duration-300">
+          <AppSidebar />
+        </div>
         <SidebarInset className="min-h-screen animate-in fade-in duration-300">
           <Outlet />
         </SidebarInset>
