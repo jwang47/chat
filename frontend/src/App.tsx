@@ -28,7 +28,10 @@ function App() {
         <ChatProvider>
           <Suspense
             fallback={
-              <div className="h-screen w-screen flex items-center justify-center text-foreground" style={{ backgroundColor: 'rgb(25, 24, 21)' }}>
+              <div
+                className="h-screen w-screen flex items-center justify-center text-foreground"
+                style={{ backgroundColor: "rgb(25, 24, 21)" }}
+              >
                 <div className="text-muted-foreground">Loading...</div>
               </div>
             }
@@ -37,7 +40,7 @@ function App() {
               <Route path="/" element={<Layout />}>
                 <Route index element={<ChatInterface />} />
                 <Route path="settings" element={<Settings />} />
-                <Route path="showcase" element={<ComponentShowcase />} />
+                <Route path="components" element={<ComponentShowcase />} />
               </Route>
             </Routes>
           </Suspense>

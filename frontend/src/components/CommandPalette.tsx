@@ -19,7 +19,7 @@ interface CommandPaletteProps {
 export function CommandPalette({ onNewChat }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-  const { newChat } = useChat();
+  const { newChat, conversations, loadConversation } = useChat();
 
   const handleNewChat = () => {
     if (onNewChat) {
@@ -33,6 +33,12 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
 
   const handleNavigate = (path: string) => {
     navigate(path);
+    setOpen(false);
+  };
+
+  const handleLoadConversation = async (conversationId: string) => {
+    await loadConversation(conversationId);
+    navigate("/");
     setOpen(false);
   };
 
@@ -103,6 +109,24 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
           </CommandItem>
         </CommandGroup>
         <CommandSeparator />
+        {conversations.length > 0 && (
+          <>
+            <CommandGroup heading="Recent Conversations">
+              {conversations.slice(0, 5).map((conversation) => (
+                <CommandItem
+                  key={conversation.id}
+                  value={`conversation-${conversation.id}`}
+                  onSelect={() => handleLoadConversation(conversation.id)}
+                >
+                  <span className="truncate">
+                    {conversation.title || "Untitled Chat"}
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
         <CommandGroup heading="Navigation">
           <CommandItem onSelect={() => handleNavigate("/")}>
             <span>Chat</span>

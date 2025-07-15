@@ -11,7 +11,7 @@ export function Layout() {
         <div className="animate-in fade-in duration-300">
           <AppSidebar />
         </div>
-        <SidebarInset className="min-h-screen animate-in fade-in duration-300">
+        <SidebarInset className="min-h-screen max-h-screen overflow-y-auto animate-in fade-in duration-300">
           <Outlet />
         </SidebarInset>
         <CommandPalette />
