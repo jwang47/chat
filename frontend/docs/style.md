@@ -1,8 +1,3 @@
----
-globs: *.tsx,*.css
-alwaysApply: false
----
-
 ## Minimal Flat UI Style Guide
 
 ### 0. Look & Feel
