@@ -9,7 +9,7 @@ export function Layout() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SidebarProvider>
         <AppSidebar />
-        <SidebarInset className="min-h-screen">
+        <SidebarInset className="min-h-screen animate-in fade-in duration-300">
           <Outlet />
         </SidebarInset>
         <CommandPalette />

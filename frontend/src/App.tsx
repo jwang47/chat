@@ -28,8 +28,8 @@ function App() {
         <ChatProvider>
           <Suspense
             fallback={
-              <div className="bg-background h-screen w-screen flex items-center justify-center">
-                Loading...
+              <div className="h-screen w-screen flex items-center justify-center text-foreground" style={{ backgroundColor: 'rgb(25, 24, 21)' }}>
+                <div className="text-muted-foreground">Loading...</div>
               </div>
             }
           >
