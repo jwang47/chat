@@ -7,15 +7,27 @@ import {
   Edit3,
   Pin,
   Zap,
+  Monitor,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "motion/react";
 import { useChat } from "@/contexts/ChatContext";
 import { historyService } from "@/lib/historyService";
+import { useTitleBarMode, type TitleBarMode } from "@/hooks/useTitleBarMode";
 
 const SIDEBAR_STORAGE_KEY = "sidebar-state";
 const SIDEBAR_WIDTH_STORAGE_KEY = "sidebar-width";
+
+interface MenuItem {
+  key: string;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+  highlightIfActive: boolean;
+  url: string;
+  subtitle?: string;
+}
 
 interface SidebarState {
   isCollapsed: boolean;
@@ -64,6 +76,8 @@ export function AppSidebar() {
     refreshConversations,
     currentConversationId,
   } = useChat();
+
+  const { mode: titleBarMode, isActive: titleBarActive, isTauri, updateMode: updateTitleBarMode } = useTitleBarMode();
 
   const [sidebarState, setSidebarStateLocal] = useState(getStoredSidebarState);
   const [isDragging, setIsDragging] = useState(false);
@@ -263,8 +277,38 @@ export function AppSidebar() {
     }
   }, [activeDropdown]);
 
-  const menuItems = [
+  // Handle title bar mode toggle
+  const handleTitleBarModeToggle = () => {
+    const modes: TitleBarMode[] = ["auto", "enabled", "disabled"];
+    const currentIndex = modes.indexOf(titleBarMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    updateTitleBarMode(modes[nextIndex]);
+  };
+
+  // Get title bar mode display info
+  const getTitleBarModeInfo = () => {
+    switch (titleBarMode) {
+      case "auto":
+        return {
+          title: `Title Bar: Auto ${titleBarActive ? "(On)" : "(Off)"}`,
+          subtitle: isTauri ? "On in Tauri" : "Off in Web",
+        };
+      case "enabled":
+        return {
+          title: "Title Bar: Always On",
+          subtitle: "Forced enabled",
+        };
+      case "disabled":
+        return {
+          title: "Title Bar: Always Off",
+          subtitle: "Forced disabled",
+        };
+    }
+  };
+
+  const menuItems: MenuItem[] = [
     {
+      key: "new-chat",
       title: "New Chat",
       icon: SquarePen,
       onClick: handleNewChat,
@@ -274,6 +318,7 @@ export function AppSidebar() {
     ...(import.meta.env.DEV
       ? [
           {
+            key: "components",
             title: "Components",
             icon: Palette,
             onClick: () => navigate("/components"),
@@ -281,15 +326,26 @@ export function AppSidebar() {
             url: "/components",
           },
           {
+            key: "stream-test",
             title: "Stream Test",
             icon: Zap,
             onClick: () => navigate("/stream-test"),
             highlightIfActive: true,
             url: "/stream-test",
           },
+          {
+            key: "title-bar-toggle",
+            title: getTitleBarModeInfo().title,
+            icon: Monitor,
+            onClick: handleTitleBarModeToggle,
+            highlightIfActive: false,
+            url: "",
+            subtitle: getTitleBarModeInfo().subtitle,
+          },
         ]
       : []),
     {
+      key: "settings",
       title: "Settings",
       icon: Settings,
       onClick: () => navigate("/settings"),
@@ -329,12 +385,12 @@ export function AppSidebar() {
             <div className="w-full text-sm">
               <ul className="flex w-full min-w-0 flex-col gap-1">
                 {menuItems.map((item) => (
-                  <li key={item.title} className="group/menu-item relative">
+                  <li key={item.key} className="group/menu-item relative">
                     <button
                       onClick={item.onClick}
                       title={isCollapsed ? item.title : undefined}
                       className={`
-                        peer/menu-button relative flex w-full h-8 items-center overflow-hidden rounded-md text-left text-sm outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50
+                        peer/menu-button relative flex w-full ${item.subtitle && !isCollapsed ? "h-12" : "h-8"} items-center overflow-hidden rounded-md text-left text-sm outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50
                         ${
                           item.highlightIfActive &&
                           location.pathname === item.url
@@ -344,7 +400,7 @@ export function AppSidebar() {
                       `}
                     >
                       <item.icon
-                        className={`absolute left-2 top-2 w-4 h-4 ${
+                        className={`absolute left-2 ${item.subtitle && !isCollapsed ? "top-3" : "top-2"} w-4 h-4 ${
                           item.highlightIfActive &&
                           location.pathname === item.url
                             ? ""
@@ -352,7 +408,14 @@ export function AppSidebar() {
                         }`}
                       />
                       {!isCollapsed && (
-                        <span className="pl-8 truncate">{item.title}</span>
+                        <div className="pl-8 flex-1 min-w-0">
+                          <div className="truncate">{item.title}</div>
+                          {item.subtitle && (
+                            <div className="text-xs text-sidebar-foreground/50 truncate">
+                              {item.subtitle}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </button>
                   </li>

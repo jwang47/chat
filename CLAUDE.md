@@ -42,6 +42,15 @@ bun test
 - Enforce style with `eslint` and `prettier`.
 - Follow the Rules of Hooks (only call hooks at the top level of React functions).
 
+## ESLint Notes
+
+- ESLint is configured to be strict about TypeScript types
+- Avoid `any` types - always specify proper TypeScript interfaces
+- React Hook dependencies are strictly enforced for better performance
+- Binary files in `src-tauri/target/**` are ignored to prevent parsing errors
+- When adding new components with props, create proper TypeScript interfaces
+- Fix lint errors before committing - they often catch real bugs
+
 ## Testing
 
 - Use React Testing Library for behavior-focused testing.
