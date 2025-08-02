@@ -26,66 +26,62 @@ export function useChatScroll(options: UseChatScrollOptions = {}) {
   const streamingVelocity = useRef<number>(0);
   const lastStreamingTime = useRef<number>(0);
 
-  const smoothScrollTo = useCallback(
-    (element: HTMLElement, target: number) => {
-      // Respect user scrolling - don't scroll if user scrolled recently
-      if (performance.now() - lastUserScrollTime.current < 100) {
+  const smoothScrollTo = useCallback((element: HTMLElement, target: number) => {
+    // Respect user scrolling - don't scroll if user scrolled recently
+    if (performance.now() - lastUserScrollTime.current < 100) {
+      return;
+    }
+    if (streamingScrollRef.current) {
+      cancelAnimationFrame(streamingScrollRef.current);
+    }
+
+    // Initialize position if this is a new scroll
+    if (!streamingScrollRef.current) {
+      streamingCurrentPos.current = element.scrollTop;
+      lastStreamingTime.current = performance.now();
+    }
+
+    const animate = (timestamp: number) => {
+      const deltaTime = Math.min(
+        (timestamp - lastStreamingTime.current) / 1000,
+        1 / 60,
+      );
+      lastStreamingTime.current = timestamp;
+
+      const diff = target - streamingCurrentPos.current;
+      if (Math.abs(diff) < 0.5 && Math.abs(streamingVelocity.current) < 0.5) {
+        element.scrollTop = target;
+        streamingScrollRef.current = null;
         return;
       }
-      if (streamingScrollRef.current) {
-        cancelAnimationFrame(streamingScrollRef.current);
+
+      // SmoothDamp parameters - tuned for fast, smooth streaming
+      const smoothTime = 0.15; // 150ms to reach target (fast)
+      const maxSpeed = 200; // Max pixels per second (reduced for smoother motion)
+      const omega = 2 / smoothTime;
+      const x = 0.9 * omega; // Slightly under-damped for smooth motion
+      const exp = Math.exp(-x * deltaTime);
+
+      // Apply smoothdamp
+      const change = streamingCurrentPos.current - target;
+      const temp = (streamingVelocity.current + x * change) * deltaTime;
+      streamingVelocity.current = (streamingVelocity.current - x * temp) * exp;
+      streamingCurrentPos.current = target + (change + temp) * exp;
+
+      // Apply speed limiting
+      const maxDelta = maxSpeed * deltaTime;
+      const actualDelta = streamingCurrentPos.current - element.scrollTop;
+      if (Math.abs(actualDelta) > maxDelta) {
+        streamingCurrentPos.current =
+          element.scrollTop + Math.sign(actualDelta) * maxDelta;
       }
 
-      // Initialize position if this is a new scroll
-      if (!streamingScrollRef.current) {
-        streamingCurrentPos.current = element.scrollTop;
-        lastStreamingTime.current = performance.now();
-      }
-
-      const animate = (timestamp: number) => {
-        const deltaTime = Math.min(
-          (timestamp - lastStreamingTime.current) / 1000,
-          1 / 60,
-        );
-        lastStreamingTime.current = timestamp;
-
-        const diff = target - streamingCurrentPos.current;
-        if (Math.abs(diff) < 0.5 && Math.abs(streamingVelocity.current) < 0.5) {
-          element.scrollTop = target;
-          streamingScrollRef.current = null;
-          return;
-        }
-
-        // SmoothDamp parameters - tuned for fast, smooth streaming
-        const smoothTime = 0.15; // 150ms to reach target (fast)
-        const maxSpeed = 200; // Max pixels per second (reduced for smoother motion)
-        const omega = 2 / smoothTime;
-        const x = 0.9 * omega; // Slightly under-damped for smooth motion
-        const exp = Math.exp(-x * deltaTime);
-
-        // Apply smoothdamp
-        const change = streamingCurrentPos.current - target;
-        const temp = (streamingVelocity.current + x * change) * deltaTime;
-        streamingVelocity.current =
-          (streamingVelocity.current - x * temp) * exp;
-        streamingCurrentPos.current = target + (change + temp) * exp;
-
-        // Apply speed limiting
-        const maxDelta = maxSpeed * deltaTime;
-        const actualDelta = streamingCurrentPos.current - element.scrollTop;
-        if (Math.abs(actualDelta) > maxDelta) {
-          streamingCurrentPos.current =
-            element.scrollTop + Math.sign(actualDelta) * maxDelta;
-        }
-
-        element.scrollTop = streamingCurrentPos.current;
-        streamingScrollRef.current = requestAnimationFrame(animate);
-      };
-
+      element.scrollTop = streamingCurrentPos.current;
       streamingScrollRef.current = requestAnimationFrame(animate);
-    },
-    [],
-  );
+    };
+
+    streamingScrollRef.current = requestAnimationFrame(animate);
+  }, []);
 
   const smoothScrollToBottom = useCallback(
     (element: HTMLElement) => {
