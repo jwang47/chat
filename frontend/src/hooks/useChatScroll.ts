@@ -1,5 +1,4 @@
 import { useRef, useCallback, useEffect } from "react";
-import { useSmoothScroll } from "./useSmoothScroll"; // Assuming this path is correct
 
 interface UseChatScrollOptions {
   streamingBuffer?: number;
@@ -15,17 +14,24 @@ export function useChatScroll(options: UseChatScrollOptions = {}) {
   const hasInitialScrolled = useRef(false);
   const isStreamingRef = useRef(false);
 
-  const { smoothScrollTo, smoothScrollToBottom, cancelScroll, onUserScroll } =
-    useSmoothScroll();
+  // Simple user scroll detection
+  const lastUserScrollTime = useRef<number>(0);
+  const onUserScroll = useCallback((currentScrollTop: number) => {
+    lastUserScrollTime.current = performance.now();
+  }, []);
 
-  // SmoothDamp scroll for streaming (no throttling, natural spring motion)
+  // Unified smooth scroll (works for both streaming and completion)
   const streamingScrollRef = useRef<number | null>(null);
   const streamingCurrentPos = useRef<number>(0);
   const streamingVelocity = useRef<number>(0);
   const lastStreamingTime = useRef<number>(0);
 
-  const smoothStreamingScroll = useCallback(
+  const smoothScrollTo = useCallback(
     (element: HTMLElement, target: number) => {
+      // Respect user scrolling - don't scroll if user scrolled recently
+      if (performance.now() - lastUserScrollTime.current < 100) {
+        return;
+      }
       if (streamingScrollRef.current) {
         cancelAnimationFrame(streamingScrollRef.current);
       }
@@ -81,6 +87,20 @@ export function useChatScroll(options: UseChatScrollOptions = {}) {
     [],
   );
 
+  const smoothScrollToBottom = useCallback(
+    (element: HTMLElement) => {
+      smoothScrollTo(element, element.scrollHeight);
+    },
+    [smoothScrollTo],
+  );
+
+  const cancelScroll = useCallback(() => {
+    if (streamingScrollRef.current) {
+      cancelAnimationFrame(streamingScrollRef.current);
+      streamingScrollRef.current = null;
+    }
+  }, []);
+
   const getScrollElement = useCallback(() => {
     if (scrollElementRef.current) return scrollElementRef.current;
 
@@ -118,29 +138,22 @@ export function useChatScroll(options: UseChatScrollOptions = {}) {
           scrollableElement.scrollTop = scrollableElement.scrollHeight;
         } else {
           if (isStreamingRef.current) {
-            // During streaming: use custom smooth scroll with buffer
+            // During streaming: scroll to buffer position
             const targetScroll = Math.max(
               0,
               scrollableElement.scrollHeight -
                 scrollableElement.clientHeight -
                 streamingBuffer,
             );
-            // Use streaming-specific smooth scroll (no throttling)
-            smoothStreamingScroll(scrollableElement, targetScroll);
+            smoothScrollTo(scrollableElement, targetScroll);
           } else {
-            // When not streaming: normal smooth scroll to true bottom
+            // When not streaming: scroll to true bottom
             smoothScrollToBottom(scrollableElement);
           }
         }
       }
     },
-    [
-      smoothScrollTo,
-      smoothScrollToBottom,
-      smoothStreamingScroll,
-      getScrollElement,
-      streamingBuffer,
-    ],
+    [smoothScrollTo, smoothScrollToBottom, getScrollElement, streamingBuffer],
   );
 
   const handleScroll = useCallback(
