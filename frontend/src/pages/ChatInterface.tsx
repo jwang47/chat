@@ -40,10 +40,7 @@ export function ChatInterface() {
     scrollToBottom,
     handleScrollStart,
     shouldAutoScrollRef,
-  } = useChatScroll({
-    lerp: false, // Use easing instead of lerp
-    maxScrollPerSecond: 100, // 800ms smooth scroll
-  });
+  } = useChatScroll();
 
   // Define a type for the code block payload for clarity
   interface CodeBlockPayload {

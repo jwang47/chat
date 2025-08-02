@@ -10,11 +10,11 @@ interface SmoothScrollOptions {
 
 export function useSmoothScroll(options: SmoothScrollOptions = {}) {
   const {
-    duration = 800,
+    duration = 100,
     easing = (t: number) => t * t * (3 - 2 * t), // smoothstep
     lerp = false,
-    lerpFactor = 0.1,
-    maxScrollPerSecond = 2000, // pixels per second
+    lerpFactor = 0.01,
+    maxScrollPerSecond = 100, // pixels per second
   } = options;
 
   const animationRef = useRef<number | null>(null);
@@ -40,14 +40,13 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
 
       if (lerp) {
         // Lerp-based smooth scrolling
-        console.log('Using lerp-based scrolling');
+        console.log("Using lerp-based scrolling");
         targetScrollTop.current = target;
         // Only reset current position if not already animating
         if (!isAnimating.current) {
           currentScrollTop.current = element.scrollTop;
         }
         isAnimating.current = true;
-
 
         const lerpAnimate = (timestamp: number) => {
           // Check if user scrolled during animation
@@ -105,7 +104,6 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         lerpAnimate(performance.now());
       } else {
         // Easing-based smooth scrolling
-        console.log('Using easing-based scrolling with duration:', duration);
         const startScrollTop = element.scrollTop;
         const distance = target - startScrollTop;
         const startTime = performance.now();
@@ -125,14 +123,14 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         animationRef.current = requestAnimationFrame(animate);
       }
     },
-    [duration, easing, lerp, lerpFactor, maxScrollPerSecond]
+    [duration, easing, lerp, lerpFactor, maxScrollPerSecond],
   );
 
   const smoothScrollToBottom = useCallback(
     (element: HTMLElement) => {
       smoothScrollTo(element, element.scrollHeight);
     },
-    [smoothScrollTo]
+    [smoothScrollTo],
   );
 
   const cancelScroll = useCallback(() => {
@@ -159,12 +157,16 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
       // Additional check: if we're animating and the scroll is in the same direction,
       // it's likely programmatic
       if (isAnimating.current) {
-        const scrollDirection = currentScrollTop - lastProgrammaticScrollTop.current;
-        const animationDirection = targetScrollTop.current - lastProgrammaticScrollTop.current;
-        
+        const scrollDirection =
+          currentScrollTop - lastProgrammaticScrollTop.current;
+        const animationDirection =
+          targetScrollTop.current - lastProgrammaticScrollTop.current;
+
         // If scroll is in the same direction as animation and within reasonable range
-        if (Math.sign(scrollDirection) === Math.sign(animationDirection) && 
-            Math.abs(scrollDirection) < 10) {
+        if (
+          Math.sign(scrollDirection) === Math.sign(animationDirection) &&
+          Math.abs(scrollDirection) < 10
+        ) {
           return;
         }
       }
@@ -174,7 +176,7 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         cancelScroll();
       }
     },
-    [cancelScroll]
+    [cancelScroll],
   );
 
   return {

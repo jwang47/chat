@@ -36,11 +36,7 @@ export function StreamTest() {
     scrollToBottom,
     handleScrollStart,
     shouldAutoScrollRef,
-  } = useChatScroll({
-    lerp: false,
-    maxScrollPerSecond: 1500,
-    duration: 200, // Fast 100ms scroll duration
-  });
+  } = useChatScroll();
 
   const generateMessageId = () => {
     messageIdCounter.current += 1;

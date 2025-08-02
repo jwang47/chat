@@ -1,14 +1,7 @@
 import { useRef, useCallback, useEffect } from "react";
 import { useSmoothScroll } from "./useSmoothScroll"; // Assuming this path is correct
 
-interface UseChatScrollOptions {
-  lerp?: boolean;
-  lerpFactor?: number;
-  maxScrollPerSecond?: number;
-  duration?: number;
-}
-
-export function useChatScroll(options?: UseChatScrollOptions) {
+export function useChatScroll() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollElementRef = useRef<HTMLElement | null>(null);
   const shouldAutoScrollRef = useRef(true);
@@ -16,17 +9,8 @@ export function useChatScroll(options?: UseChatScrollOptions) {
   const lastScrollTopRef = useRef(0);
   const hasInitialScrolled = useRef(false);
 
-  const smoothScrollOptions = {
-    lerp: true, 
-    lerpFactor: 0.08, 
-    maxScrollPerSecond: 100,
-    duration: 800,
-    ...options, // Override defaults with provided options
-  };
-
-  const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll(
-    smoothScrollOptions,
-  );
+  const { smoothScrollToBottom, cancelScroll, onUserScroll } =
+    useSmoothScroll();
 
   const getScrollElement = useCallback(() => {
     if (scrollElementRef.current) return scrollElementRef.current;
