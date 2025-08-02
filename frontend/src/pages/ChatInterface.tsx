@@ -87,22 +87,36 @@ export function ChatInterface() {
     setStreaming(!!streamingMessageId);
   }, [streamingMessageId, setStreaming]);
 
-  // Auto-scroll when messages change during streaming (throttled)
+  // Track first chunk for instant scroll, then smooth scroll for subsequent chunks
+  const firstChunkRef = useRef<string | null>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (streamingMessageId && shouldAutoScrollRef.current) {
-      // Clear existing timeout to debounce rapid calls
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
+      // Check if this is the first chunk of a new streaming message
+      const isFirstChunk = firstChunkRef.current !== streamingMessageId;
+      
+      if (isFirstChunk) {
+        // First chunk: instant scroll to get user's attention
+        firstChunkRef.current = streamingMessageId;
+        scrollToBottom(true); // Immediate scroll
+      } else {
+        // Subsequent chunks: smooth scroll with throttling
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+        
+        scrollTimeoutRef.current = setTimeout(() => {
+          scrollToBottom(); // Smooth scroll with streaming buffer
+        }, 50);
       }
-
-      // Throttle scroll calls to avoid competing animations
-      scrollTimeoutRef.current = setTimeout(() => {
-        scrollToBottom(); // Use smooth scroll with streaming buffer
-      }, 50); // 50ms throttle
     }
-
+    
+    // Reset when streaming ends
+    if (!streamingMessageId) {
+      firstChunkRef.current = null;
+    }
+    
     return () => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
