@@ -13,25 +13,54 @@ export function useChatScroll() {
   const { smoothScrollTo, smoothScrollToBottom, cancelScroll, onUserScroll } =
     useSmoothScroll();
 
-  // Simple lerp-based scroll for streaming (no throttling)
+  // SmoothDamp scroll for streaming (no throttling, natural spring motion)
   const streamingScrollRef = useRef<number | null>(null);
   const streamingCurrentPos = useRef<number>(0);
+  const streamingVelocity = useRef<number>(0);
+  const lastStreamingTime = useRef<number>(0);
   
   const smoothStreamingScroll = useCallback((element: HTMLElement, target: number) => {
     if (streamingScrollRef.current) {
       cancelAnimationFrame(streamingScrollRef.current);
     }
     
-    streamingCurrentPos.current = element.scrollTop;
+    // Initialize position if this is a new scroll
+    if (!streamingScrollRef.current) {
+      streamingCurrentPos.current = element.scrollTop;
+      lastStreamingTime.current = performance.now();
+    }
     
-    const animate = () => {
+    const animate = (timestamp: number) => {
+      const deltaTime = Math.min((timestamp - lastStreamingTime.current) / 1000, 1/60);
+      lastStreamingTime.current = timestamp;
+      
       const diff = target - streamingCurrentPos.current;
-      if (Math.abs(diff) < 1) {
+      if (Math.abs(diff) < 0.5 && Math.abs(streamingVelocity.current) < 0.5) {
         element.scrollTop = target;
+        streamingScrollRef.current = null;
         return;
       }
       
-      streamingCurrentPos.current += diff * 0.15; // Fast lerp for streaming
+      // SmoothDamp parameters - tuned for fast, smooth streaming
+      const smoothTime = 0.15; // 150ms to reach target (fast)
+      const maxSpeed = 2000; // Max pixels per second
+      const omega = 2 / smoothTime;
+      const x = 0.9 * omega; // Slightly under-damped for smooth motion
+      const exp = Math.exp(-x * deltaTime);
+      
+      // Apply smoothdamp
+      const change = streamingCurrentPos.current - target;
+      const temp = (streamingVelocity.current + x * change) * deltaTime;
+      streamingVelocity.current = (streamingVelocity.current - x * temp) * exp;
+      streamingCurrentPos.current = target + (change + temp) * exp;
+      
+      // Apply speed limiting
+      const maxDelta = maxSpeed * deltaTime;
+      const actualDelta = streamingCurrentPos.current - element.scrollTop;
+      if (Math.abs(actualDelta) > maxDelta) {
+        streamingCurrentPos.current = element.scrollTop + Math.sign(actualDelta) * maxDelta;
+      }
+      
       element.scrollTop = streamingCurrentPos.current;
       streamingScrollRef.current = requestAnimationFrame(animate);
     };
