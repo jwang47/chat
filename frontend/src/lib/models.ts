@@ -30,6 +30,14 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
   },
   // OpenRouter models
   {
+    id: "openrouter/horizon-alpha",
+    name: "openrouter/horizon-alpha",
+    provider: "openrouter",
+    displayName: "Horizon Alpha (Free)",
+    description: "",
+    maxTokens: 256000,
+  },
+  {
     id: "openrouter/horizon-beta",
     name: "openrouter/horizon-beta",
     provider: "openrouter",
