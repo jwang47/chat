@@ -10,12 +10,8 @@ export function useChatScroll() {
   const hasInitialScrolled = useRef(false);
   const isStreamingRef = useRef(false);
 
-  const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll({
-    duration: 300,
-    lerp: false,
-    lerpFactor: 0.08,
-    maxScrollPerSecond: 1000,
-  });
+  const { smoothScrollTo, smoothScrollToBottom, cancelScroll, onUserScroll } =
+    useSmoothScroll();
 
   const getScrollElement = useCallback(() => {
     if (scrollElementRef.current) return scrollElementRef.current;
@@ -38,8 +34,12 @@ export function useChatScroll() {
     const scrollableElement = getScrollElement();
     if (!scrollableElement) return true;
     const { scrollTop, scrollHeight, clientHeight } = scrollableElement;
-    // Use a small threshold (5px) to account for sub-pixel rendering
-    return scrollTop + clientHeight >= scrollHeight - 5;
+
+    // Account for streaming buffer - consider "at bottom" if we're within buffer range
+    const streamingBuffer = isStreamingRef.current ? 100 : 0;
+    const threshold = 5 + streamingBuffer; // 5px base + streaming buffer
+
+    return scrollTop + clientHeight >= scrollHeight - threshold;
   }, [getScrollElement]);
 
   const scrollToBottom = useCallback(
@@ -49,26 +49,27 @@ export function useChatScroll() {
         if (immediate) {
           scrollableElement.scrollTop = scrollableElement.scrollHeight;
         } else {
-          // During streaming, leave a buffer to hide fast token updates
-          const streamingBuffer = isStreamingRef.current ? 100 : 0; // 100px buffer during streaming
-          const targetScroll = Math.max(
-            0,
-            scrollableElement.scrollHeight -
-              scrollableElement.clientHeight -
-              streamingBuffer,
-          );
-
-          if (streamingBuffer > 0) {
-            // Custom scroll to target position with buffer
+          // During streaming, use immediate scroll to buffer position to keep up with fast content
+          // When not streaming, use smooth scroll to true bottom
+          if (isStreamingRef.current) {
+            // Calculate buffered position (100px above true bottom)
+            const streamingBuffer = 100;
+            const targetScroll = Math.max(
+              0,
+              scrollableElement.scrollHeight -
+                scrollableElement.clientHeight -
+                streamingBuffer,
+            );
+            // Use immediate scroll during streaming to keep up with content
             scrollableElement.scrollTop = targetScroll;
           } else {
-            // Normal smooth scroll to true bottom
+            // Smooth scroll to true bottom when not streaming
             smoothScrollToBottom(scrollableElement);
           }
         }
       }
     },
-    [smoothScrollToBottom, getScrollElement],
+    [smoothScrollTo, smoothScrollToBottom, getScrollElement],
   );
 
   const handleScroll = useCallback(
@@ -87,13 +88,13 @@ export function useChatScroll() {
       onUserScroll(currentScrollTop);
 
       // Break autoscroll immediately when user scrolls up any significant amount
-      // Use a threshold to avoid breaking on tiny movements
-      if (scrollDirection < -2) {
+      // But ignore upward movement if we're still within the "at bottom" range (including streaming buffer)
+      if (scrollDirection < -2 && !isAtBottom()) {
         shouldAutoScrollRef.current = false;
         isUserScrollingRef.current = true;
         cancelScroll();
       }
-      // Re-enable autoscroll only when user reaches the bottom
+      // Re-enable autoscroll when user reaches the bottom
       else if (isAtBottom()) {
         shouldAutoScrollRef.current = true;
         isUserScrollingRef.current = false;

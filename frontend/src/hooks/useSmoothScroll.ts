@@ -1,21 +1,12 @@
 import { useRef, useCallback } from "react";
 
-interface SmoothScrollOptions {
-  duration?: number;
-  easing?: (t: number) => number;
-  lerp?: boolean;
-  lerpFactor?: number;
-  maxScrollPerSecond?: number;
-}
-
-export function useSmoothScroll(options: SmoothScrollOptions = {}) {
-  const {
-    duration = 100,
-    easing = (t: number) => t * t * (3 - 2 * t), // smoothstep
-    lerp = false,
-    lerpFactor = 0.01,
-    maxScrollPerSecond = 100, // pixels per second
-  } = options;
+export function useSmoothScroll() {
+  // Hardcoded optimal settings for chat scrolling
+  const duration = 300;
+  const easing = (t: number) => t * t * (3 - 2 * t); // smoothstep
+  const lerp = false;
+  const lerpFactor = 0.08;
+  const maxScrollPerSecond = 1200;
 
   const animationRef = useRef<number | null>(null);
   const targetScrollTop = useRef<number>(0);
