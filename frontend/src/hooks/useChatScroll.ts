@@ -171,9 +171,9 @@ export function useChatScroll(options: UseChatScrollOptions = {}) {
 
       onUserScroll(currentScrollTop);
 
-      // Break autoscroll immediately when user scrolls up any significant amount
+      // Break autoscroll immediately when user scrolls up even 1px
       // But ignore upward movement if we're still within the "at bottom" range (including streaming buffer)
-      if (scrollDirection < -2 && !isAtBottom()) {
+      if (scrollDirection < -1 && !isAtBottom()) {
         shouldAutoScrollRef.current = false;
         isUserScrollingRef.current = true;
         cancelScroll();
