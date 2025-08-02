@@ -17,8 +17,6 @@ export function Settings() {
       console.log("Tauri detection using official API:", tauriDetected);
       setIsTauri(tauriDetected);
 
-      if (!tauriDetected) return;
-
       try {
         const apiKeys = await ApiKeyStorage.getAllApiKeys();
 
@@ -38,11 +36,6 @@ export function Settings() {
   }, []);
 
   const handleSave = async () => {
-    if (!isTauri) {
-      setSaveMessage("API key storage is only available in the desktop app.");
-      setTimeout(() => setSaveMessage(""), 3000);
-      return;
-    }
 
     setIsLoading(true);
     setSaveMessage("");
@@ -102,10 +95,10 @@ export function Settings() {
           <h2 className="text-lg font-semibold mb-4">API Keys</h2>
 
           {!isTauri && (
-            <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-md">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                Secure API key storage is only available in the desktop app.
-                Your keys will not be saved in the web version.
+            <div className="mb-4 p-3 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-md">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                API keys are stored locally in browser storage for development testing.
+                For secure storage, use the desktop app.
               </p>
             </div>
           )}
@@ -126,7 +119,7 @@ export function Settings() {
                 onKeyDown={handleKeyPress}
                 placeholder="Enter your OpenRouter API key"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                disabled={!isTauri}
+                disabled={false}
               />
               <p className="text-xs text-gray-500 mt-1">
                 Get your API key from{" "}
@@ -156,7 +149,7 @@ export function Settings() {
                 onKeyDown={handleKeyPress}
                 placeholder="Enter your Gemini API key"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                disabled={!isTauri}
+                disabled={false}
               />
               <p className="text-xs text-gray-500 mt-1">
                 Get your API key from{" "}
@@ -175,7 +168,7 @@ export function Settings() {
           <div className="mt-6 flex items-center gap-4">
             <button
               onClick={handleSave}
-              disabled={isLoading || !isTauri}
+              disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Saving..." : "Save API Keys"}

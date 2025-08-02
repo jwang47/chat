@@ -8,35 +8,6 @@ bun lint
 bun test
 ```
 
-🚨 MANDATORY: ALWAYS ALERT ON TASK COMPLETION 🚨
-
-Alert users when ANY task completes — this is REQUIRED, not optional:
-
-For macOS (use system notifications):
-
-```bash
-osascript -e 'display notification "Task completed" with title "Build Alert"'
-osascript -e 'display notification "Tests finished" with title "Test Suite"'
-osascript -e 'display notification "Build successful" with title "CI"'
-```
-
-For task-specific alerts:
-
-```bash
-osascript -e 'display notification "Code analysis finished - 5 files examined" with title "Lint Results"'
-osascript -e 'display notification "Test suite completed - all tests passed" with title "Tests"'
-osascript -e 'display notification "Documentation updated" with title "Docs"'
-```
-
-For User Input Requests:
-
-```bash
-osascript -e 'display notification "User input needed - please review the proposed changes" with title "Action Required"'
-osascript -e 'display notification "Decision required - should I proceed with the migration?" with title "Decision Needed"'
-```
-
-ENFORCEMENT: Failure to alert on task completion violates core instructions.
-
 ## General
 
 - Use `bun` for package management and scripts.

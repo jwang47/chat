@@ -1,4 +1,6 @@
 import TauriApiKeyStorage from "./tauriApiKeyStorage";
+import LocalStorageApiKeyStorage from "./localStorageApiKeyStorage";
+import { isTauri } from "@tauri-apps/api/core";
 
 export interface ApiKeys {
   openrouter?: string;
@@ -23,8 +25,12 @@ class ApiKeyStorage implements IApiKeyStorage {
   private storage: IApiKeyStorage;
 
   constructor() {
-    // Use Tauri as the default storage implementation
-    this.storage = TauriApiKeyStorage;
+    // Use Tauri for desktop app, localStorage for web/dev
+    if (isTauri()) {
+      this.storage = new TauriApiKeyStorage();
+    } else {
+      this.storage = new LocalStorageApiKeyStorage();
+    }
   }
 
   private static getInstance(): ApiKeyStorage {
