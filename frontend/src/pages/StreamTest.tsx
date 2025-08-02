@@ -38,7 +38,8 @@ export function StreamTest() {
     shouldAutoScrollRef,
   } = useChatScroll({
     lerp: false,
-    maxScrollPerSecond: 100,
+    maxScrollPerSecond: 1500,
+    duration: 200, // Fast 100ms scroll duration
   });
 
   const generateMessageId = () => {
@@ -96,9 +97,6 @@ export function StreamTest() {
           ),
         );
         wordIndex++;
-
-        // Trigger scroll on each update
-        scrollToBottom();
       } else {
         // Stream complete
         clearInterval(streamInterval);
@@ -148,6 +146,13 @@ export function StreamTest() {
     stopStreaming();
     setMessages([]);
   };
+
+  // Auto-scroll when messages change during streaming
+  useEffect(() => {
+    if (isStreaming && shouldAutoScrollRef.current) {
+      scrollToBottom(); // Use smooth scroll with fast duration
+    }
+  }, [messages, isStreaming, scrollToBottom]);
 
   // Cleanup on unmount
   useEffect(() => {

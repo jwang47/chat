@@ -12,7 +12,7 @@ interface IncrementalRendererProps {
   onGlobalCodeBlockToggle?: (
     messageId: string,
     blockIndex: number,
-    payload: { code: string; language: string; filename?: string }
+    payload: { code: string; language: string; filename?: string },
   ) => void;
   wordsPerSecond?: number;
 }
@@ -58,11 +58,11 @@ export function IncrementalRenderer({
         // Match actual streaming speed more closely
         streamingSpeedRef.current = Math.max(
           actualWordsPerSecond * 0.9,
-          wordsPerSecond
+          wordsPerSecond,
         );
-        console.debug(
-          `Adjusted streaming speed: ${streamingSpeedRef.current} wps (from ${actualWordsPerSecond} actual)`
-        );
+        // console.debug(
+        //   `Adjusted streaming speed: ${streamingSpeedRef.current} wps (from ${actualWordsPerSecond} actual)`
+        // );
       }
       lastUpdateTimeRef.current = now;
     }
@@ -94,7 +94,7 @@ export function IncrementalRenderer({
           if (next < words.length) {
             timeoutRef.current = setTimeout(
               revealNextWord,
-              1000 / streamingSpeedRef.current
+              1000 / streamingSpeedRef.current,
             );
           }
         }
@@ -108,7 +108,7 @@ export function IncrementalRenderer({
       // Use current speed immediately
       timeoutRef.current = setTimeout(
         revealNextWord,
-        1000 / streamingSpeedRef.current
+        1000 / streamingSpeedRef.current,
       );
     }
 

@@ -16,24 +16,32 @@ export function useChatScroll(options?: UseChatScrollOptions) {
   const lastScrollTopRef = useRef(0);
   const hasInitialScrolled = useRef(false);
 
+  const smoothScrollOptions = {
+    lerp: true, 
+    lerpFactor: 0.08, 
+    maxScrollPerSecond: 100,
+    duration: 800,
+    ...options, // Override defaults with provided options
+  };
+
   const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll(
-    options || { lerp: true, lerpFactor: 0.08, maxScrollPerSecond: 1500 },
+    smoothScrollOptions,
   );
 
   const getScrollElement = useCallback(() => {
     if (scrollElementRef.current) return scrollElementRef.current;
-    
+
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return null;
-    
+
     const element = scrollArea.querySelector(
       "[data-radix-scroll-area-viewport]",
     ) as HTMLElement;
-    
+
     if (element) {
       scrollElementRef.current = element;
     }
-    
+
     return element;
   }, []);
 

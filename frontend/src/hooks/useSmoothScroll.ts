@@ -40,6 +40,7 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
 
       if (lerp) {
         // Lerp-based smooth scrolling
+        console.log('Using lerp-based scrolling');
         targetScrollTop.current = target;
         // Only reset current position if not already animating
         if (!isAnimating.current) {
@@ -104,6 +105,7 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
         lerpAnimate(performance.now());
       } else {
         // Easing-based smooth scrolling
+        console.log('Using easing-based scrolling with duration:', duration);
         const startScrollTop = element.scrollTop;
         const distance = target - startScrollTop;
         const startTime = performance.now();
