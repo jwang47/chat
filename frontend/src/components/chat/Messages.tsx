@@ -129,8 +129,6 @@ export const Messages = memo(
           const target = e.target as HTMLElement;
           const { scrollTop, scrollHeight, clientHeight } = target;
 
-          // Call auto-scroll handler to check if we should freeze auto-scrolling
-          handleAutoScroll();
 
           if (onScrollChange) {
             onScrollChange(scrollTop, scrollHeight, clientHeight);

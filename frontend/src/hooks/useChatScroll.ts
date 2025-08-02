@@ -169,7 +169,7 @@ export function useChatScroll(options: UseChatScrollOptions = {}) {
         return;
       }
 
-      onUserScroll(currentScrollTop);
+      onUserScroll();
 
       // Break autoscroll immediately when user scrolls up even 1px
       // But ignore upward movement if we're still within the "at bottom" range (including streaming buffer)

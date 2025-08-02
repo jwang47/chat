@@ -10,6 +10,9 @@ bun test
 
 ## General
 
+- Every once in a while, run `bun run build` and `bun run lint`
+  - This can often catch bugs!
+- Do NOT run any commands that hang, e.g. `bun dev`
 - Use `bun` for package management and scripts.
 - Keep the layout stable as possible while user interacts with the app.
 - Keep components pure

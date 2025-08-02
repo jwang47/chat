@@ -34,7 +34,6 @@ export function StreamTest() {
   const {
     scrollAreaRef,
     scrollToBottom,
-    handleScrollStart,
     setStreaming,
     shouldAutoScrollRef,
   } = useChatScroll();
@@ -208,7 +207,6 @@ export function StreamTest() {
         <div className="max-w-[960px] mx-auto p-4">
           <MessageInput
             onSendMessage={startNewStream}
-            onFocus={handleScrollStart}
             disabled={isStreaming}
             placeholder="Press enter to start a new stream..."
           />

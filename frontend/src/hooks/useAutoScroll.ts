@@ -9,11 +9,7 @@ export function useAutoScroll<T>(dep: T) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const freeze = useRef(false);
   
-  const { smoothScrollToBottom } = useSmoothScroll({
-    lerp: true,
-    lerpFactor: 0.02,
-    maxScrollPerSecond: 300
-  });
+  const { smoothScrollToBottom } = useSmoothScroll();
 
   const handleScroll = useCallback(() => {
     const el = wrapperRef.current;

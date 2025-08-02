@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Message } from "@/types/chat";
+import type { Message } from "@/types/chat";
 import {
   CommandDialog,
   CommandEmpty,
@@ -55,10 +55,11 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     // Load messages for preview
     try {
       const { historyService } = await import("@/lib/historyService");
-      const messages = await historyService.getMessagesForConversation(
+      const historyMessages = await historyService.getMessagesForConversation(
         conversationId
       );
-      setSelectedConversationMessages(messages.slice(0, 5)); // Show first 3 messages
+      const messages = historyMessages.slice(0, 5).map(historyService.convertToMessage);
+      setSelectedConversationMessages(messages);
     } catch (error) {
       console.error("Failed to load messages for preview:", error);
       setSelectedConversationMessages([]);
