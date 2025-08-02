@@ -1,14 +1,10 @@
 import { useState, useEffect } from "react";
+import { isTauri } from "@tauri-apps/api/core";
 
 export type TitleBarMode = "auto" | "enabled" | "disabled";
 
 const TITLE_BAR_MODE_KEY = "title-bar-mode";
 const TITLE_BAR_HEIGHT = 28; // Standard macOS title bar height
-
-// Check if we're running in Tauri
-const isTauri = () => {
-  return typeof window !== "undefined" && window.__TAURI__ !== undefined;
-};
 
 // Get the stored title bar mode preference
 const getStoredTitleBarMode = (): TitleBarMode => {
