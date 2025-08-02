@@ -1,4 +1,0 @@
-- convo history
-  - create a Conversation type that has multiple messages, lastModified
-  - use idb to store current + past convos
-  - show current + past convos in the sidebar by lastModified
