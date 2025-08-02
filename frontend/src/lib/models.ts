@@ -38,6 +38,14 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
     maxTokens: 256000,
   },
   {
+    id: "qwen/qwen3-coder:free",
+    name: "qwen/qwen3-coder:free",
+    provider: "openrouter",
+    displayName: "Qwen3 Coder (Free)",
+    description: "",
+    maxTokens: 262144,
+  },
+  {
     id: "openrouter/moonshotai/kimi-dev-72b:free",
     name: "moonshotai/kimi-dev-72b:free",
     provider: "openrouter",
