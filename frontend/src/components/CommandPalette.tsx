@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { Message } from "@/types/chat";
 import {
   CommandDialog,
   CommandEmpty,
@@ -23,11 +24,11 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
     string | null
   >(null);
   const [selectedConversationMessages, setSelectedConversationMessages] =
-    useState<any[]>([]);
+    useState<Message[]>([]);
   const navigate = useNavigate();
   const { newChat, conversations, loadConversation } = useChat();
 
-  const handleNewChat = () => {
+  const handleNewChat = useCallback(() => {
     if (onNewChat) {
       onNewChat();
     } else {
@@ -35,12 +36,12 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
       navigate("/");
     }
     setOpen(false);
-  };
+  }, [onNewChat, newChat, navigate]);
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = useCallback((path: string) => {
     navigate(path);
     setOpen(false);
-  };
+  }, [navigate]);
 
   const handleLoadConversation = async (conversationId: string) => {
     await loadConversation(conversationId);
@@ -118,7 +119,7 @@ export function CommandPalette({ onNewChat }: CommandPaletteProps) {
         unlisten();
       }
     };
-  }, [navigate, onNewChat]);
+  }, [navigate, onNewChat, handleNavigate, handleNewChat]);
 
   return (
     <CommandDialog

@@ -16,7 +16,7 @@ export function useChatScroll(options: UseChatScrollOptions = {}) {
 
   // Simple user scroll detection
   const lastUserScrollTime = useRef<number>(0);
-  const onUserScroll = useCallback((currentScrollTop: number) => {
+  const onUserScroll = useCallback(() => {
     lastUserScrollTime.current = performance.now();
   }, []);
 

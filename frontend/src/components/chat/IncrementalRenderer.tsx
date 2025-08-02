@@ -117,7 +117,7 @@ export function IncrementalRenderer({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [content, isStreaming, words, visibleWords, streamingSpeedRef.current]);
+  }, [content, isStreaming, words, visibleWords]);
 
   // Use displayed content for rendering to avoid re-parsing on every chunk
   return (

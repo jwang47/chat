@@ -67,7 +67,7 @@ export function StreamingText({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [content, isStreaming, wordsPerSecond, visibleWords]);
+  }, [content, isStreaming, wordsPerSecond, visibleWords, words.length]);
 
   // Reset when content is completely new (new message)
   useEffect(() => {

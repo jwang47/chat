@@ -260,7 +260,6 @@ export function useChatLogic({
       setIsTyping,
       setMessages,
       setStreamingMessageId,
-      currentConversationId,
       refreshConversations,
     ]
   );

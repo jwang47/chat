@@ -9,14 +9,14 @@ declare global {
   interface Window {
     __TAURI__?: {
       core: {
-        invoke: (command: string, args?: any) => Promise<any>;
+        invoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
       };
       event: {
         listen: (
           event: string,
-          handler: (event: any) => void
+          handler: (event: { payload: unknown }) => void
         ) => Promise<() => void>;
-        emit: (event: string, payload?: any) => Promise<void>;
+        emit: (event: string, payload?: unknown) => Promise<void>;
       };
     };
   }

@@ -131,7 +131,7 @@ export function ChatInterface() {
         scrollToBottom(true);
       }, 100);
     }
-  }, [currentConversationId, scrollToBottom]);
+  }, [currentConversationId, scrollToBottom, messages.length]);
 
   const leftPanel = (
     <div className="flex-1 mx-auto w-full relative h-full">

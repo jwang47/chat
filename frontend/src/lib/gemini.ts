@@ -105,7 +105,6 @@ export class GeminiService {
 
       const decoder = new TextDecoder();
       let buffer = "";
-      let fullContent = "";
 
       try {
         while (true) {
@@ -131,7 +130,6 @@ export class GeminiService {
                 const chunkContent =
                   parsed.candidates?.[0]?.content?.parts?.[0]?.text;
                 onChunk(chunkContent);
-                fullContent += chunkContent || "";
               } catch (e) {
                 // Ignore invalid JSON chunks
                 console.warn("Failed to parse streaming chunk:", e);
@@ -141,7 +139,6 @@ export class GeminiService {
         }
 
         onComplete();
-        // console.log("Streaming complete: ", fullContent);
       } finally {
         reader.cancel();
       }

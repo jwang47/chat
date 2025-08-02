@@ -115,7 +115,7 @@ export function StreamTest() {
     }, 5); // Stream a word every 50ms (20 words per second)
 
     streamIntervalRef.current = streamInterval;
-  }, [isStreaming, autoStream, scrollToBottom, shouldAutoScrollRef]);
+  }, [isStreaming, autoStream, shouldAutoScrollRef]);
 
   const stopStreaming = () => {
     if (streamIntervalRef.current) {
@@ -154,7 +154,7 @@ export function StreamTest() {
     if (isStreaming && shouldAutoScrollRef.current) {
       scrollToBottom(); // Use smooth scroll with streaming buffer
     }
-  }, [messages, isStreaming, scrollToBottom]);
+  }, [messages, isStreaming, scrollToBottom, shouldAutoScrollRef]);
 
   // Cleanup on unmount
   useEffect(() => {

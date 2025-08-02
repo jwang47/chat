@@ -70,7 +70,6 @@ export const Messages = memo(
 
       // Auto-scroll is now handled by ChatInterface to work with Radix ScrollArea
       const wrapperRef = useRef<HTMLDivElement>(null);
-      const handleAutoScroll = () => {};
 
       // Initialize smooth scroll for fallback methods
       const { smoothScrollToBottom, smoothScrollTo } = useSmoothScroll();
@@ -92,7 +91,7 @@ export const Messages = memo(
         }
 
         return allItems;
-      }, [messages, isTyping, isThinking, streamingMessageId]);
+      }, [messages, isTyping, streamingMessageId]);
 
       // Scroll methods for compatibility with existing interface
       const scrollToBottom = useCallback(() => {
@@ -137,7 +136,7 @@ export const Messages = memo(
             onScrollChange(scrollTop, scrollHeight, clientHeight);
           }
         },
-        [onScrollChange, handleAutoScroll],
+        [onScrollChange],
       );
 
       // Expose scroll methods to parent
