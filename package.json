@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "dexie": "^4.0.11"
-  },
-  "devDependencies": {
-    "electron": "^37.2.1",
-    "electron-builder": "^26.0.12"
-  }
-}

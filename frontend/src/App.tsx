@@ -20,6 +20,9 @@ const Settings = lazy(() =>
   import("./pages/Settings").then((module) => ({ default: module.Settings }))
 );
 const ComponentShowcase = lazy(() => import("./pages/ComponentShowcase"));
+const StreamTest = lazy(() =>
+  import("./pages/StreamTest").then((module) => ({ default: module.StreamTest }))
+);
 
 function App() {
   return (
@@ -41,6 +44,7 @@ function App() {
                 <Route index element={<ChatInterface />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="components" element={<ComponentShowcase />} />
+                <Route path="stream-test" element={<StreamTest />} />
               </Route>
             </Routes>
           </Suspense>

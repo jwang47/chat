@@ -30,12 +30,12 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
   },
   // OpenRouter models
   {
-    id: "openrouter/cypher-alpha:free",
-    name: "openrouter/cypher-alpha:free",
+    id: "openrouter/horizon-beta",
+    name: "openrouter/horizon-beta",
     provider: "openrouter",
-    displayName: "Cypher Alpha (Free)",
+    displayName: "Horizon Beta (Free)",
     description: "",
-    maxTokens: 1000000,
+    maxTokens: 256000,
   },
   {
     id: "openrouter/moonshotai/kimi-dev-72b:free",
@@ -68,7 +68,7 @@ export const getAllModels = (): ModelInfo[] => {
 };
 
 export const getModelsByProvider = (
-  provider: "openrouter" | "gemini"
+  provider: "openrouter" | "gemini",
 ): ModelInfo[] => {
   return AVAILABLE_MODELS.filter((model) => model.provider === provider);
 };
@@ -78,7 +78,7 @@ export const getModelById = (id: string): ModelInfo | undefined => {
 };
 
 export const getDefaultModel = (
-  provider?: "openrouter" | "gemini"
+  provider?: "openrouter" | "gemini",
 ): ModelInfo => {
   if (provider) {
     const models = getModelsByProvider(provider);

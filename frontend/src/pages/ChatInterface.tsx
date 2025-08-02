@@ -12,9 +12,15 @@ import { useChatLogic } from "@/hooks/useChatLogic";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ChatInterface() {
-  const { messages, isTyping, isThinking, streamingMessageId, currentConversationId } = useChat();
+  const {
+    messages,
+    isTyping,
+    isThinking,
+    streamingMessageId,
+    currentConversationId,
+  } = useChat();
   const [selectedModel, setSelectedModel] = useState<string>(
-    () => getDefaultModel().id
+    () => getDefaultModel().id,
   );
   const [expandedCodeBlock, setExpandedCodeBlock] =
     useState<ExpandedCodeBlock | null>(null);
@@ -35,9 +41,8 @@ export function ChatInterface() {
     handleScrollStart,
     shouldAutoScrollRef,
   } = useChatScroll({
-    lerp: true,
-    lerpFactor: 0.02, // Lower = smoother but more laggy, higher = snappier
-    maxScrollPerSecond: 100, // Limit fast scrolls to 300px/sec
+    lerp: false, // Use easing instead of lerp
+    maxScrollPerSecond: 100, // 800ms smooth scroll
   });
 
   // Define a type for the code block payload for clarity
@@ -70,7 +75,7 @@ export function ChatInterface() {
         return { messageId, blockIndex };
       });
     },
-    [shouldAutoScrollRef]
+    [shouldAutoScrollRef],
   );
 
   const { handleSendMessage } = useChatLogic({

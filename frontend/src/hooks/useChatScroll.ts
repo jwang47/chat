@@ -5,48 +5,58 @@ interface UseChatScrollOptions {
   lerp?: boolean;
   lerpFactor?: number;
   maxScrollPerSecond?: number;
+  duration?: number;
 }
 
 export function useChatScroll(options?: UseChatScrollOptions) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollElementRef = useRef<HTMLElement | null>(null);
   const shouldAutoScrollRef = useRef(true);
   const isUserScrollingRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const hasInitialScrolled = useRef(false);
 
   const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll(
-    options || { lerp: true, lerpFactor: 0.02, maxScrollPerSecond: 100 }
+    options || { lerp: true, lerpFactor: 0.08, maxScrollPerSecond: 1500 },
   );
 
-  const isAtBottom = useCallback(() => {
+  const getScrollElement = useCallback(() => {
+    if (scrollElementRef.current) return scrollElementRef.current;
+    
     const scrollArea = scrollAreaRef.current;
-    if (!scrollArea) return true;
-    const scrollableElement = scrollArea.querySelector(
-      "[data-radix-scroll-area-viewport]"
+    if (!scrollArea) return null;
+    
+    const element = scrollArea.querySelector(
+      "[data-radix-scroll-area-viewport]",
     ) as HTMLElement;
+    
+    if (element) {
+      scrollElementRef.current = element;
+    }
+    
+    return element;
+  }, []);
+
+  const isAtBottom = useCallback(() => {
+    const scrollableElement = getScrollElement();
     if (!scrollableElement) return true;
     const { scrollTop, scrollHeight, clientHeight } = scrollableElement;
     // Use a small threshold (5px) to account for sub-pixel rendering
     return scrollTop + clientHeight >= scrollHeight - 5;
-  }, []);
+  }, [getScrollElement]);
 
   const scrollToBottom = useCallback(
     (immediate = false) => {
-      const scrollArea = scrollAreaRef.current;
-      if (scrollArea) {
-        const scrollableElement = scrollArea.querySelector(
-          "[data-radix-scroll-area-viewport]"
-        ) as HTMLElement;
-        if (scrollableElement) {
-          if (immediate) {
-            scrollableElement.scrollTop = scrollableElement.scrollHeight;
-          } else {
-            smoothScrollToBottom(scrollableElement);
-          }
+      const scrollableElement = getScrollElement();
+      if (scrollableElement) {
+        if (immediate) {
+          scrollableElement.scrollTop = scrollableElement.scrollHeight;
+        } else {
+          smoothScrollToBottom(scrollableElement);
         }
       }
     },
-    [smoothScrollToBottom]
+    [smoothScrollToBottom, getScrollElement],
   );
 
   const handleScroll = useCallback(
@@ -79,23 +89,15 @@ export function useChatScroll(options?: UseChatScrollOptions) {
 
       lastScrollTopRef.current = currentScrollTop;
     },
-    [isAtBottom, cancelScroll, onUserScroll]
+    [isAtBottom, cancelScroll, onUserScroll],
   );
 
   const handleScrollStart = useCallback(() => {
     isUserScrollingRef.current = true;
   }, []);
 
-  // Auto-scroll effect
-  useEffect(() => {
-    if (shouldAutoScrollRef.current) {
-      const timeoutId = setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [shouldAutoScrollRef.current, scrollToBottom]); // Added shouldAutoScrollRef.current to dependencies
+  // Auto-scroll effect - removed, as scrolling should be triggered explicitly
+  // This was causing continuous scrolling due to ref in dependencies
 
   // Attach scroll listener
   useEffect(() => {
@@ -103,7 +105,7 @@ export function useChatScroll(options?: UseChatScrollOptions) {
     if (!scrollArea) return;
 
     const scrollableElement = scrollArea.querySelector(
-      "[data-radix-scroll-area-viewport]"
+      "[data-radix-scroll-area-viewport]",
     ) as HTMLElement;
     if (!scrollableElement) return;
 

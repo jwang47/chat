@@ -6,6 +6,7 @@ import {
   MoreVertical,
   Edit3,
   Pin,
+  Zap,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useCallback, useRef, useEffect } from "react";
@@ -278,6 +279,13 @@ export function AppSidebar() {
             onClick: () => navigate("/components"),
             highlightIfActive: true,
             url: "/components",
+          },
+          {
+            title: "Stream Test",
+            icon: Zap,
+            onClick: () => navigate("/stream-test"),
+            highlightIfActive: true,
+            url: "/stream-test",
           },
         ]
       : []),

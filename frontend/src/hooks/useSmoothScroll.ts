@@ -41,7 +41,10 @@ export function useSmoothScroll(options: SmoothScrollOptions = {}) {
       if (lerp) {
         // Lerp-based smooth scrolling
         targetScrollTop.current = target;
-        currentScrollTop.current = element.scrollTop;
+        // Only reset current position if not already animating
+        if (!isAnimating.current) {
+          currentScrollTop.current = element.scrollTop;
+        }
         isAnimating.current = true;
 
 
