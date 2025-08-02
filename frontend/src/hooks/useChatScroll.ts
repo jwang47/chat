@@ -52,7 +52,7 @@ export function useChatScroll(options: UseChatScrollOptions = {}) {
 
         // SmoothDamp parameters - tuned for fast, smooth streaming
         const smoothTime = 0.15; // 150ms to reach target (fast)
-        const maxSpeed = 2000; // Max pixels per second
+        const maxSpeed = 200; // Max pixels per second (reduced for smoother motion)
         const omega = 2 / smoothTime;
         const x = 0.9 * omega; // Slightly under-damped for smooth motion
         const exp = Math.exp(-x * deltaTime);

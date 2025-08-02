@@ -87,6 +87,29 @@ export function ChatInterface() {
     setStreaming(!!streamingMessageId);
   }, [streamingMessageId, setStreaming]);
 
+  // Auto-scroll when messages change during streaming (throttled)
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    if (streamingMessageId && shouldAutoScrollRef.current) {
+      // Clear existing timeout to debounce rapid calls
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      // Throttle scroll calls to avoid competing animations
+      scrollTimeoutRef.current = setTimeout(() => {
+        scrollToBottom(); // Use smooth scroll with streaming buffer
+      }, 50); // 50ms throttle
+    }
+    
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [messages, streamingMessageId, scrollToBottom, shouldAutoScrollRef]);
+
   // Scroll to bottom when conversation changes
   useEffect(() => {
     if (messages.length > 0) {

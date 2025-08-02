@@ -3,10 +3,10 @@ import { useRef, useCallback } from "react";
 export function useSmoothScroll() {
   // Hardcoded optimal settings for chat scrolling
   const duration = 300;
-  const easing = (t: number) => t * t * (3 - 2 * t); // smoothstep
+  const easing = useCallback((t: number) => t * t * (3 - 2 * t), []); // smoothstep
   const lerp = false;
   const lerpFactor = 0.08;
-  const maxScrollPerSecond = 100;
+  const maxScrollPerSecond = 800;
 
   const animationRef = useRef<number | null>(null);
   const targetScrollTop = useRef<number>(0);
@@ -25,7 +25,7 @@ export function useSmoothScroll() {
 
       // Check if user scrolled recently (within 100ms) - if so, don't start animation
       const now = performance.now();
-      if (now - lastUserScrollTime.current < 100) {
+      if (now - lastUserScrollTime.current < 50) { // Reduced throttle for streaming
         return;
       }
 
