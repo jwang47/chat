@@ -35,6 +35,7 @@ export function StreamTest() {
     scrollAreaRef,
     scrollToBottom,
     handleScrollStart,
+    setStreaming,
     shouldAutoScrollRef,
   } = useChatScroll();
 
@@ -143,10 +144,15 @@ export function StreamTest() {
     setMessages([]);
   };
 
+  // Update streaming state for scroll behavior
+  useEffect(() => {
+    setStreaming(isStreaming);
+  }, [isStreaming, setStreaming]);
+
   // Auto-scroll when messages change during streaming
   useEffect(() => {
     if (isStreaming && shouldAutoScrollRef.current) {
-      scrollToBottom(); // Use smooth scroll with fast duration
+      scrollToBottom(); // Use smooth scroll with streaming buffer
     }
   }, [messages, isStreaming, scrollToBottom]);
 

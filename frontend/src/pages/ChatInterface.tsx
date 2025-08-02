@@ -39,6 +39,7 @@ export function ChatInterface() {
     scrollAreaRef,
     scrollToBottom,
     handleScrollStart,
+    setStreaming,
     shouldAutoScrollRef,
   } = useChatScroll();
 
@@ -80,6 +81,11 @@ export function ChatInterface() {
     scrollToBottom,
     shouldAutoScrollRef,
   });
+
+  // Update streaming state for scroll behavior
+  useEffect(() => {
+    setStreaming(!!streamingMessageId);
+  }, [streamingMessageId, setStreaming]);
 
   // Scroll to bottom when conversation changes
   useEffect(() => {

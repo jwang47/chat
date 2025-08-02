@@ -8,9 +8,14 @@ export function useChatScroll() {
   const isUserScrollingRef = useRef(false);
   const lastScrollTopRef = useRef(0);
   const hasInitialScrolled = useRef(false);
+  const isStreamingRef = useRef(false);
 
-  const { smoothScrollToBottom, cancelScroll, onUserScroll } =
-    useSmoothScroll();
+  const { smoothScrollToBottom, cancelScroll, onUserScroll } = useSmoothScroll({
+    duration: 300,
+    lerp: false,
+    lerpFactor: 0.08,
+    maxScrollPerSecond: 1000,
+  });
 
   const getScrollElement = useCallback(() => {
     if (scrollElementRef.current) return scrollElementRef.current;
@@ -44,7 +49,22 @@ export function useChatScroll() {
         if (immediate) {
           scrollableElement.scrollTop = scrollableElement.scrollHeight;
         } else {
-          smoothScrollToBottom(scrollableElement);
+          // During streaming, leave a buffer to hide fast token updates
+          const streamingBuffer = isStreamingRef.current ? 100 : 0; // 100px buffer during streaming
+          const targetScroll = Math.max(
+            0,
+            scrollableElement.scrollHeight -
+              scrollableElement.clientHeight -
+              streamingBuffer,
+          );
+
+          if (streamingBuffer > 0) {
+            // Custom scroll to target position with buffer
+            scrollableElement.scrollTop = targetScroll;
+          } else {
+            // Normal smooth scroll to true bottom
+            smoothScrollToBottom(scrollableElement);
+          }
         }
       }
     },
@@ -88,6 +108,24 @@ export function useChatScroll() {
     isUserScrollingRef.current = true;
   }, []);
 
+  const setStreaming = useCallback(
+    (streaming: boolean) => {
+      const wasStreaming = isStreamingRef.current;
+      isStreamingRef.current = streaming;
+
+      // When streaming ends, scroll to true bottom with smooth animation
+      if (wasStreaming && !streaming && shouldAutoScrollRef.current) {
+        setTimeout(() => {
+          const scrollableElement = getScrollElement();
+          if (scrollableElement) {
+            smoothScrollToBottom(scrollableElement);
+          }
+        }, 100); // Small delay to let final content render
+      }
+    },
+    [getScrollElement, smoothScrollToBottom],
+  );
+
   // Auto-scroll effect - removed, as scrolling should be triggered explicitly
   // This was causing continuous scrolling due to ref in dependencies
 
@@ -120,6 +158,7 @@ export function useChatScroll() {
     scrollAreaRef,
     scrollToBottom,
     handleScrollStart,
+    setStreaming, // New method to control streaming state
     shouldAutoScrollRef, // Expose this if ChatInterface still needs to control it
     isAtBottom, // Expose this if ChatInterface still needs to check it
   };
