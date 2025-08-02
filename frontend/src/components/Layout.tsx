@@ -30,12 +30,11 @@ export function Layout() {
           <AppSidebar />
         </div>
         <SidebarInset 
-          className="min-h-screen max-h-screen overflow-y-auto animate-in fade-in duration-300"
+          className="overflow-y-auto animate-in fade-in duration-300"
           style={{ 
             paddingTop: "var(--title-bar-height)",
-            minHeight: "calc(100vh - var(--title-bar-height))",
-            maxHeight: "calc(100vh - var(--title-bar-height))",
-            transition: "padding-top 0.2s ease-out, min-height 0.2s ease-out, max-height 0.2s ease-out"
+            height: "100vh",
+            transition: "padding-top 0.2s ease-out"
           }}
         >
           <Outlet />
