@@ -371,15 +371,14 @@ export function AppSidebar() {
           opacity: { duration: 0.2 },
         }}
       >
-        {/* Header */}
-        <div className="flex flex-col gap-2 p-2">
-          <div className="flex items-center">
-            <div className="text-sidebar-foreground/70 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium"></div>
-          </div>
-        </div>
-
         {/* Content */}
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
+        <div 
+          className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto"
+          style={{
+            paddingTop: titleBarActive ? "var(--title-bar-height)" : undefined,
+            transition: "padding-top 0.2s ease-out"
+          }}
+        >
           {/* Menu Items */}
           <div className="relative flex w-full min-w-0 flex-col p-2">
             <div className="w-full text-sm">

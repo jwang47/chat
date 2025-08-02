@@ -22,13 +22,7 @@ export function Layout() {
           />
         )}
         
-        <div 
-          className="animate-in fade-in duration-300"
-          style={{ 
-            paddingTop: "var(--title-bar-height)",
-            transition: "padding-top 0.2s ease-out"
-          }}
-        >
+        <div className="animate-in fade-in duration-300">
           <AppSidebar />
         </div>
         <SidebarInset 
