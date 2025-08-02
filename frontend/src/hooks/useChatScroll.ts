@@ -13,6 +13,32 @@ export function useChatScroll() {
   const { smoothScrollTo, smoothScrollToBottom, cancelScroll, onUserScroll } =
     useSmoothScroll();
 
+  // Simple lerp-based scroll for streaming (no throttling)
+  const streamingScrollRef = useRef<number | null>(null);
+  const streamingCurrentPos = useRef<number>(0);
+  
+  const smoothStreamingScroll = useCallback((element: HTMLElement, target: number) => {
+    if (streamingScrollRef.current) {
+      cancelAnimationFrame(streamingScrollRef.current);
+    }
+    
+    streamingCurrentPos.current = element.scrollTop;
+    
+    const animate = () => {
+      const diff = target - streamingCurrentPos.current;
+      if (Math.abs(diff) < 1) {
+        element.scrollTop = target;
+        return;
+      }
+      
+      streamingCurrentPos.current += diff * 0.15; // Fast lerp for streaming
+      element.scrollTop = streamingCurrentPos.current;
+      streamingScrollRef.current = requestAnimationFrame(animate);
+    };
+    
+    streamingScrollRef.current = requestAnimationFrame(animate);
+  }, []);
+
   const getScrollElement = useCallback(() => {
     if (scrollElementRef.current) return scrollElementRef.current;
 
@@ -49,10 +75,8 @@ export function useChatScroll() {
         if (immediate) {
           scrollableElement.scrollTop = scrollableElement.scrollHeight;
         } else {
-          // During streaming, use immediate scroll to buffer position to keep up with fast content
-          // When not streaming, use smooth scroll to true bottom
           if (isStreamingRef.current) {
-            // Calculate buffered position (100px above true bottom)
+            // During streaming: use custom smooth scroll with buffer
             const streamingBuffer = 100;
             const targetScroll = Math.max(
               0,
@@ -60,16 +84,16 @@ export function useChatScroll() {
                 scrollableElement.clientHeight -
                 streamingBuffer,
             );
-            // Use immediate scroll during streaming to keep up with content
-            scrollableElement.scrollTop = targetScroll;
+            // Use streaming-specific smooth scroll (no throttling)
+            smoothStreamingScroll(scrollableElement, targetScroll);
           } else {
-            // Smooth scroll to true bottom when not streaming
+            // When not streaming: normal smooth scroll to true bottom
             smoothScrollToBottom(scrollableElement);
           }
         }
       }
     },
-    [smoothScrollTo, smoothScrollToBottom, getScrollElement],
+    [smoothScrollTo, smoothScrollToBottom, smoothStreamingScroll, getScrollElement],
   );
 
   const handleScroll = useCallback(
