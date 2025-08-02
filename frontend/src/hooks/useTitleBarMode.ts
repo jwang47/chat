@@ -53,12 +53,18 @@ export function useTitleBarMode() {
     setStoredTitleBarMode(newMode);
   };
 
-  // Apply CSS custom property for title bar height
+  // Apply CSS custom properties for title bar
   useEffect(() => {
     const height = isActive ? TITLE_BAR_HEIGHT : 0;
+    const opacity = isActive ? 1 : 0;
+    
     document.documentElement.style.setProperty(
       "--title-bar-height",
       `${height}px`
+    );
+    document.documentElement.style.setProperty(
+      "--title-bar-opacity",
+      opacity.toString()
     );
   }, [isActive]);
 

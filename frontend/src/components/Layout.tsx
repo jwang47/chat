@@ -5,22 +5,26 @@ import { CommandPalette } from "./CommandPalette";
 import { Outlet } from "react-router-dom";
 import { useTitleBarMode } from "@/hooks/useTitleBarMode";
 
-export function Layout() {
-  const { isActive } = useTitleBarMode();
+// Initialize title bar hook at app level
+function TitleBarManager() {
+  useTitleBarMode(); // Just initialize, don't use return values
+  return null;
+}
 
+export function Layout() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <TitleBarManager />
       <SidebarProvider>
-        {/* Title bar background - only visible when title bar is active */}
-        {isActive && (
-          <div 
-            className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border"
-            style={{ 
-              height: "var(--title-bar-height)",
-              transition: "opacity 0.2s ease-out"
-            }}
-          />
-        )}
+        {/* Title bar background - controlled purely by CSS */}
+        <div 
+          className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border"
+          style={{ 
+            height: "var(--title-bar-height)",
+            opacity: "var(--title-bar-opacity, 0)",
+            transition: "opacity 0.2s ease-out"
+          }}
+        />
         
         <div className="animate-in fade-in duration-300">
           <AppSidebar />

@@ -66,6 +66,48 @@ const setSidebarState = (state: Partial<SidebarState>) => {
   }
 };
 
+// Hook to get title bar menu item
+function useTitleBarMenuItem(): MenuItem {
+  const { mode, isActive, isTauri, updateMode } = useTitleBarMode();
+  
+  const handleToggle = useCallback(() => {
+    const modes: TitleBarMode[] = ["auto", "enabled", "disabled"];
+    const currentIndex = modes.indexOf(mode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    updateMode(modes[nextIndex]);
+  }, [mode, updateMode]);
+
+  const getDisplayInfo = useCallback(() => {
+    switch (mode) {
+      case "auto":
+        return {
+          title: `Title Bar: Auto ${isActive ? "(On)" : "(Off)"}`,
+          subtitle: isTauri ? "On in Tauri" : "Off in Web",
+        };
+      case "enabled":
+        return {
+          title: "Title Bar: Always On",
+          subtitle: "Forced enabled",
+        };
+      case "disabled":
+        return {
+          title: "Title Bar: Always Off",
+          subtitle: "Forced disabled",
+        };
+    }
+  }, [mode, isActive, isTauri]);
+
+  return {
+    key: "title-bar-toggle",
+    title: getDisplayInfo().title,
+    icon: Monitor,
+    onClick: handleToggle,
+    highlightIfActive: false,
+    url: "",
+    subtitle: getDisplayInfo().subtitle,
+  };
+}
+
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -77,7 +119,8 @@ export function AppSidebar() {
     currentConversationId,
   } = useChat();
 
-  const { mode: titleBarMode, isActive: titleBarActive, isTauri, updateMode: updateTitleBarMode } = useTitleBarMode();
+  const titleBarMenuItem = useTitleBarMenuItem();
+
 
   const [sidebarState, setSidebarStateLocal] = useState(getStoredSidebarState);
   const [isDragging, setIsDragging] = useState(false);
@@ -277,34 +320,6 @@ export function AppSidebar() {
     }
   }, [activeDropdown]);
 
-  // Handle title bar mode toggle
-  const handleTitleBarModeToggle = () => {
-    const modes: TitleBarMode[] = ["auto", "enabled", "disabled"];
-    const currentIndex = modes.indexOf(titleBarMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    updateTitleBarMode(modes[nextIndex]);
-  };
-
-  // Get title bar mode display info
-  const getTitleBarModeInfo = () => {
-    switch (titleBarMode) {
-      case "auto":
-        return {
-          title: `Title Bar: Auto ${titleBarActive ? "(On)" : "(Off)"}`,
-          subtitle: isTauri ? "On in Tauri" : "Off in Web",
-        };
-      case "enabled":
-        return {
-          title: "Title Bar: Always On",
-          subtitle: "Forced enabled",
-        };
-      case "disabled":
-        return {
-          title: "Title Bar: Always Off",
-          subtitle: "Forced disabled",
-        };
-    }
-  };
 
   const menuItems: MenuItem[] = [
     {
@@ -333,15 +348,7 @@ export function AppSidebar() {
             highlightIfActive: true,
             url: "/stream-test",
           },
-          {
-            key: "title-bar-toggle",
-            title: getTitleBarModeInfo().title,
-            icon: Monitor,
-            onClick: handleTitleBarModeToggle,
-            highlightIfActive: false,
-            url: "",
-            subtitle: getTitleBarModeInfo().subtitle,
-          },
+          titleBarMenuItem,
         ]
       : []),
     {
@@ -375,7 +382,7 @@ export function AppSidebar() {
         <div 
           className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto"
           style={{
-            paddingTop: titleBarActive ? "var(--title-bar-height)" : undefined,
+            paddingTop: "var(--title-bar-height)",
             transition: "padding-top 0.2s ease-out"
           }}
         >
