@@ -6,7 +6,7 @@ export function useSmoothScroll() {
   const easing = (t: number) => t * t * (3 - 2 * t); // smoothstep
   const lerp = false;
   const lerpFactor = 0.08;
-  const maxScrollPerSecond = 1200;
+  const maxScrollPerSecond = 100;
 
   const animationRef = useRef<number | null>(null);
   const targetScrollTop = useRef<number>(0);
