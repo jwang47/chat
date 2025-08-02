@@ -89,20 +89,20 @@ export function ChatInterface() {
 
   // Auto-scroll when messages change during streaming (throttled)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   useEffect(() => {
     if (streamingMessageId && shouldAutoScrollRef.current) {
       // Clear existing timeout to debounce rapid calls
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
-      
+
       // Throttle scroll calls to avoid competing animations
       scrollTimeoutRef.current = setTimeout(() => {
         scrollToBottom(); // Use smooth scroll with streaming buffer
       }, 50); // 50ms throttle
     }
-    
+
     return () => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
@@ -129,13 +129,13 @@ export function ChatInterface() {
       </div>
       <ScrollArea
         ref={scrollAreaRef}
-        className={`h-full overflow-y-auto p-4 pt-16 pb-18 ${
+        className={`h-full overflow-y-auto pt-16 pb-20 ${
           messages.length === 0 ? "hidden" : ""
         }`}
         onTouchStart={handleScrollStart}
         onMouseDown={handleScrollStart}
       >
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto px-4">
           <Messages
             ref={messagesComponentRef}
             messages={messages}
